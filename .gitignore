@@ -1,0 +1,5 @@
+# Measurement data never enters git — libraries are release assets only.
+*.zip
+*.pedalscope
+*.pedalscope/
+.DS_Store
