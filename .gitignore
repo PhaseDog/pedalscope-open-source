@@ -3,3 +3,9 @@
 *.pedalscope
 *.pedalscope/
 .DS_Store
+
+# methods/ is a snapshot of the private Docs/Methods; these are local build products.
+methods/.venv/
+methods/py/__pycache__/
+methods/py/.pytest_cache/
+methods/tex/build/
