@@ -1,0 +1,55 @@
+% Shared preamble for methods.tex (the technical document) and explained.tex
+% (its lay companion). Engine: pdflatex (pinned in latexmkrc).
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+% The kernel's own labels reach the generated fragments verbatim (a
+% product recipe is "2f1−f2" with a true minus sign, a pitch is "C♯4"), so
+% the characters the shipped vocabulary uses are declared once here for
+% both documents rather than rewritten by a generator.
+\DeclareUnicodeCharacter{2212}{\ensuremath{-}}
+\DeclareUnicodeCharacter{266F}{\ensuremath{\sharp}}
+\DeclareUnicodeCharacter{266D}{\ensuremath{\flat}}
+\DeclareUnicodeCharacter{2026}{\dots}
+\DeclareUnicodeCharacter{2248}{\ensuremath{\approx}}
+\DeclareUnicodeCharacter{2264}{\ensuremath{\le}}
+\DeclareUnicodeCharacter{2265}{\ensuremath{\ge}}
+\DeclareUnicodeCharacter{00D7}{\ensuremath{\times}}
+\DeclareUnicodeCharacter{03B4}{\ensuremath{\delta}}
+\usepackage{lmodern}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs,longtable,array}
+\usepackage{graphicx}
+\usepackage[margin=24mm]{geometry}
+\usepackage{xcolor}
+\usepackage[numbers,sort&compress]{natbib}
+% hyperref: every cross-reference, citation, glossary term, TOC entry and
+% URL in the PDF is a clickable link; bookmarks mirror the sections.
+\usepackage[colorlinks=true,linkcolor=blue!50!black,citecolor=blue!50!black,
+  urlcolor=blue!50!black,linktoc=all,bookmarksnumbered=true,bookmarksopen=true,
+  pdfusetitle,pdfpagemode=UseOutlines,breaklinks=true]{hyperref}
+\hypersetup{pdfsubject={PedalScope measurement methods},pdfkeywords={swept sine, harmonic distortion, parity, reproducibility}}
+% DOIs in the bibliography resolve as links (plainnat emits \doi{...}).
+\providecommand{\doi}{}\renewcommand{\doi}[1]{\href{https://doi.org/#1}{doi:#1}}
+\newcommand{\repo}{\url{https://github.com/PhaseDog/PedalScope}}
+% The licence line both documents print in their front matter (ruled
+% 2026-09-08): the holder as the app's About view states it, CC BY 4.0 for
+% the document, MIT for the scripts, the mark excluded. One definition, two
+% uses; the two URLs are hyperref links (the pdf job's census counts them).
+\newcommand{\licenceline}{%
+  \begin{center}\small
+  \copyright{} 2026 Richard Hoge. This document is licensed under CC~BY~4.0
+  (\url{https://creativecommons.org/licenses/by/4.0/}). The accompanying
+  scripts are licensed under MIT
+  (\url{https://opensource.org/license/mit}). PedalScope and its mark are
+  not part of either grant.
+  \end{center}}
+\graphicspath{{../figures/}{../../UserGuide/assets/}}
+\setlength{\parskip}{4pt plus 1pt}
+\setlength{\parindent}{0pt}
+% Terms: \term{key} prints the glossary name and links to the entry;
+% \termas{key}{text} links custom text. Both are what the terms guard scans.
+\input{../generated/terms-macros.tex}
+\newcommand{\term}[1]{\hyperlink{term:#1}{\csname term@#1\endcsname}}
+\newcommand{\termas}[2]{\hyperlink{term:#1}{#2}}
+\newcommand{\code}[1]{\texttt{#1}}
+\newcommand{\dB}{\ensuremath{\,\mathrm{dB}}}

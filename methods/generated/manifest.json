@@ -1,0 +1,1575 @@
+{
+  "chordIMD" : {
+    "analyzer" : {
+      "aboveFloorDB" : 12.041199826559248,
+      "aboveFloorRule" : "aboveFloor = amplitude > 4·localFloor (a literal 4×, i.e. 20·log10 4 = 12.04 dB), decided at capture and FROZEN in the payload",
+      "ccifRule" : "ccifPercent = percent(Σ amplitude² over (−1,1), (2,−1), (−1,2), tone1Amplitude² + tone2Amplitude²)",
+      "defaultMaxOrder" : 7,
+      "detectorRule" : "coherenceDetector: for each tone bin, the raw magnitude at every offset in detectorOffsets on both sides (inside the spectrum, bin 0 excluded) and the local floor beside the tone (localFloor at the tone bin, the same exclusion) — stored in the payload with the analysis length",
+      "enumerationRule" : "pass 1 walks order = 2…maxOrder, m = −order…order, n = +(order − |m|) then −(order − |m|): f = m·f1 + n·f2 inside the limits, bin = round(f/binWidth); a bin already claimed by a lower order (or by the tones or DC, which seed the set) is skipped — so on a degenerate lattice the LOWEST order keeps a shared bin (the seen rule) and a clean lattice enumerates Σ_{k=2..maxOrder} 2k recipes",
+      "floorExclusionRule" : "floorExclusion = every enumerated product bin ∪ {bin(f1), bin(f2), 0} ∪ the coherence detector's bins beside each tone (detectorBins) — removed BY NAME, so the neighbourhood is product-free at any spacing and a detector bin is never judged against a floor that contains one",
+      "levelRule" : "level(f) = magnitude[round(f/binWidth)], the ONE bin, exactly (0 outside 0 < b < N/2 + 1) — #247: no reach to neighbours (the old max of three added a measured 4.2 dB mean bias at the noise)",
+      "localFloorInnerOffsetBins" : 3,
+      "localFloorMinimumOffsets" : 12,
+      "localFloorRule" : "localFloor(bin) = the median of magnitude over localFloorNeighbourhood(bin) — offsets inner…outer both sides of the bin, inside the spectrum, excluding every bin in floorExclusion; outer = max(localFloorMinimumOffsets, round(localFloorSpanHz/binWidth)); the median is sorted[count/2] (the upper middle for an even count); 0 when the neighbourhood is empty",
+      "localFloorSpanHz" : 8.7890625,
+      "nyquistLimitRule" : "a recipe is enumerated only while binWidth < m·f1 + n·f2 < 0.95·fs/2 (a literal)",
+      "percentageRule" : "percent(P, R) = 100·√(P/R) for R > 0 else 0, over the products inside the integration band (audibleBand), each product's power its amplitude squared",
+      "recipeCount" : 54,
+      "seenRule" : "seen = {bin(f1), bin(f2), 0} before the walk; each enumerated bin joins it; a recipe whose bin is in the set is dropped",
+      "smpteRule" : "smptePercent = percent(Σ amplitude² over recipes with |n| = 1, m ≠ 0, |m| ≤ 4, tone2Amplitude²)",
+      "sortRule" : "products are stored sorted by descending amplitude",
+      "toneRule" : "tone1Amplitude = level(f1), tone2Amplitude = level(f2); the dBc reference is the larger of the two",
+      "totalRule" : "totalPercent = percent(Σ amplitude² over every in-band product with aboveFloor, tone1Amplitude² + tone2Amplitude²)"
+    },
+    "audibleBand" : {
+      "highHz" : 20000,
+      "lowHz" : 20
+    },
+    "coherence" : {
+      "ceilingRule" : "productCeilingDBc(d, g) = 20·log10((g − d)/d) − productSkirtMarginDB (−∞ when g − d ≤ 0): the loudest product level at which the bin d beside a tone still reads the tone's skirt rather than a product's, the product assumed at the nearest lattice point g − d bins the other way, both skirts falling as 1/(πm)",
+      "clearanceRule" : "clearanceBins = latticeSpacingBins − the widest stored offset; the lattice is CLEAR when clearanceBins ≥ minimumClearanceBins — necessary, not sufficient",
+      "detectorBinsRule" : "detectorBins(toneBin) = {toneBin ± d : d in detectorOffsets}, keeping toneBin − d > 0 and toneBin + d < binCount, sorted",
+      "detectorOffsets" : [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "excessRule" : "excessOverThresholdDB = worstExcessOverFloorDB − thresholdOverFloorDB; exceedsThreshold when > 0",
+      "expectedNoiseExcessDB" : {
+        "36" : 7.7978516284475985,
+        "4" : 4.779333015792743
+      },
+      "figureRule" : "the figure is the worst (loudest) sideband over the READ sidebands of each pair — those at readable offsets — falling back to every sideband only when the level rule withheld every offset (then the reading does not interpret); worstExcessOverFloorDB = max over pairs of (that pair's worst read sideband − its floor)",
+      "interpretRule" : "interprets(subject): a floor exists to read against AND (the lattice is clear and at least one offset is readable — a statement about the played tones whatever was in the loop — OR the lattice is not clear and the subject is loopOnly)",
+      "legacyRule" : "a payload with no detector (every capture before #254 B2c) reads the stored products inside a played tone's neighbourhood (never DC's) as the sidebands, against the CAPTURE floor, at the derived length — nil = no claim; a pre-#229 record has none and reads absence",
+      "maximumDetectorOffsetBins" : 9,
+      "minimumClearanceBins" : 3,
+      "noiseExcessRule" : "expectedNoiseExcessDB(N) = 10·log10(H_N / ln 2), H_N the harmonic number: the expected worst power of N exponential bins over the median — the clean-noise reference printed beside the excess for the reading's own read-bin count (4 legacy, 36 detector); a reference, never a bar",
+      "offsetsRule" : "maximumDetectorOffsetBins = resolvableSpacingBins − 1 − minimumClearanceBins (the widest offset that stays the inner-edge clearance from the nearest lattice point on the narrowest resolvable lattice); detectorOffsets = 1…that, every offset read (odd and even — an even-offset wander is invisible to an odd-only detector); minimumClearanceBins = localFloorInnerOffsetBins",
+      "pairDifferenceRule" : "the two pairs are EQUAL under amplitude modulation or frequency-independent phase modulation and SEPARATED by 20·log10(f2/f1) under a shared fractional frequency wander — a quantity the sentence states; no verdict is drawn from it",
+      "pairRule" : "a pair's level = the mean of its two innermost sidebands' dB (the nearest below and above the tone); pairDifferenceDB = f2 pair − f1 pair; expectedPairDifferenceDB = 20·log10(f2/f1)",
+      "precedenceRule" : "the detector wins when the payload carries one; the legacy path runs only when it is absent",
+      "productCeilingsDBcAtStandardSpacing" : [
+        16.444385894678387,
+        10,
+        6.032646924663329,
+        3.0642502755068755,
+        0.6295783408451037,
+        -1.4806253545543786,
+        -3.3801356191715115,
+        -5.139239026274111,
+        -6.805983142649763
+      ],
+      "productSkirtMarginDB" : 10,
+      "readableRule" : "readableOffsets: on a detector reading with a clear lattice, the stored offsets d with loudestProductDBc ≤ productCeilingDBc(d, g) (no product ⇒ −∞ ⇒ every offset); on the legacy stored-products path, or an uncleared lattice, every stored offset",
+      "spacingRule" : "latticeSpacingBins = gcd(round(f1/binWidth), round(f2/binWidth)) on the detector's own stored length",
+      "storedReadRule" : "each detector bin's level = 20·log10(amplitude / max(tone1Amplitude, tone2Amplitude)); the pair's floor = the stored local floor beside its tone in the same unit; a bin with amplitude 0 is dropped",
+      "thresholdOverFloorDB" : 30,
+      "verdictRule" : "isNotTrustworthy(subject) = interprets(subject) AND exceedsThreshold: the played notes did not stay stationary across the window, from some source in the chain the reading cannot name, so the floor and every product level are not trustworthy; nothing is refused or re-run",
+      "wordingRule" : "the ONE line, in both registers (loop only / device in the loop): interpreting — 'Coherence check (<subject>): <offsets phrase> <worst> at worst, <excess> dB above <floor phrase> — the worst of N bins, where noise alone would put it ≈ <expected> dB over — and <|over bar|> dB over|under the 30.0 dB bar: <verdict sentence>.'; no floor — 'Coherence bins (<subject>): … this capture observed no floor to read them against, so nothing is concluded.'; every offset withheld — 'Coherence bins (not readable beside <owner> products): … <owner> products are louder than the played tones (<its> loudest reads <L>, against a <ceiling at the nearest offset> ceiling for even the nearest bin), so the bins beside the notes would read the products' coherence, not the tones'; this reading does not interpret.'; an uncleared lattice with a device — 'Coherence bins (not attributable at this lattice): … this lattice puts a product within <clearance> of them (spacing g), so with a pedal in the loop they hold its own products inseparably from any loss of coherence, so this number is a reading of neither.'; then the pair sentence; dB figures print to one decimal with −0.0 normalised to 0.0"
+    },
+    "driveLevel" : {
+      "combinedRule" : "combinedPeak = amplitude1 + amplitude2 (the design peak); tonesAreEqual when the two stored amplitudes are bit-equal",
+      "dbfsRule" : "dBFS = 20·log10(max(amplitude, 1e−12)), each figure one decimal of its own exact value",
+      "lineRule" : "'Drive level: <combined> dBFS combined peak[ (<volts> pk at the pedal input)] — two equal tones at <tone> dBFS each[ (<volts> pk)].' for equal tones; unequal tones are quoted one by one",
+      "significantDigits" : 3,
+      "voltsRule" : "volts only with a stored factor: per-tone volts = VoltsLabel.quoted(amplitude·factor) (rounded to the label's three significant figures), combined = VoltsLabel.quoted(tone1 + tone2) of the ALREADY-ROUNDED per-tone figures; the label prints %.3g V / mV / µV"
+    },
+    "harmonicRoles" : {
+      "addedColourSemitoneClasses" : [
+        2,
+        3,
+        4,
+        5,
+        7,
+        8,
+        9
+      ],
+      "betweenFretsRule" : "isBetweenFrets = |deviation| > pitchToleranceCents — the point sits further than the tolerance from every 12-TET pitch",
+      "boundRule" : "isLowerBound when the role holds an unread product — a refused recipe was never looked at, so the sum is a lower bound on the role's energy; an absent product contributes nothing and is bounded by the page's floor",
+      "dedupRule" : "one count per analysis bin (a duplicated bin keeps its louder read)",
+      "enumerationRule" : "enumeration = the stored recipe count and the orders they span — stated so absence from the list is distinguishable from silence",
+      "fiveLimitRule" : "an integer is 5-limit when every prime factor is 2, 3 or 5",
+      "gridIndexRule" : "gridIndex(m, n) = m·a + n·b at the just ratio a : b — exact in integers; the grid's fundamental is lowerNominalHz / a",
+      "intervalRecoveryRule" : "the request is not on the record: the nominal notes are the nearest 12-TET pitches to the delivered tones (MusicalPitch.describe), unambiguous inside the ±15 ¢ snap budget; the interval is then interval(lowerNote, upperNote) at the notes' exact 12-TET frequencies — the one place the delivered frequencies are consulted, and only to name the notes",
+      "justRatioRule" : "justRatio(cents): over a = 1…justRatioSearchLimit and b = a…16·a, both 5-limit, gcd(a, b) = 1, with |1200·log2(b/a) − cents| ≤ pitchToleranceCents: the smallest a + b, ties to the nearer cents; nil when none",
+      "justRatioSearchLimit" : 32,
+      "pitchClassRule" : "for index k > 0: cents = (1200·log2(oddPart(k)/oddPart(a))) mod 1200 (octave reduction by stripping factors of two, exact in integers); semitone = round(cents/100), deviation = cents − 100·semitone, semitoneClass = semitone mod 12 (0 for a root-class point); a point is a chord tone when oddPart(k) equals oddPart(a) or oddPart(b)",
+      "pitchToleranceCents" : 20,
+      "placementRule" : "harmonicRoles(N): products loudest first; each is read through resolution(...) at the record's verdict and placed at gridIndex; a product with no role, or reading outOfBand, or outside the integration band is unplaced; present products count ONCE per analysis bin (bin = round(f/binWidth), loudest kept), absent ones are listed under their role, cannotResolve ones are its unread",
+      "roleRule" : "a chord tone at k ≥ a is thickening, below a it is subOctave; otherwise betweenFrets (|deviation| > pitchToleranceCents) is clash; otherwise a class in addedColourSemitoneClasses is addedColour, anything else clash; k ≤ 0 has no role (unplaced)",
+      "sumRule" : "a role's levelDBc = 10·log10(Σ 10^(levelDBc/10)) over its counted products (nil when none) — the power sum in dBc re the louder played note, so a tile is the dB sum of its listed constituents",
+      "tables" : [
+        {
+          "gridHz" : 55,
+          "lowerNominalHz" : 110,
+          "lowerNote" : "A2",
+          "points" : [
+            {
+              "centsFromPitch" : 0,
+              "frequencyHz" : 55,
+              "index" : 1,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "A1",
+              "role" : "subOctave",
+              "semitoneClass" : 0
+            },
+            {
+              "centsFromPitch" : 0,
+              "frequencyHz" : 110,
+              "index" : 2,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "A2",
+              "role" : "thickening",
+              "semitoneClass" : 0
+            },
+            {
+              "centsFromPitch" : 1.9550008653872908,
+              "frequencyHz" : 165,
+              "index" : 3,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "E3",
+              "role" : "thickening",
+              "semitoneClass" : 7
+            },
+            {
+              "centsFromPitch" : 0,
+              "frequencyHz" : 220,
+              "index" : 4,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "A3",
+              "role" : "thickening",
+              "semitoneClass" : 0
+            },
+            {
+              "centsFromPitch" : -13.686286135165204,
+              "frequencyHz" : 275,
+              "index" : 5,
+              "isBetweenFrets" : false,
+              "isChordTone" : false,
+              "pitchName" : "C♯4",
+              "role" : "addedColour",
+              "semitoneClass" : 4
+            },
+            {
+              "centsFromPitch" : 1.9550008653880013,
+              "frequencyHz" : 330,
+              "index" : 6,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "E4",
+              "role" : "thickening",
+              "semitoneClass" : 7
+            },
+            {
+              "centsFromPitch" : -31.174093530874813,
+              "frequencyHz" : 385,
+              "index" : 7,
+              "isBetweenFrets" : true,
+              "isChordTone" : false,
+              "pitchName" : "G4",
+              "role" : "clash",
+              "semitoneClass" : 10
+            },
+            {
+              "centsFromPitch" : 0,
+              "frequencyHz" : 440,
+              "index" : 8,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "A4",
+              "role" : "thickening",
+              "semitoneClass" : 0
+            },
+            {
+              "centsFromPitch" : 3.9100017307745816,
+              "frequencyHz" : 495,
+              "index" : 9,
+              "isBetweenFrets" : false,
+              "isChordTone" : false,
+              "pitchName" : "B4",
+              "role" : "addedColour",
+              "semitoneClass" : 2
+            },
+            {
+              "centsFromPitch" : -13.686286135165915,
+              "frequencyHz" : 550,
+              "index" : 10,
+              "isBetweenFrets" : false,
+              "isChordTone" : false,
+              "pitchName" : "C♯5",
+              "role" : "addedColour",
+              "semitoneClass" : 4
+            },
+            {
+              "centsFromPitch" : -48.68205763524287,
+              "frequencyHz" : 605,
+              "index" : 11,
+              "isBetweenFrets" : true,
+              "isChordTone" : false,
+              "pitchName" : "D♯5",
+              "role" : "clash",
+              "semitoneClass" : 6
+            },
+            {
+              "centsFromPitch" : 1.9550008653880013,
+              "frequencyHz" : 660,
+              "index" : 12,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "E5",
+              "role" : "thickening",
+              "semitoneClass" : 7
+            },
+            {
+              "centsFromPitch" : 40.52766176931044,
+              "frequencyHz" : 715,
+              "index" : 13,
+              "isBetweenFrets" : true,
+              "isChordTone" : false,
+              "pitchName" : "F5",
+              "role" : "clash",
+              "semitoneClass" : 8
+            }
+          ],
+          "ratioA" : 2,
+          "ratioB" : 3,
+          "upperNominalHz" : 164.81377845643496,
+          "upperNote" : "E3"
+        },
+        {
+          "gridHz" : 27.5,
+          "lowerNominalHz" : 110,
+          "lowerNote" : "A2",
+          "points" : [
+            {
+              "centsFromPitch" : 0,
+              "frequencyHz" : 27.5,
+              "index" : 1,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "A0",
+              "role" : "subOctave",
+              "semitoneClass" : 0
+            },
+            {
+              "centsFromPitch" : 0,
+              "frequencyHz" : 55,
+              "index" : 2,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "A1",
+              "role" : "subOctave",
+              "semitoneClass" : 0
+            },
+            {
+              "centsFromPitch" : 1.9550008653872908,
+              "frequencyHz" : 82.5,
+              "index" : 3,
+              "isBetweenFrets" : false,
+              "isChordTone" : false,
+              "pitchName" : "E2",
+              "role" : "addedColour",
+              "semitoneClass" : 7
+            },
+            {
+              "centsFromPitch" : 0,
+              "frequencyHz" : 110,
+              "index" : 4,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "A2",
+              "role" : "thickening",
+              "semitoneClass" : 0
+            },
+            {
+              "centsFromPitch" : -13.686286135165204,
+              "frequencyHz" : 137.5,
+              "index" : 5,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "C♯3",
+              "role" : "thickening",
+              "semitoneClass" : 4
+            },
+            {
+              "centsFromPitch" : 1.9550008653872908,
+              "frequencyHz" : 165,
+              "index" : 6,
+              "isBetweenFrets" : false,
+              "isChordTone" : false,
+              "pitchName" : "E3",
+              "role" : "addedColour",
+              "semitoneClass" : 7
+            },
+            {
+              "centsFromPitch" : -31.174093530874813,
+              "frequencyHz" : 192.5,
+              "index" : 7,
+              "isBetweenFrets" : true,
+              "isChordTone" : false,
+              "pitchName" : "G3",
+              "role" : "clash",
+              "semitoneClass" : 10
+            },
+            {
+              "centsFromPitch" : 0,
+              "frequencyHz" : 220,
+              "index" : 8,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "A3",
+              "role" : "thickening",
+              "semitoneClass" : 0
+            },
+            {
+              "centsFromPitch" : 3.9100017307745816,
+              "frequencyHz" : 247.5,
+              "index" : 9,
+              "isBetweenFrets" : false,
+              "isChordTone" : false,
+              "pitchName" : "B3",
+              "role" : "addedColour",
+              "semitoneClass" : 2
+            },
+            {
+              "centsFromPitch" : -13.686286135165204,
+              "frequencyHz" : 275,
+              "index" : 10,
+              "isBetweenFrets" : false,
+              "isChordTone" : true,
+              "pitchName" : "C♯4",
+              "role" : "thickening",
+              "semitoneClass" : 4
+            },
+            {
+              "centsFromPitch" : -48.68205763524358,
+              "frequencyHz" : 302.5,
+              "index" : 11,
+              "isBetweenFrets" : true,
+              "isChordTone" : false,
+              "pitchName" : "D♯4",
+              "role" : "clash",
+              "semitoneClass" : 6
+            },
+            {
+              "centsFromPitch" : 1.9550008653880013,
+              "frequencyHz" : 330,
+              "index" : 12,
+              "isBetweenFrets" : false,
+              "isChordTone" : false,
+              "pitchName" : "E4",
+              "role" : "addedColour",
+              "semitoneClass" : 7
+            },
+            {
+              "centsFromPitch" : 40.52766176931044,
+              "frequencyHz" : 357.5,
+              "index" : 13,
+              "isBetweenFrets" : true,
+              "isChordTone" : false,
+              "pitchName" : "F4",
+              "role" : "clash",
+              "semitoneClass" : 8
+            }
+          ],
+          "ratioA" : 4,
+          "ratioB" : 5,
+          "upperNominalHz" : 138.59131548843604,
+          "upperNote" : "C♯3"
+        }
+      ]
+    },
+    "lattice" : {
+      "candidateOrderRule" : "the g-search's order: wider spacing g first, then the smaller max(|c1|, |c2|), then (k1, k2) ascending — reproducible run to run",
+      "collisionRule" : "with tone bins k1 = g·a, k2 = g·b (gcd(a, b) = 1) every product m·f1 + n·f2 lands on bin m·k1 + n·k2 EXACTLY; two products (m,n), (m′,n′) share a bin iff (m−m′)·a = −(n−n′)·b, which forces |m−m′| + |n−n′| = |k|·(a+b) for some k ≠ 0, so no two products of order ≤ maxOrder collide once a + b ≥ 2·maxOrder + 1 = minimumReducedSum (tight: 1:13 collides at order 7, every ratio at 15 is clean)",
+      "contestRule" : "read time: a stored product's bin is CONTESTED when another enumerated recipe (order 2…max(defaultMaxOrder, the record's own highest order)) has |m′·f1 + n′·f2 − f| ≤ 1e−6·max(f, 1) — exact on any snapped lattice; the contestants are listed ascending in order and the label is the enumeration's tie-break, not a fact",
+      "deliveredLatticeRule" : "deliveredLattice(f1, f2): the smallest a ≤ maximumDeliveredDenominator with |a·f2 − round(a·f2/f1)·f1| ≤ 1e−6·max(f1, f2) gives the reduced ratio a : b and the grid f1/a — the lattice a stored record was delivered on",
+      "maxOrder" : 7,
+      "maximumDeliveredDenominator" : 8192,
+      "minimumReducedSum" : 15,
+      "placementRule" : "placement(a, b, grid): over g from max(minimumSpacing, ceil(f1/(2^(budget/1200)·a·binWidth))) to floor(f1·2^(budget/1200)/(a·binWidth)), skipping g·b·binWidth ≥ fs/2, keep the g with both c1 = 1200·log2(g·a·binWidth/f1) and c2 = 1200·log2(g·b·binWidth/f2) inside ±budget and the smallest max(|c1|, |c2|) (ties to the smaller g); nil when no multiple fits",
+      "ratioObjectiveRule" : "the ratio objective, in order: the smaller |1200·log2(b/a) − requested| (ties within 1e−9); then the wider minimum spacing over the grids; then the smaller a + b; then (a, b) ascending",
+      "ratioSearchRule" : "ratioSearch: requested = 1200·log2(f2/f1); a runs 1…floor(f1·2^(budget/1200)/(bar·coarsestBinWidth)); for each a, b runs max(a+1, ceil(a·r/ρ²))…floor(a·r·ρ²) with r = f2/f1, ρ = 2^(budget/1200), keeping gcd(a, b) = 1 and a + b ≥ minimumReducedSum; a candidate survives when placement(a, b, grid, minimumSpacing: bar) exists on EVERY standard grid; the survivors are sorted by the objective and the first is chosen",
+      "refusalRule" : "a refusal names the requested pitches, the length and bin width, the budget, and the widest lattice the budget reached with its reduced ratio, spacing and sum against minimumReducedSum — thrown by signal() before anything plays",
+      "requestedIntervalCents" : 700,
+      "resolvableSpacingBins" : 13,
+      "runnerUpA" : 105,
+      "runnerUpB" : 157,
+      "runnerUpIntervalCents" : 696.4502774706052,
+      "searchRadiusRule" : "searchRadiusBins(f, binWidth, budget) = ceil(f·(2^(budget/1200) − 1)/binWidth): the bins the cents budget spans upward from the tone (the wider side)",
+      "snapSearchRule" : "snapSearch(grid): FIRST the standard ratio is placed on this grid by placement(a, b, grid, minimumSpacing: 1) — any spacing, keeping the interval outranks clearing the bar (tiers standard_resolvable / standard_degraded); ONLY when no multiple fits the budget does the g-search run over every pair (k1, k2) with k1 in naive1 ± radius1, k2 in naive2 ± radius2, k2 > k1, k2·binWidth < fs/2, both tones inside the budget: the best candidate with reduced sum ≥ minimumReducedSum AND g ≥ bar (resolvable), else the best with reduced sum ≥ minimumReducedSum (degraded), else refusal; the widest pair in budget regardless of degeneracy is kept for the refusal sentence",
+      "snaps" : [
+        {
+          "binIndex1" : 2616,
+          "binIndex2" : 3912,
+          "cents1" : 0.33377676680195606,
+          "cents2" : -3.013627888216619,
+          "fftLength" : 1048576,
+          "intervalCents" : 696.6525953449813,
+          "label" : "fifth 44100 Hz",
+          "maxOrderHeadroom" : 135,
+          "nonDegenerateCount" : 3061,
+          "reducedA" : 109,
+          "reducedB" : 163,
+          "reducedSum" : 272,
+          "resolvableCount" : 121,
+          "sampleRateHz" : 44100,
+          "searchRadius1" : 23,
+          "searchRadius2" : 35,
+          "spacing" : 24,
+          "tier" : "standard_resolvable"
+        },
+        {
+          "binIndex1" : 2398,
+          "binIndex2" : 3586,
+          "cents1" : -3.596381672631317,
+          "cents2" : -6.943786327649813,
+          "fftLength" : 1048576,
+          "intervalCents" : 696.6525953449813,
+          "label" : "fifth 48000 Hz",
+          "maxOrderHeadroom" : 135,
+          "nonDegenerateCount" : 2523,
+          "reducedA" : 109,
+          "reducedB" : 163,
+          "reducedSum" : 272,
+          "resolvableCount" : 109,
+          "sampleRateHz" : 48000,
+          "searchRadius1" : 21,
+          "searchRadius2" : 32,
+          "spacing" : 22,
+          "tier" : "standard_resolvable"
+        },
+        {
+          "binIndex1" : 2616,
+          "binIndex2" : 3912,
+          "cents1" : 0.33377676680195606,
+          "cents2" : -3.013627888216619,
+          "fftLength" : 2097152,
+          "intervalCents" : 696.6525953449813,
+          "label" : "fifth 88200 Hz",
+          "maxOrderHeadroom" : 135,
+          "nonDegenerateCount" : 3061,
+          "reducedA" : 109,
+          "reducedB" : 163,
+          "reducedSum" : 272,
+          "resolvableCount" : 121,
+          "sampleRateHz" : 88200,
+          "searchRadius1" : 23,
+          "searchRadius2" : 35,
+          "spacing" : 24,
+          "tier" : "standard_resolvable"
+        },
+        {
+          "binIndex1" : 2398,
+          "binIndex2" : 3586,
+          "cents1" : -3.596381672631317,
+          "cents2" : -6.943786327649813,
+          "fftLength" : 2097152,
+          "intervalCents" : 696.6525953449813,
+          "label" : "fifth 96000 Hz",
+          "maxOrderHeadroom" : 135,
+          "nonDegenerateCount" : 2523,
+          "reducedA" : 109,
+          "reducedB" : 163,
+          "reducedSum" : 272,
+          "resolvableCount" : 109,
+          "sampleRateHz" : 96000,
+          "searchRadius1" : 21,
+          "searchRadius2" : 32,
+          "spacing" : 22,
+          "tier" : "standard_resolvable"
+        },
+        {
+          "binIndex1" : 150,
+          "binIndex2" : 226,
+          "cents1" : -2.1530851746425674,
+          "cents2" : 7.479241128525564,
+          "fftLength" : 131072,
+          "intervalCents" : 709.632326303168,
+          "label" : "fifth corpus 96000 Hz / 2^17",
+          "maxOrderHeadroom" : 93,
+          "nonDegenerateCount" : 8,
+          "reducedA" : 75,
+          "reducedB" : 113,
+          "reducedSum" : 188,
+          "resolvableCount" : 0,
+          "sampleRateHz" : 96000,
+          "searchRadius1" : 2,
+          "searchRadius2" : 2,
+          "spacing" : 2,
+          "tier" : "degraded"
+        },
+        {
+          "binIndex1" : 75,
+          "binIndex2" : 113,
+          "cents1" : -2.1530851746425674,
+          "cents2" : 7.479241128525564,
+          "fftLength" : 32768,
+          "intervalCents" : 709.632326303168,
+          "label" : "fifth Simulation Mode interactive",
+          "maxOrderHeadroom" : 93,
+          "nonDegenerateCount" : 2,
+          "reducedA" : 75,
+          "reducedB" : 113,
+          "reducedSum" : 188,
+          "resolvableCount" : 0,
+          "sampleRateHz" : 48000,
+          "searchRadius1" : 1,
+          "searchRadius2" : 1,
+          "spacing" : 1,
+          "tier" : "degraded"
+        },
+        {
+          "binIndex1" : 2400,
+          "binIndex2" : 3024,
+          "cents1" : -2.1530851746425674,
+          "cents2" : -2.0446047044123876,
+          "fftLength" : 2097152,
+          "intervalCents" : 400.1084804702302,
+          "label" : "major third A2 + C#3 96000 Hz",
+          "maxOrderHeadroom" : 56,
+          "nonDegenerateCount" : 2127,
+          "reducedA" : 50,
+          "reducedB" : 63,
+          "reducedSum" : 113,
+          "resolvableCount" : 99,
+          "sampleRateHz" : 96000,
+          "searchRadius1" : 21,
+          "searchRadius2" : 27,
+          "spacing" : 48,
+          "tier" : "standard_resolvable"
+        }
+      ],
+      "spacingRule" : "minimumSpacingBins = gcd(k1, k2): the integer combinations of k1 and k2 are exactly the multiples of g (Bézout), so two distinct lattice points differ by at least g bins and some pair by exactly g",
+      "standardIntervalCents" : 696.6525953449813,
+      "standardRatioA" : 109,
+      "standardRatioB" : 163,
+      "standardSurvivorCount" : 26,
+      "tierRule" : "tier = standard_resolvable when the standard placement's g ≥ bar, standard_degraded when it exists under the bar, resolvable / degraded for the g-search's two outcomes, refused when nothing clears exact degeneracy; maxOrderHeadroom = (reducedSum − 1)/2",
+      "toneCentsBudget" : 15
+    },
+    "pitch" : {
+      "describeRule" : "describe(f): midi = 69 + 12·log2(f/440); nearest = round(midi) (half away from zero) in 0…127; name = noteNames[nearest mod 12] + (nearest/12 − 1); cents = 100·(midi − nearest)",
+      "labelRule" : "label(f) = '<name> %+.0f¢' (cents rounded to whole cents with the sign kept)",
+      "noteNames" : [
+        "C",
+        "C♯",
+        "D",
+        "D♯",
+        "E",
+        "F",
+        "F♯",
+        "G",
+        "G♯",
+        "A",
+        "A♯",
+        "B"
+      ],
+      "parseRule" : "frequency(note): a letter C…G, an optional # / ♯ / b / ♭, an octave integer; midi = 12·(octave + 1) + {C:0, D:2, E:4, F:5, G:7, A:9, B:11} + accidental, in 0…127",
+      "referenceRule" : "A4 = 440 Hz (a literal), twelve-tone equal temperament: frequency(midi) = 440·2^((midi − 69)/12)"
+    },
+    "plan" : {
+      "analysisLengthRule" : "analysisLength(signal, ceiling): starting at the ceiling, halve while length > minimumFFTLength and window(signal, length).overrunsFade — the longest power of two no longer than the ceiling whose segment fits inside the steady state; the plan snaps the stimulus to THIS length and analyzes at it",
+      "analyzeRule" : "analyze(captured, signal, latencySamples) = IMDAnalyzer.analyze(captured:signal:latencySamples:fftLength: analysisLength(signal, ceiling)) — the app's one call on the hardware and plugin paths and the Simulation snapshot (ModelMeasurer.Quality.full reads standardFFTLength)",
+      "defaultNote1" : "A2",
+      "defaultNote2" : "E3",
+      "defaultPeakAmplitude" : 0.05,
+      "defaultPeakDBFS" : -26.020599913279625,
+      "fallbackGrids" : [
+        {
+          "binWidthHz" : 0.732421875,
+          "fadeOverrun" : -19200,
+          "fftLength" : 131072,
+          "label" : "corpus (pre-#254 B2a) 96000 Hz / 2^17",
+          "localFloorOuterOffsetBins" : 12,
+          "sampleRateHz" : 96000,
+          "steadyEnd" : 174272,
+          "stimulusDurationS" : 1.8653333333333333,
+          "stimulusSamples" : 179072,
+          "windowLength" : 131072,
+          "windowStart" : 24000
+        },
+        {
+          "binWidthHz" : 1.46484375,
+          "fadeOverrun" : -9600,
+          "fftLength" : 32768,
+          "label" : "Simulation Mode interactive 48000 Hz / 2^15",
+          "localFloorOuterOffsetBins" : 12,
+          "sampleRateHz" : 48000,
+          "steadyEnd" : 54368,
+          "stimulusDurationS" : 1.1826666666666668,
+          "stimulusSamples" : 56768,
+          "windowLength" : 32768,
+          "windowStart" : 12000
+        }
+      ],
+      "intendedLengthRule" : "intendedAnalysisLength(fs, ceiling) = min(ceiling, 2^round(log2(standardFFTLength·fs/standardSampleRate))): the standard is a window DURATION (2^21 samples at 96 kHz), and each rate takes the power of two nearest it — 2^21 at 96 and 88.2 kHz, 2^20 at 48 and 44.1 kHz, so the four rates form two grid classes",
+      "minimumFFTLength" : 4096,
+      "retiredModesRule" : "IMDPlan.Mode has ONE case since #261: the SMPTE (110 + 1320 Hz at 4:1) and CCIF (987 + 1108 Hz) modes were retired — a standard is never nudged, and neither could be given a clean lattice; the stored smptePercent/ccifPercent keys are capture-time sums over recipe sets and are unrelated to the modes",
+      "signalRule" : "signal() = interval(note1, note2, peakAmplitude, fs, stimulusDuration).snapped(toFFTLength: analysisLength, clearingLatticeDegeneracyUpTo: defaultMaxOrder, standardGrids: standardGrids); a refusal (bad notes, or an interval whose lattice cannot escape degeneracy inside the cents budget at this length) is thrown BEFORE anything plays, never the naive round",
+      "simulationRule" : "Simulation Mode's interactive quality analyzes at ModelMeasurer.Quality.interactive's own length and rate (the fallback grid above); its lattice is the g-search's degraded tier and the read-time refusals carry it",
+      "standardFFTLength" : 2097152,
+      "standardGrids" : [
+        {
+          "binWidthHz" : 0.042057037353515625,
+          "fadeOverrun" : -8820,
+          "fftLength" : 1048576,
+          "label" : "standard 44100 Hz",
+          "localFloorOuterOffsetBins" : 209,
+          "sampleRateHz" : 44100,
+          "steadyEnd" : 1068421,
+          "stimulusDurationS" : 24.277233560090703,
+          "stimulusSamples" : 1070626,
+          "windowLength" : 1048576,
+          "windowStart" : 11025
+        },
+        {
+          "binWidthHz" : 0.0457763671875,
+          "fadeOverrun" : -9600,
+          "fftLength" : 1048576,
+          "label" : "standard 48000 Hz",
+          "localFloorOuterOffsetBins" : 192,
+          "sampleRateHz" : 48000,
+          "steadyEnd" : 1070176,
+          "stimulusDurationS" : 22.345333333333333,
+          "stimulusSamples" : 1072576,
+          "windowLength" : 1048576,
+          "windowStart" : 12000
+        },
+        {
+          "binWidthHz" : 0.042057037353515625,
+          "fadeOverrun" : -17640,
+          "fftLength" : 2097152,
+          "label" : "standard 88200 Hz",
+          "localFloorOuterOffsetBins" : 209,
+          "sampleRateHz" : 88200,
+          "steadyEnd" : 2136842,
+          "stimulusDurationS" : 24.277233560090703,
+          "stimulusSamples" : 2141252,
+          "windowLength" : 2097152,
+          "windowStart" : 22050
+        },
+        {
+          "binWidthHz" : 0.0457763671875,
+          "fadeOverrun" : -19200,
+          "fftLength" : 2097152,
+          "label" : "standard 96000 Hz",
+          "localFloorOuterOffsetBins" : 192,
+          "sampleRateHz" : 96000,
+          "steadyEnd" : 2140352,
+          "stimulusDurationS" : 22.345333333333333,
+          "stimulusSamples" : 2145152,
+          "windowLength" : 2097152,
+          "windowStart" : 24000
+        }
+      ],
+      "standardSampleRateHz" : 96000,
+      "stimulusDurationRule" : "stimulusDuration(fs, ceiling) = fade + settle + intendedAnalysisLength(fs, ceiling)/fs + fade + settle — derived from the window it must hold, never set by hand",
+      "supportedSampleRatesHz" : [
+        44100,
+        48000,
+        88200,
+        96000
+      ]
+    },
+    "resolution" : {
+      "absentRule" : "absent(boundDBc = the product's own levelDBc): nothing here above the bin's own read — a bound, never a value",
+      "analyzerWindowRule" : "analyzerSeparationDB(N) = fadeContaminatedSeparationDB when window(signal, N).overrunsFade, else nil (no bound asserted); depth = 20·log10(loudestComponentAmplitude / amplitude) with the loudest component the max over the tone reference and every product",
+      "bandRule" : "bandPosition: the product's stored frequency against the stored integrationBand's LOW edge; outOfBand when strictly below it; nil without a band (no claim); the high edge has no rule",
+      "captureFloorRule" : "captureFloor(N): nil when fewer than minimumFloorSamples noise reads; else levelDBc = noiseReads[count/2] (the upper median), sampleCount = count, spreadDB = noiseReads.last − median",
+      "depthRule" : "depthBelowLoudestDB = 20·log10(loudestComponentAmplitude / amplitude)",
+      "derivedPercentagesRule" : "derivedPercentages(N): the analyzer's three sums re-run over the stored products with the recipes inside a reference bin's neighbourhood left out (the band as stored; every product on a legacy record with no band); excluded lists only what the band would have counted",
+      "fadeContaminatedSeparationDB" : 32.5,
+      "floorAbsenceRule" : "floorAbsence, only when the floor is nil: everyProductResolved when unresolved + outOfBand = 0, else tooFewEmptyBins(read = noise reads, needed = minimumFloorSamples, refused = unresolved + outOfBand)",
+      "floorLineRule" : "the ONE floor sentence: with a floor 'Measurement floor for this capture: %.1f dBc — the median of %d bins that hold no product, scattering %.1f dB above it.'; every product resolved: 'This capture resolved every product it enumerated, so it never read empty spectrum — no measurement floor to quote.'; too few: 'No measurement floor to quote: N product(s) could not be read, and only R bin(s) of empty spectrum remain(s) — fewer than the K a floor needs.' (pronouns follow the counts)",
+      "floorNotObservedRule" : "floorNotObserved(sampleCount = the noise reads) when the product is not aboveFloor and the capture has no floor",
+      "levelRule" : "levelDBc(product) = 20·log10(amplitude / max(tone1Amplitude, tone2Amplitude)); nil when either is 0",
+      "localFloorSeparationDB" : 12.041199826559248,
+      "louderNeighbourRule" : "louderNeighbour(product, N): among products with aboveFloor and a strictly larger amplitude, those whose bin sits within playedToneNeighbourhoodBins (≠ 0) of the product's bin; the nearest, ties to the louder; nil when the length is unknown",
+      "loudestProductRule" : "loudestProduct = the max of levelDBc over every stored product — never loudestComponentAmplitude, which folds the tone in",
+      "loudestSkirtRule" : "loudestSkirt(N) exists when the loudest PRODUCT stands above 0 dBc AND the coherence reading is absent or does not interpret for the device subject: it carries g = gcd(bin(f1), bin(f2)) and rectangularSkirtDepthDB(g); a product deeper below the loudest product than that depth is underLoudestSkirt",
+      "minimumFloorSamples" : 3,
+      "noiseReadsRule" : "noiseReads(N) = levelDBc of every product that is NOT aboveFloor and is NOT refused on lattice position (inside a reference bin's neighbourhood), NOT under the band's low edge and has NO louder neighbour — sorted ascending; bins under the loudest skirt deliberately stay in",
+      "partnerRule" : "partnerCheck(product): order-2 products only, neither operand contested; the partner is the other order-2 product of the same kind (second harmonic {2f1, 2f2} or cross {f1+f2, f2−f1}); measuredOffsetDB = 20·log10(amplitude / partner amplitude); expectedOffsetDB = 0 for the cross pair, ±2·(20·log10(tone1Amplitude/tone2Amplitude)) for the second-harmonic pair (+ from 2f1's side); excessDB = measured − expected; inconsistent when excessDB > partnerToleranceDB — only EXCESS flags",
+      "partnerToleranceDB" : 6,
+      "playedToneNeighbourhoodBins" : 12,
+      "precedenceRule" : "reading, in order: (1) inside a reference bin's neighbourhood (a played tone or DC) → cannotResolve(nearPlayedTone); (2) under the integration band's low edge → outOfBand; (3) no level → cannotResolve(unmeasurable); (4) a louder neighbour inside the neighbourhood → cannotResolve(nearLouderProduct); (5) depth below the loudest component ≥ the analyzer's separation bound (only when the window overruns the fade) → cannotResolve(analyzerWindow); (6) under the loudest product's skirt (only when the record-level condition holds) → cannotResolve(underLoudestSkirt); (7) aboveFloor → present(margin over the capture floor, nil without one); (8) no capture floor → cannotResolve(floorNotObserved); (9) otherwise absent(bound = the bin's own level)",
+      "presentRule" : "present(marginDB) with marginDB = levelDBc − captureFloor.levelDBc, nil when no floor was observed",
+      "proximityRule" : "playedToneProximity(product, N): bin = round(f/binWidth); the offset to bin(f1), to bin(f2) and to bin 0; the nearest wins (ties in the order f1, f2, DC); inside the neighbourhood when |offset| ≤ playedToneNeighbourhoodBins; nil when the length is unknown (no claim)",
+      "resolvedProductsRule" : "resolvedProducts(N) = the present products, loudest first — what every ranking, sum and summary sentence draws on",
+      "skirtDepthDBAtStandardSpacing" : {
+        "22" : 36.7914510703268,
+        "24" : 37.547222288114796
+      },
+      "skirtRule" : "rectangularSkirtDepthDB(m) = 20·log10(π·max(1, m)): a rectangular window's sidelobe envelope at a whole-bin offset m, as a depth below its component",
+      "unmeasurableRule" : "unmeasurable when the product's amplitude or the tone reference is 0",
+      "verdictRule" : "resolutionVerdict(N): the capture floor, the analyzer bound, the length, and the counts of present / absent / unresolved (cannotResolve) / outOfBand readings, plus the noise-read count; resolvedNothing when present = 0"
+    },
+    "shippedConstants" : {
+      "IMDAnalysis.secondOrderPartnerToleranceDB" : 6,
+      "IMDAnalyzer.defaultMaxOrder" : 7,
+      "IMDAnalyzer.localFloorInnerOffsetBins" : 3,
+      "IMDAnalyzer.localFloorMinimumOffsets" : 12,
+      "IMDAnalyzer.localFloorSpanHz" : 8.7890625,
+      "IMDAnalyzer.settleDuration" : 0.2,
+      "IMDCoherence.detectorOffsets" : [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "IMDCoherence.maximumDetectorOffsetBins" : 9,
+      "IMDCoherence.minimumClearanceBins" : 3,
+      "IMDCoherence.productSkirtMarginDB" : 10,
+      "IMDCoherence.thresholdOverFloorDB" : 30,
+      "IMDHarmonicRoles.addedColourSemitoneClasses" : [
+        2,
+        3,
+        4,
+        5,
+        7,
+        8,
+        9
+      ],
+      "IMDHarmonicRoles.justRatioSearchLimit" : 32,
+      "IMDHarmonicRoles.pitchToleranceCents" : 20,
+      "IMDLattice.maximumDeliveredDenominator" : 8192,
+      "IMDLattice.resolvableSpacingBins" : 13,
+      "IMDLattice.toneCentsBudget" : 15,
+      "IMDPlan.minimumFFTLength" : 4096,
+      "IMDPlan.standardFFTLength" : 2097152,
+      "IMDPlan.standardGrids" : [
+        "44100/1048576",
+        "48000/1048576",
+        "88200/2097152",
+        "96000/2097152"
+      ],
+      "IMDPlan.standardSampleRate" : 96000,
+      "IMDPlan.supportedSampleRates" : [
+        44100,
+        48000,
+        88200,
+        96000
+      ],
+      "IMDResolution.fadeContaminatedSeparationDB" : 32.5,
+      "IMDResolution.localFloorSeparationDB" : 12.041199826559248,
+      "IMDResolution.minimumFloorSamples" : 3,
+      "IMDResolution.playedToneNeighbourhoodBins" : 12,
+      "IMDSynthTruth.quadraturePoints" : 4096,
+      "MetricBand.audible" : {
+        "highHz" : 20000,
+        "lowHz" : 20
+      },
+      "MusicalPitch.noteNames" : [
+        "C",
+        "C♯",
+        "D",
+        "D♯",
+        "E",
+        "F",
+        "F♯",
+        "G",
+        "G♯",
+        "A",
+        "A♯",
+        "B"
+      ],
+      "TwoToneSignal.defaultFadeDuration" : 0.05,
+      "VoltsLabel.significantDigits" : 3
+    },
+    "stimulus" : {
+      "amplitudeRule" : "interval(note1, note2, peakAmplitude): a1 = a2 = peakAmplitude/2 at the two notes' 12-TET frequencies — the design peak is their sum",
+      "fadeS" : 0.05,
+      "plainSnapRule" : "snapped(toFFTLength: N): each tone moved to round(f·N/fs)·fs/N — the nearest bin centre; the shipped snap replaces this with the lattice search (lattice.snapSearchRule)",
+      "sampleCountRule" : "sampleCount = round(duration·fs)",
+      "toneRule" : "x[i] = a1·sin(2π·f1·i/fs) + a2·sin(2π·f2·i/fs) for i = 0…sampleCount−1, the first int(fade·fs) samples scaled by ½(1 − cos(π·i/N_fade)) and the last by ½(1 − cos(π·(sampleCount−1−i)/N_fade))"
+    },
+    "synthesis" : {
+      "closedFormRule" : "the polynomial x + a2·x² + a3·x³ in two sines: tone1 = A1 + a3·(¾A1³ + 3/2·A1A2²), tone2 likewise; 2f1: |a2|A1²/2, 2f2: |a2|A2²/2, f1±f2: |a2|A1A2; 3f1: |a3|A1³/4, 3f2: |a3|A2³/4, 2f1±f2: ¾|a3|A1²A2, 2f2±f1: ¾|a3|A1A2²; every other recipe 0 — printed beside the quadrature",
+      "deviceRule" : "pre-filter → ReferenceNonlinearity (per sample at fs) → post-filter → optional sign flip, the transfer oracle's TransferDevice; the filters are the shipped Biquad lowPass / highPass (transferCurve.biquad's rules)",
+      "errorRule" : "truth_dbc = 20·log10(truth / truth tone reference) (−inf for an empty recipe); err_db = 20·log10(amplitude / truth), nan where either is 0",
+      "expectedNoiseRule" : "expected per-bin median of the noise = 2·σ·√(ln 2 / N) (a bin's magnitude is Rayleigh with parameter σ√(N/2) before the 2/N scale), in dBc re the truth tone reference; broadband = σ re the same; the distance between them = 10·log10(N / 4·ln 2)",
+      "latencyErrorRule" : "--latency-error D analyzes with latencySamples = D against a capture rendered at zero latency: the segment starts D samples later; every product magnitude is unchanged (a shift is a phase on a bin-centred lattice) and the overrun is invariant",
+      "noiseRule" : "white Gaussian noise at the requested rms (linear re full scale) added to every sample of the capture — synth's generator (harmonicDistortion.synthesis.noiseGenerator)",
+      "noiseSeedRule" : "the stream's seed is synth's first-repeat seed: the first output of a SplitMix64 seeded with the base seed (repeatSeed(base, 0))",
+      "phantomRule" : "phantom: the two tones at the delivered amplitudes plus each listed product as A·sin((m·ω1 + n·ω2)·i) with A = 10^(dBc/20)·max(a1, a2), the stimulus's own fades — every listed product on its exact bin, every unlisted one exactly zero, no aliasing",
+      "postFilterRule" : "a post-filter multiplies each product's truth by |H_post(m·f1 + n·f2)| and each tone's by |H_post(f_i)|",
+      "preFilterRule" : "a pre-filter changes the drive at the device: A_i = a_i·|H_pre(f_i)| (Biquad.magnitude(at:)); the truth is the torus integral at those amplitudes",
+      "quadraturePoints" : 4096,
+      "quadratureRule" : "separably: for each θ2 row the inner sums g_m(k) = Σ_j f_jk·e^{−imθ_j} for m = 0…maxOrder (g_{−m} = conj g_m), then c(m,n) = (1/P²)·Σ_k g_m(k)·e^{−inθ_k}",
+      "readTimeRule" : "after IMDPlan.analyze, exactly the stored-record reader's calls at the derived length: resolutions, resolutionVerdict, captureFloor, floorLine, derivedPercentages, harmonicRoles, coherenceReading in both registers, partnerCheck and binContest per product, loudestSkirt, productsNearLouderProducts, FeatureExtractor.extract(imd:) in both registers",
+      "rowOrderRule" : "one row per enumerated recipe in the analyzer's enumeration order: ascending order, then m ascending, then the positive n first",
+      "stimulusRule" : "IMDPlan.signal() at the requested notes, amplitude, rate and ceiling — the plan's own snap through ratioSearch and snapSearch — rendered through the source at zero latency and analyzed by IMDPlan.analyze at analysisLength(signal, ceiling); a refused lattice is printed with its numbers and no rows",
+      "toneTruthRule" : "the tone bins' truth is 2|c(1,0)| and 2|c(0,1)| — the linear response plus the odd-order self-terms (a cubic's ¾·a3·A1³ + 3/2·a3·A1·A2² on tone 1); the truth dBc reference is the larger",
+      "truthRule" : "device: amplitude(m, n) = 2·|c(m,n)|·|H_post(m·f1 + n·f2)| with c(m,n) = (1/P²)·Σ_j Σ_k f(A1·sin θ_j + A2·sin θ_k)·e^{−i(m·θ_j + n·θ_k)}, θ_j = 2πj/P, A_i = a_i·|H_pre(f_i)| — the trapezoid rule on the torus, exact for the periodic integrand's orders below P − maxOrder; identity: the tones at a_i·|H_post(f_i)| and every product 0; phantom: the listed levels and 0 elsewhere",
+      "wanderRule" : "wander(delta, cycles, ramp): both tones' phases become 2π·f·t + (delta·f/fm)·sin(2π·fm·t) with fm = cycles·fs/N (a shared fractional frequency wander of delta at cycles per window), or 2π·f·(t + delta·(t²/(2T) − t/2)) when ramp — IMDCoherenceTests.wandering, byte-equal, guarded"
+    },
+    "window" : {
+      "latencyRule" : "latency shifts start and steadyEnd alike, so a window that fits at zero latency fits at any; the tones are bin-centred, so a shift is a phase and no magnitude moves",
+      "overrunRule" : "fadeOverrun = start + N − steadyEnd; overrunsFade when > 0 — the segment would swallow the fade-out, periodicity breaks and the Dirichlet skirt floods the low bins (#191); the plan's analysisLengthRule keeps it ≤ 0 on every capture the app makes",
+      "scaleRule" : "magnitude[b] = |DFT_N(segment)[b]|·2/min(N, samples captured), b = 0…N/2: the amplitude of a bin-centred cosine reads as its amplitude",
+      "settleS" : 0.2,
+      "windowRule" : "window(signal, latency, N): start = latency + int(fade·fs) + int(settle·fs); length = N; steadyEnd = latency + round(duration·fs) − int(fade·fs); the segment is the N captured samples from start, RECTANGULARLY windowed (no taper: both tones complete whole cycles in N samples, so a tone leaks into no other bin), zero-padded when the capture ends first"
+    }
+  },
+  "generator" : "analysisdump manifest",
+  "harmonicDistortion" : {
+    "audibleBand" : {
+      "highHz" : 20000,
+      "lowHz" : 20
+    },
+    "averaging" : {
+      "acquisitionRule" : "N back-to-back sweeps in ONE capture, separated by the inter-sweep gap; each repeat's analysis window is the sweep plus that gap, so N = 1 is byte-identical to the single-pass stimulus",
+      "analysisWindowSamples" : 1002564,
+      "combineRule" : "each repeat is analyzed separately, derotated against the first by its fitted delay, then the complex spectra are averaged bin-wise (arithmetic mean of real and imaginary parts); averagedSweepCount = N",
+      "defaultAverages" : 4,
+      "delayCoarseStepSamples" : 0.02,
+      "delayFineStepSamples" : 0.0005,
+      "delayFitRule" : "one δ for all orders: terms z = H_repeat·conj(H_ref) at fitSampleCount log-spaced fundamentals per order from 1.5·f1 to that order's maxValidFundamental, rounded to bins (duplicates dropped, zero terms dropped); score(δ) = Re Σ z·exp(j·ω·δ), ω = 2π·bin·binWidth/fs; coarse scan over ±delayScanLimit in coarseStep, then a fine scan ±coarseStep around the best in fineStep; the maximum is δ",
+      "delayFitSampleCount" : 48,
+      "delayScanLimitSamples" : 8,
+      "derotationRule" : "H_k(f) ← H_k(f)·exp(+j·2π·f·δ/fs) on each order's own output-frequency axis (unity magnitude)",
+      "gapSamples" : 48000,
+      "interSweepGapS" : 0.5,
+      "magnitudeAveragingForbidden" : "magnitudes are never averaged (B7): N reads of a biased quantity average to the same biased number more precisely",
+      "offeredAverages" : [
+        1,
+        2,
+        4,
+        8
+      ],
+      "prerollS" : 0.5,
+      "tailS" : 1
+    },
+    "deconvolution" : {
+      "fftLengthForSynthCapture" : 1048576,
+      "fftLengthRule" : "the smallest power of two ≥ captureSamples + int(0.1·fs); the capture is zero-padded to it",
+      "inverseFilter" : "X̃⁻¹(f) = 2·√(f/L)·exp(j·(π/4 − 2π·f·L·(1 − ln(f/f1)))) — the stationary-phase closed form (Novák 2015), applied to the capture's DFT bin by bin for 0 < f < fs/2 and mirrored to the negative bins",
+      "pulseAmplitudeRule" : "a unit-gain linear device yields a pulse of height A at index 0; harmonic k's pulse sits at circular index N − round(Δt_k·fs)",
+      "scaleRule" : "h = IDFT(Y·X̃⁻¹) / (N·fs): 1/N is the inverse DFT's scaling, 1/fs converts the DFT of a sampled signal to the continuous-time spectrum the analytic inverse expects",
+      "taperHighHz" : 20,
+      "taperLowHz" : 10,
+      "taperRule" : "zero below f1/2; raised cosine ½(1 − cos(π·(f − f1/2)/(f1/2))) from f1/2 to f1; unity above f1; DC and Nyquist bins zero"
+    },
+    "extraction" : {
+      "emittedOrders" : [
+        1,
+        2,
+        3,
+        4,
+        5,
+        6,
+        7,
+        8,
+        9
+      ],
+      "halfWidthRule" : "cap = min(M/2 − 1, maxWindowHalfWidth·fs) samples; left_k (earlier in time, toward order k+1) = min(cap, (Δt_{k+1} − Δt_k)·fs / 2); right_k (toward order k−1) = min(cap, (Δt_k − Δt_{k−1})·fs / 2), except right_1 = cap; both truncated to integers",
+      "harmonicCount" : 9,
+      "maxWindowHalfWidthS" : 0.2,
+      "minimumHalfWidthRule" : "an order is emitted only while left_k ≥ 16 and right_k ≥ 16 samples; the analyzer stops at the first order that fails (a literal inside SweptSineAnalyzer — pinned by SynthDumpGuardTests.windowDumpPredictsWhichOrdersTheAnalyzerEmits, not by the constants census)",
+      "normalizationRule" : "H_k = DFT_M(segment)[0…M/2] / A — input-normalized: a unit-gain linear device reads H_1 = 1",
+      "pulsePositionRule" : "the windowed segment is placed with the pulse at circular index 0 of an M-point buffer (segment[(o + M) mod M] = h[(position + o) mod N]·w(o)) so the spectrum needs no linear-phase correction; position = 0 for order 1, N − round(Δt_k·fs) otherwise",
+      "responseFFTLength" : 65536,
+      "windowShape" : "for offset o in [−left, right): w(o) = ½(1 + cos(π·|o|/left)) for o < 0, ½(1 + cos(π·o/right)) for o ≥ 0 — unity at the pulse, zero at each edge",
+      "windows" : [
+        {
+          "delayS" : 0,
+          "order" : 1,
+          "windowS" : 0.4
+        },
+        {
+          "delayS" : 1.1090354888959124,
+          "order" : 2,
+          "windowS" : 0.4
+        },
+        {
+          "delayS" : 1.7577796618689758,
+          "order" : 3,
+          "windowS" : 0.4
+        },
+        {
+          "delayS" : 2.218070977791825,
+          "order" : 4,
+          "windowS" : 0.3785104166666667
+        },
+        {
+          "delayS" : 2.5751006598945607,
+          "order" : 5,
+          "windowS" : 0.32436458333333335
+        },
+        {
+          "delayS" : 2.866815150764888,
+          "order" : 6,
+          "windowS" : 0.26916666666666667
+        },
+        {
+          "delayS" : 3.113456238488501,
+          "order" : 7,
+          "windowS" : 0.23013541666666668
+        },
+        {
+          "delayS" : 3.3271064666877375,
+          "order" : 8,
+          "windowS" : 0.20104166666666667
+        },
+        {
+          "delayS" : 3.5155593237379517,
+          "order" : 9,
+          "windowS" : 0.1785
+        }
+      ]
+    },
+    "floor" : {
+      "atFloorEpsilonDB" : 0.1,
+      "averagingAdjustmentDB" : {
+        "1" : -0,
+        "2" : -3.010299956639812,
+        "4" : -6.020599913279624,
+        "8" : -9.030899869919436
+      },
+      "averagingAppliesRule" : "the averaging term applies only where the residual is noise: isValid(k, f0) and not below the fade-in edge; elsewhere 0",
+      "averagingRule" : "averagingAdjustmentDB = −10·log10(N / N_cal) for a record that combined N sweeps (absent count = 1 sweep, never the default)",
+      "calibrationAnalyzedSweepCount" : 1,
+      "compositionRule" : "floorDB(f0, k) = max(stamp + drive + averaging, operative) + perTrack; the applicable floor is always the LARGER bound",
+      "driveRule" : "driveAdjustmentDB = calibration sweep level (dBFS) − 20·log10(record sweep amplitude)",
+      "operativeRule" : "a plugin record's #122 operative floor enters as 20·log10(√2·rms) − 20·log10(A) − chainGainDB, never averaging-adjusted",
+      "perTrackRule" : "perTrackAdjustmentDB = −10·log10(N_tracks), N_tracks = the analysis's harmonic count with order ≥ 2 (at least 1)",
+      "stampInterpolation" : "the stamp in dB, linear on the (log f, dB) plane between its points, clamped to the end values; on the per-harmonic path each point is read verbatim (medianPoints = 1)",
+      "stampReadMedianPoints" : 1,
+      "stampSource" : "the embedded calibration's thdFloor curve (pooled THD of the loopback vs frequency, one sweep) — the rig's own floor; absent on a raw or simulated analysis, in which case the §11 distance keeps its fixed clamp"
+    },
+    "fundamentalPresence" : {
+      "analyzerSeparationDB" : 76,
+      "loudestOrderRule" : "the loudest of H_1(f0) and every H_k(k·f0), k ≥ 2, whose k·f0 is in the audible band and passes isValid(k, f0)",
+      "readingRule" : "depth = loudestOrderDB − fundamentalDB; absent when depth ≥ analyzerSeparationDB, or when the fundamental's margin over the rig floor is ≤ 0; present otherwise; undetermined without both reads",
+      "verdictGridPoints" : 128,
+      "verdictRule" : "isFundamentalAbsent when MORE than half of the evaluable readings on the thdCurve grid are absent; medianDepthDB over the absent ones"
+    },
+    "grids" : {
+      "distance" : {
+        "highHz" : 10000,
+        "highRule" : "min(f2_a, f2_b), clamped so the top point never lands an ulp above f2",
+        "lowHz" : 30.000000000000004,
+        "lowRule" : "1.5 × max(f1_a, f1_b) — the first fraction of the sweep is fade-in/settling territory",
+        "pointCount" : 96,
+        "requestedPointCount" : 96,
+        "spacing" : "logarithmic (equal ratios), end points inclusive"
+      },
+      "distanceAppliesShaping" : true,
+      "distanceFloorClampDB" : -80,
+      "distanceGate" : "a grid point contributes for order k only when isValid(k, f0) holds on BOTH records and k·f0 lies in the audible band; the per-point diff is max(dB_a, jointFloor) − max(dB_b, jointFloor)",
+      "distanceMinimumResolvedShare" : 0.2,
+      "synth" : {
+        "highHz" : 10000,
+        "highRule" : "f2",
+        "lowHz" : 30.000000000000004,
+        "lowRule" : "1.5 × f1",
+        "pointCount" : 48,
+        "requestedPointCount" : 48,
+        "spacing" : "logarithmic (equal ratios), end points inclusive"
+      },
+      "thdCurve" : {
+        "highHz" : 9552.890793764878,
+        "highRule" : "f2 requested; a point whose exp(ln f2) lands an ulp above f2 fails thd()'s band guard and is dropped, so the delivered count can be one short (unlike the distance grid, which clamps)",
+        "lowHz" : 30.000000000000004,
+        "lowRule" : "1.5 × f1",
+        "pointCount" : 127,
+        "requestedPointCount" : 128,
+        "spacing" : "logarithmic (equal ratios), end points inclusive"
+      }
+    },
+    "reading" : {
+      "binCount" : 32769,
+      "binWidthHz" : 1.46484375,
+      "interpolation" : "|H_k(f)| is linearly interpolated between the two adjacent bins of the magnitude (bin i = f/binWidth truncated); nil outside [0, Nyquist]",
+      "magnitudeDBRule" : "mag_db = 20·log10 |H_k(k·f0)|; a zero magnitude reads −inf",
+      "outputFrequencyRule" : "H_k lives on the OUTPUT frequency axis: the k-th harmonic of a fundamental f0 is read at f = k·f0"
+    },
+    "shaping" : {
+      "coherenceToSNR" : [
+        {
+          "x" : 0.1889,
+          "y" : -30
+        },
+        {
+          "x" : 0.3033,
+          "y" : -6
+        },
+        {
+          "x" : 0.4457,
+          "y" : -3
+        },
+        {
+          "x" : 0.6265,
+          "y" : 0
+        },
+        {
+          "x" : 0.7848,
+          "y" : 3
+        },
+        {
+          "x" : 0.8868,
+          "y" : 6
+        },
+        {
+          "x" : 0.942,
+          "y" : 9
+        },
+        {
+          "x" : 0.9706,
+          "y" : 12
+        },
+        {
+          "x" : 0.9851,
+          "y" : 15
+        },
+        {
+          "x" : 0.9953,
+          "y" : 20
+        },
+        {
+          "x" : 0.9985,
+          "y" : 25
+        },
+        {
+          "x" : 0.999527,
+          "y" : 30
+        },
+        {
+          "x" : 0.999881,
+          "y" : 36
+        },
+        {
+          "x" : 0.99997,
+          "y" : 42
+        },
+        {
+          "x" : 0.999995,
+          "y" : 50
+        }
+      ],
+      "decorrelationFactor" : 2.4,
+      "interpolation" : "piecewise linear between table points; clamped to the end values outside the table",
+      "lagRule" : "lag = max(1, ceil(decorrelationFactor / (T_k · binWidth))) bins, T_k = extractionWindowSeconds(k)",
+      "shapedSNRDB" : 6,
+      "snrToScatter" : [
+        {
+          "x" : -30,
+          "y" : 5.570043140052503
+        },
+        {
+          "x" : -6,
+          "y" : 5.52
+        },
+        {
+          "x" : -3,
+          "y" : 5.4141
+        },
+        {
+          "x" : 0,
+          "y" : 5.0947
+        },
+        {
+          "x" : 3,
+          "y" : 4.3746
+        },
+        {
+          "x" : 4.5,
+          "y" : 3.8522
+        },
+        {
+          "x" : 6,
+          "y" : 3.2784
+        },
+        {
+          "x" : 7.5,
+          "y" : 2.7295
+        },
+        {
+          "x" : 9,
+          "y" : 2.2616
+        },
+        {
+          "x" : 11,
+          "y" : 1.7691
+        },
+        {
+          "x" : 13,
+          "y" : 1.3928
+        },
+        {
+          "x" : 16,
+          "y" : 0.9802
+        },
+        {
+          "x" : 20,
+          "y" : 0.6159
+        },
+        {
+          "x" : 25,
+          "y" : 0.3458
+        },
+        {
+          "x" : 30,
+          "y" : 0.1942
+        },
+        {
+          "x" : 36,
+          "y" : 0.0973
+        },
+        {
+          "x" : 42,
+          "y" : 0.0488
+        },
+        {
+          "x" : 50,
+          "y" : 0.0194
+        }
+      ],
+      "statistic" : "z_n = H(start + n·lag + lag)·conj(H(start + n·lag)) for n = 0…windowSampleCount−1; coherence Γ = |Σ z_n| / Σ |z_n|",
+      "unshapedCoherence" : 0.17677669529663687,
+      "unshapedScatterDB" : 5.570043140052503,
+      "verdictRule" : "snrDB = coherenceToSNR(Γ), scatter = snrToScatter(snrDB); shaped when snrDB ≥ shapedSNRDB, else unshaped",
+      "windowPlacementRule" : "span = lag·windowSampleCount bins; lowBin = ceil(bottomEdge·k/binWidth), highBin = floor(maxValidFundamental(k)·k/binWidth), ceiling = min(highBin, binCount−1) − lag; undetermined unless ceiling − lowBin ≥ span; centre = round(f0·k/binWidth); start = min(max(centre − span/2, lowBin), ceiling − span)",
+      "windowSampleCount" : 32
+    },
+    "shippedConstants" : {
+      "AveragedSweepPlan.defaultAverages" : 4,
+      "AveragedSweepPlan.offeredAverages" : [
+        1,
+        2,
+        4,
+        8
+      ],
+      "CalibrationSnapshot.analyzedSweepCount" : 1,
+      "FundamentalPresence.analyzerSeparationDB" : 76,
+      "HarmonicAveraging.coarseStepSamples" : 0.02,
+      "HarmonicAveraging.delayScanLimitSamples" : 8,
+      "HarmonicAveraging.fineStepSamples" : 0.0005,
+      "HarmonicAveraging.fitSampleCount" : 48,
+      "HarmonicShaping.coherenceToSNR" : [
+        [
+          0.1889,
+          -30
+        ],
+        [
+          0.3033,
+          -6
+        ],
+        [
+          0.4457,
+          -3
+        ],
+        [
+          0.6265,
+          0
+        ],
+        [
+          0.7848,
+          3
+        ],
+        [
+          0.8868,
+          6
+        ],
+        [
+          0.942,
+          9
+        ],
+        [
+          0.9706,
+          12
+        ],
+        [
+          0.9851,
+          15
+        ],
+        [
+          0.9953,
+          20
+        ],
+        [
+          0.9985,
+          25
+        ],
+        [
+          0.999527,
+          30
+        ],
+        [
+          0.999881,
+          36
+        ],
+        [
+          0.99997,
+          42
+        ],
+        [
+          0.999995,
+          50
+        ]
+      ],
+      "HarmonicShaping.decorrelationFactor" : 2.4,
+      "HarmonicShaping.shapedSNRDB" : 6,
+      "HarmonicShaping.snrToScatter" : [
+        [
+          -30,
+          5.570043140052503
+        ],
+        [
+          -6,
+          5.52
+        ],
+        [
+          -3,
+          5.4141
+        ],
+        [
+          0,
+          5.0947
+        ],
+        [
+          3,
+          4.3746
+        ],
+        [
+          4.5,
+          3.8522
+        ],
+        [
+          6,
+          3.2784
+        ],
+        [
+          7.5,
+          2.7295
+        ],
+        [
+          9,
+          2.2616
+        ],
+        [
+          11,
+          1.7691
+        ],
+        [
+          13,
+          1.3928
+        ],
+        [
+          16,
+          0.9802
+        ],
+        [
+          20,
+          0.6159
+        ],
+        [
+          25,
+          0.3458
+        ],
+        [
+          30,
+          0.1942
+        ],
+        [
+          36,
+          0.0973
+        ],
+        [
+          42,
+          0.0488
+        ],
+        [
+          50,
+          0.0194
+        ]
+      ],
+      "HarmonicShaping.unshapedCoherence" : 0.17677669529663687,
+      "HarmonicShaping.unshapedScatterDB" : 5.570043140052503,
+      "HarmonicShaping.windowSampleCount" : 32,
+      "MeasurementFloor.pointwiseStampRead" : 1,
+      "MetricBand.audible" : {
+        "highHz" : 20000,
+        "lowHz" : 20
+      }
+    },
+    "stimulus" : {
+      "amplitude" : 0.5,
+      "durationS" : 9.943372957475507,
+      "endHz" : 10000,
+      "excitedBandBottomHz" : 20.634868149982054,
+      "excitedBandTopHz" : 9937.694906233948,
+      "fadeInS" : 0.05,
+      "fadeOutS" : 0.01,
+      "fadeShape" : "raised cosine: the first int(fadeIn·fs) samples are scaled by ½(1 − cos(π·i/N_in)) and the last int(fadeOut·fs) by ½(1 − cos(π·(sampleCount−1−i)/N_out))",
+      "harmonicDelayRule" : "Δt_k = L·ln(k): the k-th harmonic's impulse response arrives Δt_k EARLIER than the linear one",
+      "harmonicDelaysS" : [
+        0,
+        1.1090354888959124,
+        1.7577796618689758,
+        2.218070977791825,
+        2.5751006598945607,
+        2.866815150764888,
+        3.113456238488501,
+        3.3271064666877375,
+        3.5155593237379517,
+        3.684136148790474
+      ],
+      "instantaneousFrequency" : "f(t) = f1·exp(t/L)",
+      "phaseLaw" : "x(t) = A·sin(φ(t)), φ(t) = 2π·f1·L·(exp(t/L) − 1), t = i/fs for i = 0…sampleCount−1",
+      "rateConstantS" : 1.6,
+      "requestedDurationS" : 10,
+      "sampleCount" : 954564,
+      "sampleRateHz" : 96000,
+      "startHz" : 20,
+      "synchronizationCycles" : 32,
+      "synchronizationRule" : "L = round(f1·T_requested / ln(f2/f1)) / f1, so that f1·L is an integer (Novák 2015); T = L·ln(f2/f1)"
+    },
+    "summaryLexiconVersion" : "1.2.2",
+    "synthesis" : {
+      "groundTruthPoints" : 262144,
+      "groundTruthRule" : "expected |H_k| = |∫ y(A·sin θ)·e^{−jkθ} dθ| / (π·A), y the nonlinearity, evaluated by the trapezoid rule on groundTruthPoints equispaced θ (exact for the periodic integrand's resolved orders); the phantom's truth is its own m_k",
+      "inputNormalization" : "every H_k is normalized by the sweep amplitude A: a unit-gain linear device reads H_1 = 1 (0 dB); a phantom's m_k are target H_k values on that scale",
+      "noiseGenerator" : "SplitMix64 → Box–Muller: u1 = (next >> 11)·2^−53, u2 likewise; r = √(−2·ln(max(u1, 5e−324))); out[2j] = rms·r·cos(2π·u2), out[2j+1] = rms·r·sin(2π·u2)",
+      "noiseGeneratorIncrement" : "0x9E3779B97F4A7C15",
+      "noiseRule" : "white Gaussian noise at the requested rms (linear re full scale), added to every sample of the padded capture, one independent stream per repeat",
+      "padSamples" : 48000,
+      "phantomNyquistGateFraction" : 0.98,
+      "phantomRule" : "Σ_k m_k·A·sin(k·φ(t)) with the sweep's own fades; each term dropped where k·f(t) ≥ fs/2 and raised-cosine gated from phantomNyquistGateFraction·fs/2 to fs/2",
+      "repeatSeedRule" : "the seed for repeat r is the (r+1)-th output of a SplitMix64 seeded with the base seed"
+    },
+    "thd" : {
+      "band" : {
+        "highHz" : 20000,
+        "lowHz" : 20
+      },
+      "definition" : "THD(f0) = √(Σ_{k≥2} |H_k(k·f0)|²) / |H_1(f0)| — THD, not THD+N; nil when f0 is outside [f1, f2] or H_1 reads zero",
+      "truncationRule" : "an order counts only when k·f0 lies in the band AND isValid(k, f0); a point where the validity bound removed an in-band order is flagged truncated (the chart's dashed tail)"
+    },
+    "validity" : {
+      "aliasImageBound" : "f0 ≤ fs / (2k + 1): beyond it the capture folds order k+1 onto the read at k·f0 (#18)",
+      "bottomEdgeRule" : "f0 < excitedBandBottom is a separate query (#56, isBelowBottomEdge) — such reads were excited under the fade-in ramp; isValid does not consult it",
+      "calibratedBandBound" : "on a loopback-compensated record, additionally f0 ≤ calibratedBandTop / k where calibratedBandTop is the calibration sweep's excited band top; a raw or simulated analysis has no such bound (nil)",
+      "fundamentalBottomEdgeHz" : 20.634868149982054,
+      "maxValidFundamentalHz" : [
+        10000,
+        10000,
+        10000,
+        10000,
+        8727.272727272728,
+        7384.615384615385,
+        6400,
+        5647.058823529412,
+        5052.631578947368
+      ],
+      "sweptBandRule" : "f0 must lie in [f1, f2]"
+    }
+  },
+  "schema" : 1,
+  "transferCurve" : {
+    "binning" : {
+      "alignmentRule" : "output[i + latencySamples] is paired with input[i]: the loop's measured integer latency is removed here; a residual alignment error e (samples) rotates the output's fundamental by 2π·f0·e/fs and harmonic k by k times that",
+      "averagingRule" : "the cycle is the mean over every cycle from the skipped ones to the end of the tone — noise averages, shape does not",
+      "binRule" : "samplesPerCycle = fs/f0; for every input sample i ≥ int(skipCycles·samplesPerCycle) with i + latency inside the capture: phase = (i / samplesPerCycle) mod 1, bin = min(phaseBins − 1, int(phase·phaseBins)); the bin accumulates input[i] and output[i + latency]; each bin's cycle value is its mean (0 for an empty bin)",
+      "capturedInputPeakRule" : "capturedInputPeak = max |cycleInput[b]| — the drive the figure was captured at, read-time, from the bin means",
+      "fadeOutRule" : "the tone's fade-out samples (the last int(t_fade·fs)) are binned with everyone else — only the START is skipped — so their ramp weights pull the bin means down by a share that shrinks with the tone's duration (measured: on the identity behind a single-pole low-pass at E2 the fundamental ellipse reads 0.7 % under its closed form at 1.5 s and 0.04 % at 15 s)",
+      "phaseBins" : 256
+    },
+    "biquad" : {
+      "defaultQ" : 0.70710678,
+      "highPassRule" : "RBJ cookbook: w = 2π·f/fs, α = sin w / (2Q), a0 = 1 + α; b0 = (1 + cos w)/2/a0, b1 = −(1 + cos w)/a0, b2 = b0, a1 = −2 cos w / a0, a2 = (1 − α)/a0",
+      "lowPassRule" : "RBJ cookbook: w = 2π·f/fs, α = sin w / (2Q), a0 = 1 + α; b0 = (1 − cos w)/2/a0, b1 = (1 − cos w)/a0, b2 = b0, a1 = −2 cos w / a0, a2 = (1 − α)/a0",
+      "processRule" : "the whole signal is filtered from zero state, so a filter's transient decays from the tone's first sample; the skipped cycles must cover it (see synthesis.settlingRule)",
+      "responseRule" : "H(f) = (b0 + b1 e^{−jw} + b2 e^{−2jw}) / (1 + a1 e^{−jw} + a2 e^{−2jw}), w = 2π·f/fs — the analytic response the truth uses (Biquad.response(at:))",
+      "topology" : "direct form II transposed, double precision, zero initial state: y = b0·x + s1; s1 = b1·x − a1·y + s2; s2 = b2·x − a2·y"
+    },
+    "derotation" : {
+      "allPassRule" : "for every bin 1 ≤ k ≤ n/2 − 1 (DC and, for even n, the real Nyquist bin untouched): θ_k = slope·k + filterModel(k) + deviation(k); Y[k] ← Y[k]·e^{−jθ_k} (unity magnitude); the compensated cycle is the inverse real DFT, y_i = (Y[0] + Σ_{k=1}^{n/2} c_k·Re(Y[k]·e^{+j2πki/n}))/n with c_k = 1 at the Nyquist bin of an even n and 2 otherwise; then the figure is recomputed from (cycleInput, compensated)",
+      "anchorRule" : "mapped_k = cyc_k − r_k (the frame-mapped branch phase); the fundamental's lattice point σ_1 is π when the paired H1's robust polarity reads inverting with confidence, 0 when non-inverting; without a confident polarity σ_1 = round(mapped_1/π)·π and the sign is quotable only when |mapped_1 − σ_1| ≤ latticeSignConfidence; excess_1 = wrap(mapped_1 − σ_1)",
+      "compensationLoopTolerance" : 0.02,
+      "conventionRule" : "γ_k = wrap((k − 1)·π/2) — the Novák factor between the cycle's input-relative harmonic phase and the deconvolver's branch phase at k·f0, pinned empirically",
+      "cycleSpectrumRule" : "Y[k] = Σ_i y_i·e^{−j2πki/n} for k = 0…n/2 (the n-bin cycle's real DFT, direct sums); the input's fundamental phase is ∠X[1] the same way; cyc_k = ∠Y[k] − k·∠X[1] (input-relative)",
+      "deadZone" : 0.01,
+      "deviationInterpolant" : "a shape-preserving cubic Hermite (Fritsch–Carlson monotone limiter) through the nodes (k, burden_k − slope·k − filterModel(k)) over the voting orders: end tangents are the end secants, interior tangents the mean of the adjacent secants (0 at a sign change or flat secant), then each interval's (α, β) = (m_i, m_{i+1})/secant is scaled into the radius-3 disc; constant beyond the end nodes",
+      "filterModelRule" : "φ1u(k) = the paired H1's phase at k·f0 unwrapped order by order (a bin with no value holds the previous); fundamentalBurden = excess_1 − ω0·Δl; filterModel(k) = φ1u(k) − φ1u(1) + fundamentalBurden — the polarity-free H1 SHAPE anchored at the fundamental's burden",
+      "fitMagnitudeFloor" : 0.005,
+      "fitMagnitudeFloorDB" : -46.020599913279625,
+      "fittableTermRule" : "order k (1 ≤ k ≤ n/2) votes when the paired record's validity bound accepts (k, f0), its branch response has a value at k·f0, and — for k ≥ 2 — both |Y[k]|/|Y[1]| and |H_k(k·f0)|/|H_1(f0)| clear fitMagnitudeFloor; term weight = min(1, |Y[k]|/|Y[1]|); diff_k = wrap(cyc_k − ∠H_k(k·f0) − γ_k); fewer than minimumFitTerms terms ⇒ insufficientEvidence (negligibleRawLoop when the raw total is already under deadZone)",
+      "foldRule" : "orders k ≥ 2 in ascending order: trend = k·excess_1 for the first, else slope·k + filterModel(k); burden_k = mapped_k − round((mapped_k − trend)/π)·π; the slope is refit after each fold as Σ w_k·k·(burden_k − filterModel(k)) / Σ w_k·k² over the orders folded so far (the fundamental never votes in the slope); latticeExcess_k = wrap(burden_k)",
+      "frameFitRule" : "one shift Δl (samples) maximizing Σ_k w_k·cos(diff_k − k·ω0·Δl), ω0 = 2π·f0/fs: a coarse scan from −P/2 to +P/2 in steps of 0.05 samples (P = fs/f0), then a fine scan over ±0.05 around the best in steps of 0.001; the first maximum wins ties (both step sizes are literals)",
+      "latticeSignConfidence" : 0.6,
+      "legacyRule" : "TransferCurveResult.phaseCompensated(using:) / validatedPhaseCompensation(using:) — the H1-only rotation (harmonic k by ∠H1(k·f0) − k·δ) — remains in the kernel with NO consumer outside its own file (grep of App, MeasureKit and Tools, 2026-09-17); it is not the shipped method and this document does not describe it as one",
+      "metricGuardRule" : "after the removal, the DECOMPOSED areas are compared to the raw figure's: compensated linearLoopArea > raw + compensationLoopTolerance, or compensated nonlinearLoopArea (hysteresisArea on a legacy payload) > raw + tolerance ⇒ metricGuardTripped (falls back to raw); the unsigned total is never compared (the ellipse and the harmonic lobes partially cancel in it)",
+      "minimumFitTerms" : 3,
+      "pairingResidualTolerance" : 0.25,
+      "polarityConfirmationRule" : "confirmedPolarityInverting = the fit's fundamentalLatticeInverted when the outcome is compensated or negligibleRawLoop with a fit AND harmonicResidualRMS ≤ pairingResidualTolerance; nil for every other outcome — absence is honest, a guessed sign is not",
+      "residualRule" : "r_k = wrap(diff_k − k·ω0·Δl); residualRMS = √(Σ w_k r_k² / Σ w_k) over all terms; harmonicResidualRMS the same over k ≥ 2 — the pairing statistic (the fundamental can always be absorbed into Δl); harmonicResidualRMS > pairingResidualTolerance ⇒ pairingMismatch",
+      "supportRule" : "the correction is MEASURED up to supportHz = highestVotingOrder × f0 (the top knot); above it the ramp slope·k is extended, filterModel(k) follows H1's phase as far as its grid holds a value (a read of the linear response there, not of harmonic k; past the sweep's band edge the deconvolver's residue, unvalidated) and deviation holds its last value",
+      "taxonomyRule" : "compensated(figure, fit) | pairingMismatch(fit) | insufficientEvidence(fittableTerms) | negligibleRawLoop(totalArea, fit?) — the raw unsigned total under deadZone, decided AFTER the fit ran so polarity still rides it, and it outranks a mismatch | metricGuardTripped(compensatedArea, rawArea, fit); a pairingMismatch names two possible causes: a session mismatch (another setting or time — re-measuring both in one session resolves it) or a structural one (a device with no fundamental-anchored harmonic phase relationship, which no shift reconciles)"
+    },
+    "figure" : {
+      "boxRule" : "box = 4·max|cycleInput|·max|cycleOutput|; every area below is divided by it (0 when the box is 0)",
+      "branchRule" : "the rising branch runs from the bin of the input's minimum to the bin of its maximum (circular walk), the falling branch from the maximum to the minimum and is reversed",
+      "crossingRule" : "walking the polygon, each new edge (path.last → v) is tested against every earlier non-adjacent edge; the earliest crossing along the new edge (parameter t in [−1e−9, 1 + 1e−9], u likewise, denominators > 1e−30 — collinear overlaps are not crossings, endpoint touches are) closes a lobe: the vertices from the crossing to the head, then the path is collapsed to the crossing point and the walk continues; what remains at the end is the outer loop",
+      "ellipseAreaRule" : "linearLoopArea = π·|a_x·b_y − a_y·b_x| / box — a linear filter's phase rotation, never memory; for input A·sin θ and output R·sin(θ + φ_1) this is π·A·R·|sin φ_1| / box",
+      "ellipseRule" : "project both cycles onto {1, cos θ_b, sin θ_b}, θ_b = 2π·b/phaseBins: a_x = (2/n)Σ x_b cos θ_b, b_x = (2/n)Σ x_b sin θ_b, a_y, b_y likewise, dc_y = (1/n)Σ y_b — the fundamental-only trajectory is the least-squares ellipse",
+      "interpolationRule" : "linear between the branch's points; clamped to the end values outside them; a zero-width span returns the earlier point",
+      "lobeAreaRule" : "hysteresisArea = LoopGeometry.unsignedLobeArea(x: cycleInput, y: cycleOutput) / box: the closed polyline (the edge back to bin 0 implicit) is split at every proper self-crossing and the ABSOLUTE shoelace areas of the lobes are summed — opposite-winding lobes add, never cancel",
+      "lobeFloorRule" : "a lobe counts only when its absolute area ≥ minimumLobeAreaFraction × the box of the polyline it was cut from (the residual trajectory has its own, smaller box)",
+      "minimumLobeAreaFraction" : 0.0002,
+      "nonlinearRule" : "nonlinearLoopArea = LoopGeometry.unsignedLobeArea(x: cycleInput, y: cycleOutput − dc_y − a_y cos θ_b − b_y sin θ_b) / box — the harmonic content's own lobes, the headline memory figure",
+      "recomputeRule" : "every derived quantity (both areas, the ellipse, the static curve) is recomputed from the stored cycle at read time (withRecomputedMetrics); stored areas are never displayed directly",
+      "staticCurveGridPoints" : 101,
+      "staticCurveRule" : "the cycle splits at the input's minimum and maximum bins into a rising branch (min → max, circular) and a falling one (max → min, reversed); each is reduced to a strictly x-ascending polyline (a point whose x does not exceed the last kept x is dropped); on a grid of staticCurveGridPoints inputs from x_min to x_max inclusive the two branches are interpolated and averaged — never x-binned"
+    },
+    "fundamentalPresence" : {
+      "analyzerSeparationDB" : 76,
+      "consequenceRule" : "where the fundamental is absent the page draws the raw figure and states no memory verdict, no polarity and no pairing verdict (raw_fundamental_absent); the fit's facts still ride the record",
+      "cycleRule" : "cycle-only: |Y_k| = (2/n)·|Σ_i y_i e^{−j2πki/n}| for k = 1…9 (maxOrder, a default-argument literal); the reading compares 20·log10|Y_1| with 20·log10 of the loudest of |Y_1|…|Y_9| against analyzerSeparationDB (no rig floor); undetermined when n < 2·(maxOrder + 1) or |Y_1| = 0",
+      "pairedRule" : "fundamentalPresence(paired:) prefers the paired Harmonic Distortion record's reading at f0 (the swept measurement separates orders far better than one averaged cycle); only an undetermined paired reading falls back to the cycle's own"
+    },
+    "memoryVerdict" : {
+      "headlineRule" : "the verdict is taken on nonlinearLoopArea (hysteresisArea on a legacy payload that lacks it), of the compensated figure when the removal is accepted and of the displayed figure otherwise",
+      "memoryEffectsFrom" : 0.15,
+      "memorylessBelow" : 0.05,
+      "rule" : "memorylessIsh below memorylessBelow; hintOrFilterResidue up to memoryEffectsFrom; memoryEffects at and above it (the thresholds are literals in LoopMemoryVerdict, read here by bisection; the middle band is deliberately hedged — pre-clipper tone filtering rotates every harmonic k·φ_pre(f0) and a single H1 cannot separate it from mild memory)"
+    },
+    "orientation" : {
+      "flipRule" : "when the cycle has an even bin count, ψ1 exists, the paired H1's polarity is confident, the lock is detectable AND cos ψ1 < 0 disagrees with the polarity's isInverting: the output cycle is advanced by n/2 bins (exactly half a period) and the figure recomputed; every other case displays the figure as captured and implies nothing",
+      "fundamentalPhaseRule" : "ψ1 = ∠Y[1] − ∠X[1] over the captured cycle (the same DFT convention as the derotation), nil for a degenerate cycle",
+      "halfCycleLockTolerance" : 0.05,
+      "lockRule" : "the capture is detectably phase-locked when |ψ1 − round(ψ1/π)·π| ≤ halfCycleLockTolerance (the plugin path's |correlation| sine trim lands within a sample of a half-cycle; a broadband-trimmed hardware or simulated capture shows the device's true phase and stays clear unless that phase genuinely is 0 or π)",
+      "polarityBandRule" : "bins from max(1, ceil(20 Hz / binWidth)) to min(binCount − 1, int(2000 Hz / binWidth)) of the paired H1 (both edges are literals: the low edge fences the deconvolver's taper, the 2 kHz cap fences tone-stack lag and residual fractional delay)",
+      "polarityConfidenceThreshold" : 0.35,
+      "polarityRule" : "meanRe = Σ_b |H1[b]|·Re H1[b] / Σ_b |H1[b]|² over the band (the energy-weighted mean unit phasor's real part); isInverting = meanRe < 0; confidence = |meanRe| — the real part, never the resultant length (a quadrature response is coherent yet polarity-mute); confident when confidence ≥ polarityConfidenceThreshold; nil when the band holds no energy"
+    },
+    "shippedConstants" : {
+      "BranchPhaseFit.latticeSignConfidence" : 0.6,
+      "FundamentalPresence.analyzerSeparationDB" : 76,
+      "LoopGeometry.minimumLobeAreaFraction" : 0.0002,
+      "PolarityReading.confidenceThreshold" : 0.35,
+      "TransferCurvePlan.defaultAmplitude" : 0.05,
+      "TransferCurvePlan.defaultFrequency" : 82.4,
+      "TransferCurvePlan.defaultNote" : "E2",
+      "TransferCurvePlan.levelCeilingDBFS" : -6,
+      "TransferCurvePlan.levelFloorDBFS" : -60,
+      "TransferCurvePlan.pluginLevelCeilingDBFS" : 0,
+      "TransferCurvePlan.probeNotes" : [
+        "E2",
+        "A2",
+        "E3",
+        "A3",
+        "E4",
+        "A4",
+        "E5",
+        "A5",
+        "A6",
+        "C7"
+      ],
+      "TransferCurvePlan.rangeNotes" : [
+        "E2",
+        "A3",
+        "A4"
+      ],
+      "TransferCurveResult.compensationLoopTolerance" : 0.02,
+      "TransferCurveResult.derotationDeadZone" : 0.01,
+      "TransferCurveResult.fitMagnitudeFloor" : 0.005,
+      "TransferCurveResult.halfCycleLockTolerance" : 0.05,
+      "TransferCurveResult.minimumFitTerms" : 3,
+      "TransferCurveResult.pairingResidualTolerance" : 0.25,
+      "TransferFilter.defaultQ" : 0.70710678,
+      "TransferTruth.quadraturePoints" : 262144,
+      "TransferTruth.truthOrders" : 200
+    },
+    "stimulus" : {
+      "analyzeRule" : "the capture's first int(preroll·fs) samples are dropped, then TransferCurveAnalyzer.analyze(input: tone, output: capture, latencySamples: the calibrated loop latency, frequency: f0, sampleRate: fs, skipCycles: 8) — the plan's call on the hardware and plugin paths alike; ModelMeasurer.transferCurve (Simulation Mode) passes the same skipCycles 8",
+      "analyzerDefaultSkipCyclesRule" : "TransferCurveAnalyzer.analyze's own default argument is skipCycles 5 (a literal) — no app path uses it; the manifest records what the app calls",
+      "defaultAmplitude" : 0.05,
+      "defaultFrequencyHz" : 82.4,
+      "defaultLevelDBFS" : -26.020599913279625,
+      "defaultNote" : "E2",
+      "durationS" : 1.5,
+      "fadeS" : 0.02,
+      "fadeShape" : "w(i) = ½(1 − cos(π·i/N_fade)) applied to sample i and to sample count−1−i, i = 0…min(N_fade, count/2)−1",
+      "levelCeilingDBFS" : -6,
+      "levelFloorDBFS" : -60,
+      "noteRule" : "the standard note E2 resolves to 82.4 Hz verbatim (the pre-#59 value, so the default stimulus stays bit-identical); every other note is exact twelve-tone equal temperament with A4 = 440 Hz",
+      "pluginLevelCeilingDBFS" : 0,
+      "prerollS" : 0.2,
+      "probeNoteHz" : [
+        82.4,
+        110,
+        164.81377845643496,
+        220,
+        329.6275569128699,
+        440,
+        659.2551138257398,
+        880,
+        1760,
+        2093.004522404789
+      ],
+      "probeNotes" : [
+        "E2",
+        "A2",
+        "E3",
+        "A3",
+        "E4",
+        "A4",
+        "E5",
+        "A5",
+        "A6",
+        "C7"
+      ],
+      "rangeNotes" : [
+        "E2",
+        "A3",
+        "A4"
+      ],
+      "sampleRateHz" : 96000,
+      "samplesPerCycle" : 1165.0485436893202,
+      "skipCycles" : 8,
+      "stimulusRule" : "int(preroll·fs) samples of silence, the faded tone, int(tail·fs) samples of silence",
+      "tailS" : 0.2,
+      "toneRule" : "x[n] = A·sin(2π·f0·n/fs) for n = 0…int(T·fs)−1, raised-cosine faded over the first and last int(t_fade·fs) samples"
+    },
+    "synthesis" : {
+      "compensatedTruthRule" : "y_comp(θ) = s·[C_0·Re H_post(0) + 2·Σ_{k≥1} |H_post(k·f0)|·Re(C_k·e^{jkθ})] — every magnitude kept, every phase returned to the memoryless lattice",
+      "cycleTruthRule" : "bin b's truth is y(x_b) for the memoryless kind, else the series at the bin's centre phase θ_b = 2π(b + ½)/n — never a phase inverted from the bin's mean input, which near the peaks turns the fade-out's sub-percent amplitude deficit into a phase error of a tenth of a radian",
+      "deviceRule" : "pre-filter → ReferenceNonlinearity (per sample) → post-filter → optional sign flip; the tool's --source names the nonlinearity as synth does (plus parametric = parametricClip), --pre/--post name a lowPass or highPass at a corner and Q",
+      "ellipseTruthRule" : "expected linearLoopArea = (π/4)·(R/y_max)·|sin φ_1| with R·sin(θ + φ_1) the raw series' fundamental and y_max its peak — (π/4)·|sin φ| for a linear device; expected nonlinear and total areas are 0 for the memoryless kind and for a linear device (whose total is the ellipse), otherwise not stated (nan); every compensated area's expectation is 0 when paired",
+      "expectedClassRule" : "raw_no_reference when unpaired; negligible_raw_loop for a paired memoryless-kind device; compensated when paired and the expected ellipse alone exceeds deadZone; otherwise not predicted (nan)",
+      "expectedFrameShiftRule" : "the fit should find Δl = the displayed advance D (the cycle's frame against the sweep's); the paired H1's phase is read at the NEAREST bin, so a bin-rounding phase error of up to half a bin width times the filter's phase slope is absorbed as a fictitious shift — measured tenths of a sample on the parity cases",
+      "halfCycleShiftRule" : "--half-cycle-shift adds round(P/2) samples to the analyzed latency — the plugin path's anti-phase lock; if the shipped resolution flips the figure back, the displayed figure's residual advance is round(P/2) − P/2",
+      "latencyErrorRule" : "--latency-error D analyzes with latencySamples = D (the true latency is 0): output[i + D] is paired with input[i], an advance of D samples",
+      "outputPeakRule" : "max |y_raw(θ)| located on a 4096-point phase grid and refined by golden-section search in the bracketing interval",
+      "pairingRule" : "--paired: the same device renders the shipped fingerprint sweep (PSC-1 band 20 Hz–10 kHz, requested 10 s, the transfer plan's rate and amplitude unless overridden), padded with the AveragedSweepPlan inter-sweep gap as synth pads, through SweptSineAnalyzer.analyze — the HarmonicAnalysis the app would pair",
+      "quadraturePoints" : 262144,
+      "rawTruthRule" : "y_raw(θ) = s·[C_0·Re H_post(0) + 2·Σ_{k≥1} |H_post(k·f0)|·Re(C_k·e^{j(k(θ + ∠H_pre(f0) + ω0·D) + ∠H_post(k·f0))})], s = −1 for an inverted device, D the displayed advance in samples",
+      "readTimeRule" : "orientationResolved(using: H1) → fundamentalPresence(paired:) → branchPhaseCompensation(using:) on the displayed figure — the calls TransferDump.row makes for a stored record, in that order; the tool prints the row's own fields under `# figure`",
+      "seriesRule" : "C_k = (1/N)·Σ_j v(θ_j)·e^{−jkθ_j}, θ_j = 2πj/N, v(θ) = y(|H_pre(f0)|·A·sin θ), k = 0…truthOrders (trapezoid rule on N equispaced points, exact for the periodic integrand's resolved orders); the tail |C_K|/|C_1| is printed",
+      "settlingRule" : "for each filter: the pole radius (√a2 for a complex pair, else the larger real root's magnitude) and radius^(int(skipCycles·samplesPerCycle)) — the transient's share left when binning starts",
+      "staticTruthRule" : "at a delivered grid input x: θ_up = asin(x/A), θ_down = π − θ_up; the static truth is the mean of the series at the two",
+      "stimulusRule" : "TransferCurvePlan(frequency: the note's Hz, amplitude:, duration:, sampleRate:).stimulus() — the plan's own assembly, rendered through the device at zero latency",
+      "truthKindRule" : "memoryless when the device has no filter and the displayed advance is 0 (y(x) exact at the delivered x); series otherwise",
+      "truthOrders" : 200
+    }
+  }
+}

@@ -1,0 +1,9 @@
+# #305: the methods documents build with pdflatex through latexmk, engine
+# pinned here so `make methods-docs` and CI agree. Build products land in
+# tex/build/ (gitignored); bibtex runs on the .bib beside the sources.
+$pdf_mode = 1;
+$pdflatex = 'pdflatex -interaction=nonstopmode -halt-on-error -file-line-error %O %S';
+$bibtex_use = 2;
+$out_dir = 'build';
+$aux_dir = 'build';
+$clean_ext = 'bbl run.xml';

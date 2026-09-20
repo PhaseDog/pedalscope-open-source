@@ -1,0 +1,804 @@
+# The methods documents' terms source (#305). Every \term{key} a chapter
+# uses must be defined here, and every entry here must be used by some
+# chapter — test_terms.py enforces both. Fields are LaTeX source text
+# (inline math allowed); `symbol` is LaTeX math or empty. `technical` is
+# the definition the technical document prints, `plain` the one the lay
+# companion prints. Neither may say what anything sounds like.
+terms:
+  - key: manifest
+    term: methods manifest
+    technical: >-
+      A machine-readable JSON file, emitted by the shipped measurement kernel
+      through \texttt{analysisdump manifest}, listing every parameter that
+      determines a measurement's result --- each value obtained by calling the
+      function that owns it. The documents' tables are generated from it and
+      CI fails when the committed copy drifts from a fresh one.
+    plain: >-
+      The list of every setting the app uses to make a measurement, written out
+      by the app's own code so that it cannot be typed wrongly. The documents
+      read their numbers from it.
+
+  - key: parity
+    term: parity test
+    technical: >-
+      A continuous-integration test that runs the shipped code and the
+      independent Python reimplementation on identical synthetic devices and
+      asserts, at every valid point, agreement between the two to a stated
+      tolerance and agreement of both with analytic ground truth to a stated
+      tolerance.
+    plain: >-
+      A check, run automatically on every change, that a second, independently
+      written program gets the same answer as the app --- and that both get the
+      right answer on devices whose behaviour is known exactly.
+
+  - key: sweep
+    term: synchronized swept sine
+    symbol: $x(t)$
+    technical: >-
+      A sine whose frequency rises exponentially from $f_1$ to $f_2$ over the
+      duration $T$, with its rate constant chosen so that $f_1 L$ is an
+      integer; under that condition each harmonic a memoryless device generates
+      is an exact time-advanced copy of the sweep, advanced by $L\ln k$.
+    plain: >-
+      A test tone that glides smoothly from low to high pitch, timed so that the
+      distortion each note produces can be picked apart afterwards.
+
+  - key: rate-constant
+    term: rate constant
+    symbol: $L$
+    technical: >-
+      The time in seconds over which the sweep's instantaneous frequency grows
+      by a factor of $e$: $f(t) = f_1 e^{t/L}$. Fixed by the synchronization
+      condition from the requested duration.
+    plain: >-
+      How quickly the test tone climbs; a larger value means a slower, longer
+      sweep.
+
+  - key: synchronization
+    term: synchronization condition
+    technical: >-
+      The requirement that $f_1 L$ be an integer, met by rounding the rate
+      constant; it makes the sweep's phase at every harmonic's arrival a whole
+      number of cycles, so harmonic responses separate with meaningful phase.
+    plain: >-
+      A small adjustment to the sweep's length so that the arithmetic that
+      separates the harmonics works out exactly.
+
+  - key: instantaneous-frequency
+    term: instantaneous frequency
+    symbol: $f(t)$
+    technical: >-
+      The frequency the sweep is passing through at time $t$:
+      $f(t) = f_1 e^{t/L}$, the derivative of the phase divided by $2\pi$.
+    plain: >-
+      The pitch the test tone is at, at a given moment.
+
+  - key: excited-band
+    term: excited band
+    technical: >-
+      The range of fundamentals the sweep drove at full amplitude: from the
+      instantaneous frequency where the fade-in ends to the one where the
+      fade-out begins. Outside it the device was driven under a ramp and a read
+      describes the measurement, not the device.
+    plain: >-
+      The range of notes the test tone actually played at full strength; the
+      very first and very last moments are ramped and do not count.
+
+  - key: fundamental
+    term: fundamental
+    symbol: $f_0$
+    technical: >-
+      The excitation frequency whose harmonics are being read; in a swept
+      measurement every $f_0$ in the band is excited in turn, and the $k$-th
+      harmonic of $f_0$ is read at the output frequency $k f_0$.
+    plain: >-
+      The note being played. Distortion shows up as extra tones at whole-number
+      multiples of it.
+
+  - key: harmonic-order
+    term: harmonic order
+    symbol: $k$
+    technical: >-
+      The integer multiple of the fundamental at which a harmonic sits; order 1
+      is the fundamental itself. Odd orders are produced by symmetric
+      nonlinearities, even orders require asymmetry.
+    plain: >-
+      Which multiple of the note an added tone is: twice the note is the second
+      harmonic, three times is the third, and so on.
+
+  - key: clipping
+    term: clipping
+    technical: >-
+      A memoryless nonlinearity that limits the output amplitude: the output
+      follows the input up to a threshold and is compressed or held beyond it
+      (hard: a corner into a flat ceiling; soft: a gradual bend). An
+      odd-symmetric clipper produces odd harmonics only; any asymmetry between
+      the two half-cycles adds even harmonics.
+    plain: >-
+      What a distortion circuit does to a note that is too big for it: the
+      peaks of the wave are flattened or rounded off. A wave whose shape has
+      changed is, by the same token, a wave with new harmonics in it.
+
+  - key: harmonic-response
+    term: harmonic response
+    symbol: $H_k(f)$
+    technical: >-
+      The complex, input-normalized amplitude with which the device emits
+      energy at output frequency $f$ as its $k$-th harmonic; the harmonic of a
+      fundamental $f_0$ is read at $f = k f_0$.
+    plain: >-
+      For each multiple of the note, how much of it the device adds, across the
+      whole range of notes.
+
+  - key: harmonic-pulse
+    term: harmonic pulse
+    technical: >-
+      In the deconvolved response, the impulse response belonging to one
+      harmonic order, arriving $L \ln k$ seconds before the linear one; each
+      is cut out with its own window.
+    plain: >-
+      After the analysis untangles the recording, each harmonic shows up as its
+      own separate blip, spaced apart in time so it can be measured alone.
+
+  - key: deconvolution
+    term: deconvolution
+    technical: >-
+      Dividing the captured response's spectrum by the sweep's spectrum ---
+      here, multiplying by the analytic inverse filter --- to recover the
+      device's impulse response, in which the harmonic pulses appear at their
+      time advances.
+    plain: >-
+      The step that undoes the sweep, turning the recording into a set of
+      separate blips, one per harmonic.
+
+  - key: inverse-filter
+    term: inverse filter
+    symbol: $\tilde X^{-1}(f)$
+    technical: >-
+      The closed-form stationary-phase inverse of the synchronized sweep,
+      $2\sqrt{f/L}\,\exp(j(\pi/4 - 2\pi f L (1 - \ln(f/f_1))))$, tapered to
+      zero below $f_1$; using the closed form extrapolates the phase law
+      above $f_2$, so harmonics above the sweep's top deconvolve cleanly.
+    plain: >-
+      The exact mathematical undo of the test tone, written down from its
+      formula rather than measured, so it keeps working above the highest note
+      the tone reached.
+
+  - key: impulse-response
+    term: impulse response
+    symbol: $h[n]$
+    technical: >-
+      The deconvolved response, circular over the analysis length $N$: the
+      linear pulse at index 0 and order $k$'s pulse at
+      $N - \mathrm{round}(L \ln k \cdot f_s)$.
+    plain: >-
+      The device's fingerprint in time: a sharp blip for the note itself and
+      earlier, smaller blips for each harmonic.
+
+  - key: extraction-window
+    term: extraction window
+    symbol: $T_k$
+    technical: >-
+      The raised-cosine window that cuts order $k$'s pulse out of the impulse
+      response; its half-widths are half the gap to each neighbouring pulse,
+      capped, and its duration sets the order's spectral resolution.
+    plain: >-
+      The slice of time around one harmonic's blip that is kept for measuring
+      it; wide enough to hold the blip, narrow enough to exclude its
+      neighbours.
+
+  - key: input-normalized
+    term: input-normalized
+    technical: >-
+      Divided by the sweep amplitude $A$, so that a unit-gain linear device
+      reads $H_1 = 1$ (0 dB) and every $H_k$ is a ratio to the input, not an
+      absolute level.
+    plain: >-
+      Measured relative to the strength of the test tone, so that the numbers
+      compare across drive levels and rigs.
+
+  - key: validity-bound
+    term: validity bound
+    technical: >-
+      Where a harmonic read is trustworthy: $f_1 \le f_0 \le f_2$ and
+      $f_0 \le f_s/(2k+1)$ (the alias-image bound), plus $f_0 \le
+      f_{\mathrm{cal}}/k$ on a compensated record. Reads outside it are
+      excluded from every fit, feature, summary and comparison.
+    plain: >-
+      The range of notes over which a given harmonic can be measured honestly;
+      beyond it the recording itself gets in the way.
+
+  - key: alias-image
+    term: alias image
+    technical: >-
+      Content above half the sample rate folds back below it in a sampled
+      capture; order $k+1$'s image collides with the read of order $k$ once
+      $f_0 > f_s/(2k+1)$.
+    plain: >-
+      A recording cannot hold tones above half its sample rate; higher ones
+      fold back down and can land on a harmonic being measured.
+
+  - key: thd
+    term: total harmonic distortion
+    symbol: $\mathrm{THD}$
+    technical: >-
+      $\sqrt{\sum_{k \ge 2} |H_k(k f_0)|^2} / |H_1(f_0)|$ over the orders that
+      are in the audible band and pass the validity bound --- THD, not THD+N;
+      undefined where the fundamental is not present.
+    plain: >-
+      The size of everything the device added at multiples of the note,
+      compared with the note itself, as a single number.
+
+  - key: floor
+    term: measurement floor
+    technical: >-
+      The level below which a read is the rig rather than the device, derived
+      at read time from the embedded calibration's pooled distortion stamp
+      with per-track, drive and averaging adjustments; a read at or below it
+      is reported as a bound.
+    plain: >-
+      How quiet a measurement can go before it is measuring the recording
+      equipment instead of the pedal; numbers at that level are stated as
+      limits, not values.
+
+  - key: fundamental-presence
+    term: fundamental presence
+    technical: >-
+      Whether $H_1(f_0)$ is a measurement at all: absent when it sits at or
+      beyond the analyzer's measured separation bound below the loudest valid
+      in-band order, or at or below its rig-floor margin. Where absent, no
+      ratio to it is quoted.
+    plain: >-
+      A check that the note itself is still there in the output; if a device
+      removes the note, ratios to it mean nothing and the app says so.
+
+  - key: shaping
+    term: harmonic shaping
+    technical: >-
+      The read-time predicate deciding whether a harmonic read is content the
+      circuit deterministically shaped or noise that landed in that order's
+      window, from the coherence of the complex response along frequency.
+    plain: >-
+      A check that a measured harmonic is really the circuit's doing and not
+      just the device's hiss showing up where a harmonic would be.
+
+  - key: coherence
+    term: coherence
+    symbol: $\Gamma$
+    technical: >-
+      $|\sum_i z_i| / \sum_i |z_i|$ over lagged products
+      $z_i = H(b_i + \mathrm{lag})\,\overline{H(b_i)}$: shaped content is a
+      phasor whose phase advances smoothly with frequency, noise scatters
+      isotropically, and the statistic is $1/\sqrt n$ for pure noise.
+    plain: >-
+      A score for how orderly a harmonic's measurement is across neighbouring
+      frequencies; real circuit behaviour is orderly, noise is not.
+
+  - key: scatter
+    term: read scatter
+    technical: >-
+      The one-sigma uncertainty, in dB, of a magnitude read at its estimated
+      signal-to-noise ratio --- the Rician mean-of-dB statistic, pinned by a
+      Monte-Carlo table and saturating at the pure-noise value.
+    plain: >-
+      How far a single measured level might be off simply because of noise,
+      stated alongside the level.
+
+  - key: averaging
+    term: sweep averaging
+    technical: >-
+      Combining $N$ back-to-back sweeps from one capture by complex, bin-wise
+      averaging of their harmonic responses after each repeat is derotated by
+      its fitted capture delay; the noise power falls as $1/N$ where the
+      residual is noise, and magnitudes are never averaged.
+    plain: >-
+      Playing the sweep several times in a row and combining the results so
+      that random noise partly cancels while the device's behaviour adds up.
+
+  - key: derotation
+    term: derotation
+    technical: >-
+      Multiplying every harmonic response by $e^{+j 2\pi f \delta / f_s}$ on
+      its own output-frequency axis to remove a capture delay $\delta$ --- a
+      unity-magnitude rotation, so magnitudes are untouched at every bin.
+    plain: >-
+      Lining up repeated sweeps to the fraction of a sample before combining
+      them, so that a tiny timing drift cannot smear the result.
+
+  - key: tanh
+    term: tanh
+    technical: >-
+      The hyperbolic tangent, as the saturating function $y = \tanh(g x)$:
+      linear for small inputs and
+      bending smoothly toward $\pm 1$, which it never reaches --- the
+      textbook soft clipper. It is odd-symmetric, so it produces odd
+      harmonics only, and its ladder falls off steeply with order. The
+      worked example throughout these documents is $\tanh(2x)$ at a sweep
+      amplitude of $0.5$, whose exact harmonic amplitudes are computed by
+      quadrature.
+    plain: >-
+      The hyperbolic tangent, the textbook soft clipper: a smooth S-shaped
+      curve that passes small
+      signals through unchanged and bends ever more gently toward a ceiling
+      it never quite reaches. It clips the top and bottom of the wave alike,
+      so it adds only odd harmonics, and they fall away quickly. The worked
+      example in these documents is this curve with the input doubled first.
+
+  - key: phantom
+    term: phantom capture
+    technical: >-
+      A synthetic capture $\sum_k m_k A \sin(k\varphi(t))$ built from the
+      sweep's own phase law, so that its $k$-th harmonic response is exactly
+      $m_k$ by construction, with no content above the listed orders and no
+      aliasing; the oracle's exact case.
+    plain: >-
+      A made-up recording whose distortion is known to the digit, used to
+      check that the analysis reads back exactly what was put in.
+
+  - key: decibel
+    term: decibel
+    symbol: dB
+    technical: >-
+      A logarithmic ratio: $20\log_{10}$ of an amplitude ratio (equivalently
+      $10\log_{10}$ of a power ratio). $+6\dB$ doubles an amplitude, $-20\dB$
+      is one tenth, $-40\dB$ one hundredth; the reference is named by a
+      suffix or by context.
+    plain: >-
+      A way of writing how much bigger or smaller one level is than another,
+      on a scale where each step of 20 is a factor of ten in size: 0 means the
+      same, $-20$ means a tenth as big, $-40$ a hundredth, $-60$ a thousandth.
+
+  - key: dbfs
+    term: dBFS
+    technical: >-
+      Decibels relative to digital full scale: $20\log_{10}$ of a linear
+      amplitude in which $1.0$ is the largest value the converter or file can
+      represent.
+    plain: >-
+      A level relative to the loudest a digital recording can be; 0 is the
+      maximum and negative numbers are quieter.
+
+  - key: dbc
+    term: dBc
+    technical: >-
+      Decibels relative to a carrier --- here the fundamental, or the louder of
+      two played tones --- so that a product's level is stated as a ratio to the
+      signal that produced it.
+    plain: >-
+      A level relative to the note (or tone) that caused it, so that ``how big
+      is the distortion'' does not depend on how loud the test was.
+
+  # --- Transfer Curve (#306 chapter two) ------------------------------------
+
+  - key: transfer-curve
+    term: transfer curve
+    technical: >-
+      The X--Y figure of a device under a steady low-frequency sine:
+      instantaneous output against instantaneous input over one
+      phase-averaged cycle. A memoryless device retraces a single curve;
+      linear filter phase and genuine memory open it into a loop.
+    plain: >-
+      A picture of what comes out against what went in, drawn while one
+      steady low note plays: a pedal with no memory draws one line, and a
+      loop means the output depends on where the signal has been as well.
+
+  - key: averaged-cycle
+    term: averaged cycle
+    technical: >-
+      The stimulus and the capture folded onto one period of the drive note
+      in $n$ equal phase bins, each bin holding the mean of every sample
+      whose phase fell in it, from the skipped opening cycles to the end of
+      the tone; the figure's two coordinates are the two bins' means.
+    plain: >-
+      Every cycle of the note laid on top of the previous ones and averaged,
+      so that noise cancels and the shape stays --- the figure is drawn from
+      that one averaged cycle.
+
+  - key: static-curve
+    term: static curve
+    technical: >-
+      The output-versus-input estimate that ignores the loop: the cycle is
+      split at the input's extremes into a rising and a falling branch, each
+      is interpolated onto a common input grid, and the two are averaged ---
+      never binned by input value.
+    plain: >-
+      The single line drawn through the middle of a loop, taken as the
+      device's clipping shape: the upward and downward passes averaged
+      together.
+
+  - key: box-normalization
+    term: box normalization
+    technical: >-
+      Every loop area is divided by $4\,x_{\max}\,y_{\max}$, the rectangle
+      that bounds the figure, so the areas are dimensionless and a pure
+      ellipse from a phase shift $\varphi$ reads $(\pi/4)\,|\sin\varphi|$.
+    plain: >-
+      Loop areas are stated as a fraction of the box the whole figure fits
+      in, so a tiny signal and a loud one are on the same scale.
+
+  - key: lobe-area
+    term: unsigned lobe area
+    technical: >-
+      The total loop area: the closed trajectory is split at every
+      self-crossing and the absolute area of every lobe is summed, so
+      opposite-winding lobes add instead of cancelling; lobes under a floor
+      fraction of the box are dropped as bin noise.
+    plain: >-
+      How much area the loop encloses, counted lobe by lobe regardless of
+      which way each lobe is traced --- a figure-eight counts twice, not
+      zero.
+
+  - key: fundamental-ellipse
+    term: fundamental ellipse
+    technical: >-
+      The least-squares ellipse through the trajectory: the projection of
+      both cycles onto the fundamental. Its area is the linear-phase loop
+      --- what a filter's rotation of the fundamental contributes, never
+      memory.
+    plain: >-
+      The smooth oval a plain tone filter draws by shifting the note in time:
+      real, and not memory, so it is measured separately and subtracted.
+
+  - key: nonlinear-loop-area
+    term: nonlinear loop area
+    technical: >-
+      The unsigned lobe area of the residual trajectory after the fundamental
+      ellipse's output is subtracted --- the harmonic content's own lobes,
+      the headline memory figure the verdict is taken on.
+    plain: >-
+      The loop that is left once the tone filter's oval is taken away: the
+      part only a real memory effect (or a filter ahead of the clipper, see
+      the phase removal) can draw.
+
+  - key: phase-removal
+    term: phase removal
+    technical: >-
+      The \S\,6.5 correction: the capture's harmonic phases are fitted against
+      the paired Harmonic Distortion record's branch phases with one frame
+      shift, each harmonic's burden over the memoryless lattice is folded out
+      sequentially, and the correction is applied as a full-band
+      unity-magnitude all-pass, so filter phase before and after the clipper
+      is removed and only unpredicted phase --- memory evidence --- remains.
+    plain: >-
+      Using the pedal's own measured harmonic timing to undo what its tone
+      filters did to the picture, so that what is left open is memory and not
+      filtering.
+
+  - key: frame-fit
+    term: frame fit
+    technical: >-
+      The single time shift $\Delta l$ between the transfer capture's
+      alignment and the paired record's, found by maximizing the
+      magnitude-weighted phase coherence of every fittable harmonic; its
+      residual over the harmonics is the pairing statistic.
+    plain: >-
+      Lining the two measurements up in time by one shift that makes every
+      harmonic agree at once; how well they then agree says whether the two
+      records really describe the same device at the same setting.
+
+  - key: lattice
+    term: memoryless lattice
+    technical: >-
+      The set of harmonic phases $\{0, \pi\}$ (in the cycle's convention,
+      after the Novák factor $(k-1)\pi/2$) at which a memoryless device's
+      harmonics sit; each measured harmonic's excess over its nearest
+      lattice point, folded consistently from low order to high, is the
+      filter burden the removal takes out.
+    plain: >-
+      The two positions a harmonic can sit in, relative to the note, in a pedal
+      with no memory and no filtering: exactly in step with it, or exactly
+      reversed. How far each measured harmonic sits from the nearer of the two
+      is what the filters added, and the removal takes that out.
+
+  - key: pairing-residual
+    term: pairing residual
+    technical: >-
+      The magnitude-weighted RMS phase residual, in radians, over the
+      harmonics of order two and above after the frame fit; a genuine pairing
+      sits well under the accept bar and a record of another session or
+      setting, or a device whose harmonics have no fundamental-anchored
+      phase relationship, does not.
+    plain: >-
+      A single number for how well the two records agree once lined up; too
+      large, and the app declines to apply the correction and says so.
+
+  - key: polarity
+    term: polarity
+    technical: >-
+      Whether the device inverts: read from the paired record's $H_1$ as the
+      energy-weighted mean unit phasor over the low band, whose real part is
+      the confidence (a quadrature response is coherent yet polarity-mute);
+      stated on the figure only when the frame fit confirms the pairing.
+    plain: >-
+      Whether the pedal turns the wave upside down. Stated only when the
+      measurement is sure; otherwise nothing is claimed.
+
+  - key: orientation
+    term: orientation resolution
+    technical: >-
+      A plugin-path capture is aligned by correlation against a tone and may
+      land half a cycle off; when the cycle's fundamental phase sits on the
+      $\{0,\pi\}$ lattice and the paired polarity confidently disagrees, the
+      output cycle is advanced half a period, restoring the true
+      input--output pairing.
+    plain: >-
+      A check that the picture is the right way up: a plugin measurement can
+      come out upside down, and the pedal's own measured polarity is used to
+      turn it back.
+
+  - key: coupling-capacitor
+    term: coupling capacitor
+    technical: >-
+      A series capacitor at a device's output: a first-order high-pass whose
+      corner sits far below the probe note, so it removes the output's mean
+      and leaves every harmonic's magnitude essentially untouched --- an
+      asymmetric clipper's unequal clip levels are centred by it while its
+      even harmonics survive.
+    plain: >-
+      The capacitor every pedal has on its output. It removes the wave's
+      average level, so a clipper that clips the top and bottom at different
+      heights shows equal heights after it --- but the even harmonics that
+      asymmetry makes are still there.
+
+  - key: alignment-error
+    term: residual alignment error
+    technical: >-
+      Any difference between the integer loop latency removed before binning
+      and the true delay, in samples; it rotates the output's fundamental by
+      $2\pi f_0 e/f_s$ and harmonic $k$ by $k$ times that, opening the figure
+      into a phase loop that grows with the note.
+    plain: >-
+      A leftover timing error between the test signal and the recording of a
+      fraction of a sample or more; it opens the picture into a loop that is
+      wider for higher notes, and is a property of the rig, not the pedal.
+  - key: memory-verdict
+    term: memory verdict
+    technical: >-
+      The three-way reading taken on the nonlinear loop area (of the
+      compensated figure when the phase removal is accepted): memoryless-ish
+      below the first threshold, memory effects at and above the second, and
+      a deliberately hedged band between them, where tone filtering ahead of
+      the clipper rotates every harmonic by $k$ times the drive's rotation and
+      a single fundamental cannot separate that from mild memory. Both
+      thresholds are literals in the shipped verdict, which the manifest reads
+      by bisection.
+    plain: >-
+      The app's three-way call on the loop that is left once the tone filter's
+      oval is taken away: small enough to be treated as no memory, large
+      enough to be called memory, or in between --- where the app hedges,
+      because a tone filter ahead of the clipper draws the same kind of loop
+      as mild memory and one note cannot tell them apart.
+
+  # --- Chord IMD (#306 chapter three) ---------------------------------------
+
+  - key: two-tone
+    term: two-tone measurement
+    technical: >-
+      Chord IMD: two simultaneous sines at a musical interval, snapped to
+      exact bins of the analysis window, driven through the device; the
+      result is the level of every intermodulation product up to the
+      seventh order, the three capture-time percentage sums, and the
+      coherence detector's reads beside each tone.
+    plain: >-
+      The app plays two notes at once --- a power chord's fifth by default
+      --- and measures every extra tone the pedal invents from the pair.
+
+  - key: intermodulation-product
+    term: intermodulation product
+    symbol: $m f_1 + n f_2$
+    technical: >-
+      A component the nonlinearity places at $m f_1 + n f_2$ for integers
+      $m, n$; its recipe is the pair $(m, n)$ and its order $|m| + |n|$ is
+      the lowest polynomial power that can produce it. Read at one bin,
+      exactly, and quoted in dBc re the louder played tone.
+    plain: >-
+      An extra tone the pedal makes from the two notes together --- a sum,
+      a difference, or a combination of multiples of the two --- and the
+      recipe that names which combination it is.
+
+  - key: product-order
+    term: product order
+    symbol: $|m| + |n|$
+    technical: >-
+      The order of the recipe $(m, n)$: the polynomial power that first
+      produces it. The analyzer enumerates every recipe of order two
+      through seven --- 54 on a lattice with no collisions --- and a
+      shared bin is kept by its lowest order.
+    plain: >-
+      How many multiples of the two notes go into an invented tone; the
+      app lists every combination up to seven.
+
+  - key: analysis-lattice
+    term: analysis lattice
+    technical: >-
+      The set of bins the two tones and every product occupy: with tone
+      bins $k_1 = g a$ and $k_2 = g b$ ($a : b$ coprime), the product
+      $(m, n)$ lands on bin $m k_1 + n k_2$ exactly, so every lattice point
+      is a multiple of $g$ and the closest two products can come is $g$
+      bins. Chosen once by the ratio search and scaled to each grid.
+    plain: >-
+      The grid of frequency slots the two notes and all their invented
+      tones land on, arranged so that no two invented tones share a slot
+      or crowd each other.
+
+  - key: reduced-ratio
+    term: reduced tone ratio
+    symbol: "$a : b$"
+    technical: >-
+      The tone bins in lowest terms. Two recipes of order at most
+      $K$ can share a bin only when $a + b \le 2K$, so the probe insists
+      on $a + b \ge 2K + 1$; the ratio alone fixes the delivered
+      interval, whatever the rate or length. The shipped fifth is
+      $109 : 163$.
+    plain: >-
+      The two notes' frequencies as a simplest fraction; a fraction with
+      big enough numbers keeps every invented tone on its own slot.
+
+  - key: lattice-spacing
+    term: lattice spacing
+    symbol: $g$
+    technical: >-
+      $\gcd(k_1, k_2)$: the integer combinations of the two tone bins are
+      exactly the multiples of $g$ (Bézout), so no product can sit nearer
+      than $g$ bins to another or to either tone. 22 bins on the shipped
+      fifth at 96 and 48 kHz, 24 at 88.2 and 44.1 kHz.
+    plain: >-
+      How many slots apart any two invented tones must be; the probe is
+      chosen so this is more than a dozen.
+
+  - key: lattice-snap
+    term: lattice snap
+    technical: >-
+      Placing the two tones on bin centres so that a whole number of
+      cycles of each fits the window: the reduced ratio is chosen once
+      against every standard grid (no collisions, spacing at or above the
+      bar, both tones inside a $\pm 15$ cent budget, then the interval
+      nearest the request) and scaled to the grid at hand; a grid too
+      coarse for it falls back to the widest collision-free lattice in
+      budget, and a request that cannot escape exact degeneracy is refused
+      before anything plays.
+    plain: >-
+      The small, disclosed adjustment of the two notes --- a few cents ---
+      that lets the analysis read every invented tone cleanly.
+
+  - key: coherent-sampling
+    term: coherent sampling
+    technical: >-
+      Both tones complete a whole number of cycles in the analysis window,
+      so a rectangular window leaks nothing: every product sits on one bin
+      and the floor beneath a record is noise, not a window's skirt. The
+      premise has no margin --- a tone that drifts during the capture
+      spills a $1/(\pi m)$ skirt across the lattice.
+    plain: >-
+      Both notes are tuned so they fit the analysis window exactly, which
+      is what lets each invented tone be read cleanly in its own slot.
+
+  - key: analysis-window
+    term: analysis window
+    symbol: $N$
+    technical: >-
+      Exactly $N$ captured samples, rectangularly windowed, starting after
+      the fade-in and the settle and ending before the fade-out; $N$ is
+      the longest power of two under the ceiling whose segment fits the
+      steady state, and the stimulus is sized to hold it --- 2$^{21}$
+      samples (21.8 s) at 96 kHz.
+    plain: >-
+      The long middle stretch of the recording that the analysis actually
+      reads, cut so that neither the start nor the end of the notes is in
+      it.
+
+  - key: local-floor
+    term: local floor
+    technical: >-
+      The capture-time noise estimate beside one bin: the median magnitude
+      over the bins from 3 out to about $\pm 8.8$ Hz out on either side,
+      with every bin the lattice claims --- products, tones, DC, the
+      detector's bins --- removed by name. A product is called present when
+      it stands more than four times ($12.04$ dB) above it; the verdict is
+      stored and never revisited.
+    plain: >-
+      The noise measured right next to each invented tone, from slots
+      that hold nothing else; a tone counts as present when it stands
+      well above that.
+
+  - key: capture-floor
+    term: capture floor
+    technical: >-
+      The read-time summary of a capture's empty bins: the upper median of
+      the levels of every product judged not present and not refused on
+      lattice position or band, with the spread above it. It bounds what
+      the capture could see and can change no product's verdict --- one
+      direction, no feedback.
+    plain: >-
+      How deep this particular recording could see, stated under the
+      table; it describes the recording and never changes a verdict.
+
+  - key: gate
+    term: presence gate
+    technical: >-
+      The analyzer's per-bin criterion, amplitude $> 4 \times$ the local
+      floor ($20 \log_{10} 4 = 12.04$ dB), decided at capture and frozen in
+      the payload as the product's \texttt{aboveFloor} flag.
+    plain: >-
+      The fixed bar --- four times the noise beside it --- an invented tone
+      must clear to count as measured.
+
+  - key: product-reading
+    term: product reading
+    technical: >-
+      One of four outcomes per product, decided in a fixed order: refused on
+      lattice position (beside a played tone or DC), out of band (under
+      20 Hz), refused beside a louder product, refused by the analyzer's
+      window or under the loudest product's skirt, then present with its
+      margin over the capture floor or absent with the bin's own read as a
+      bound. A refusal is never silently absent.
+    plain: >-
+      What the app says about each invented tone: measured, nothing found
+      down to a stated level, or could not be read --- and why.
+
+  - key: coherence-check
+    term: coherence check
+    technical: >-
+      Whether the played tones stayed stationary across the window: the
+      worst of the detector bins beside each tone, read against the local
+      floor beside that tone, against a measured 30 dB bar --- interpreted
+      only over the offsets where the tone's own skirt outweighs the loudest
+      product's, and only as a verdict about the chain, never a culprit.
+    plain: >-
+      A check that neither note drifted while the recording ran; if one
+      did, the whole record is smeared and the app says so rather than
+      quoting numbers.
+
+  - key: coherence-detector
+    term: coherence detector
+    technical: >-
+      The raw spectrum at offsets $\pm 1 \ldots \pm 9$ bins beside each
+      played tone, stored at capture with the local floor beside the tone;
+      the widest offset is derived from the narrowest resolvable spacing
+      ($13 - 1 - 3$), and every offset is read because an even-cycle wander
+      lights the even ones only.
+    plain: >-
+      The nine slots either side of each note, kept with the record so that
+      a note which drifted during the capture can be caught where its spill
+      lands first.
+
+  - key: pair-statistic
+    term: sideband pair statistic
+    technical: >-
+      The mean of the two innermost detector bins about each tone, and the
+      difference between the two tones' pairs against $20 \log_{10}(f_2 /
+      f_1)$: a shared fractional frequency wander separates the pairs by
+      that figure, while amplitude or frequency-independent phase
+      modulation leaves them equal --- a shape the line states without a
+      verdict.
+    plain: >-
+      The two notes' neighbouring slots compared with each other, a shape
+      that hints at what kind of drift occurred without claiming to know.
+
+  - key: harmonic-role
+    term: harmonic role
+    technical: >-
+      The tiles' partition of the resolved products by what each does to
+      the requested chord: the recipe $(m, n)$ is placed at index $m a + n
+      b$ on the harmonic grid of the interval's simplest 5-limit just ratio
+      $a : b$, its pitch class read off the odd part of the index; on a
+      played note's class it thickens (at or above the low note) or adds a
+      sub-octave; on a consonant other class it adds colour; elsewhere, or
+      between frets, it clashes. Classified at the requested interval,
+      measured at the lattice.
+    plain: >-
+      Which of five jobs an invented tone does to the chord you played:
+      thickens it, adds weight below it, adds a colour that is in tune with
+      the chord, clashes, or --- all together --- how much there is.
+
+  - key: just-ratio
+    term: just ratio
+    technical: >-
+      The simplest ratio $a : b$ with every factor 2, 3 or 5 within 20 cents
+      of the requested 12-TET interval, found by search ($3 : 2$ for the
+      fifth, $5 : 4$ for the major third): the harmonic grid the roles are
+      placed on has fundamental $f_1 / a$, 55 Hz for A2 + E3.
+    plain: >-
+      The whole-number version of the interval you asked for --- three to
+      two for a fifth --- which decides where each invented tone falls
+      musically.

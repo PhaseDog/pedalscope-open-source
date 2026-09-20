@@ -1,0 +1,23 @@
+grid_index	pitch	role	recipes
+0		none	3f1−2f2
+1	A1	subOctave	−f1+f2;2f1−f2;−4f1+3f2
+2	A2	thickening	−2f1+2f2;4f1−2f2
+3	E3	thickening	3f1−f2;−3f1+3f2
+4	A3	thickening	2f1;5f1−2f2;−f1+2f2
+5	C♯4	addedColour	−2f1+3f2;f1+f2;4f1−f2
+6	E4	thickening	−3f1+4f2;2f2;3f1
+7	G4	clash	2f1+f2;−f1+3f2;5f1−f2
+8	A4	thickening	f1+2f2;−2f1+4f2;4f1
+9	B4	addedColour	3f2;3f1+f2;6f1−f2
+10	C♯5	addedColour	2f1+2f2;−f1+4f2;5f1
+11	D♯5	clash	f1+3f2;4f1+f2;−2f1+5f2
+12	E5	thickening	6f1;4f2;3f1+2f2
+13	F5	clash	2f1+3f2;−f1+5f2;5f1+f2
+14		clash	f1+4f2;7f1;4f1+2f2
+15		clash	5f2;6f1+f2;3f1+3f2
+16		thickening	2f1+4f2;−f1+6f2;5f1+2f2
+17		clash	4f1+3f2;f1+5f2
+18		addedColour	3f1+4f2;6f2
+19		addedColour	2f1+5f2
+20		addedColour	f1+6f2
+21		clash	7f2
