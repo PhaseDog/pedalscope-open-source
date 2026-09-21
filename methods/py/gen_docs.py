@@ -23,6 +23,10 @@ Writes into Docs/Methods/generated/:
                         the words form of every scalar in parity-transfer.tex
   plain-imd.tex         the lay companion's Chord IMD macros (#307 chapter three),
                         and the words form of every scalar in parity-imd.tex
+  parameters-journey.tex  the Gain Map parameter table (#306 chapter four)
+  residue-journey.tex   the analyzer's residue per column per sweep length on the
+                        shipped grid, and the leakage map, from the manifest
+  parity-journey.tex    the Gain Map parity run's numbers (same rule)
 """
 from __future__ import annotations
 
@@ -676,6 +680,243 @@ def gen_parity_imd(m):
     write(os.path.join(GENERATED, "parity-imd.tex"), "".join(out))
 
 
+
+# --- The Gain Map chapter's fragments (#306 chapter four) --------------------
+
+
+def _rule_number(rule: str, pattern: str) -> str:
+    """A literal the manifest carries only inside a rule string, read from
+    there (the HD writer's minimum-half-width precedent)."""
+    m = re.search(pattern, rule)
+    assert m, f"rule string lacks {pattern!r}: {rule[:80]}"
+    return m.group(1).replace("\u2212", "-")
+
+
+def gen_parameters_journey(gmap):
+    pr, pl, su, ma, fl, pk, cl, sy = (gmap[k] for k in (
+        "probe", "plan", "summary", "masks", "floor", "peak", "cleanup", "synthesis"))
+    residue_drive = _rule_number(fl["residueRule"], r"at ([\u2212-]?\d+(?:\.\d+)?) dBFS")
+    summaries_hz = _rule_number(cl["summariesRule"], r"nearest (\d+(?:\.\d+)?) Hz")
+    summaries_confidence = _rule_number(cl["summariesRule"], r"confidence ([0-9.]+)")
+    guard = _rule_number(cl["readingRule"], r"max\(thd_i \u2212 thd_\{i\u22121\}, ([0-9e\u2212-]+)\)")
+    rows = [
+        ("Drive windows", None),
+        (r"hardware window (floor / ceiling / levels)", f"{num(pr['floorDBFS'])} / {num(pr['ceilingDBFS'])} dBFS / {num(pr['defaultLevels'])}"),
+        (r"plugin window (floor / ceiling / levels)", f"{num(pr['pluginFloorDBFS'])} / {num(pr['pluginCeilingDBFS'])} dBFS / {num(pr['defaultLevels'])}"),
+        (r"hardware lattice step", num((pr["ceilingDBFS"] - pr["floorDBFS"]) / (pr["defaultLevels"] - 1), 4) + " dB"),
+        ("Plan", None),
+        (r"sweep band $f_1$ -- $f_2$", num(pl["startHz"]) + " Hz -- " + num(pl["endHz"]) + " Hz"),
+        (r"sweep length (default) / offered", num(pl["sweepDurationS"]) + " s / " + ", ".join(num(x) for x in pl["sweepDurationChoicesS"]) + " s (not stored)"),
+        (r"actual duration / rate constant $L$ at the default", num(pl["actualDurationS"], 6) + " s / " + num(pl["rateConstantS"]) + " s"),
+        (r"pre-roll / tail silence", num(pl["prerollS"]) + " s / " + num(pl["tailS"]) + " s"),
+        (r"sample rate $f_s$ (the manifest's)", num(pl["sampleRateHz"]) + " Hz"),
+        (r"sweep samples / pre-roll / tail at $f_s$", f"{num(pl['sweepSampleCount'])} / {num(pl['prerollSamples'])} / {num(pl['tailSamples'])}"),
+        (r"analyzer: harmonic count $K$ / response DFT $M$ / half-width cap", f"{num(pl['harmonicCount'])} / {num(pl['responseFFTLength'])} / {num(pl['maxWindowHalfWidthS'])} s"),
+        (r"export grid columns", num(pl["exportFrequencyCount"]) + f" ({num(pl['exportGridHz'][0])}--{num(pl['exportGridHz'][-1])} Hz inclusive)"),
+        ("Summary", None),
+        (r"integration band", num(su["band"]["lowHz"]) + " Hz -- " + num(su["band"]["highHz"]) + " Hz"),
+        (r"edge mask guard ratio (a quarter tone)", num(ma["bottomEdgeGuardRatio"], 8)),
+        (r"masked columns on the default grid (bottom / top / truncated)", f"{', '.join(num(c) for c in ma['bottomEdgeColumns'])} / {', '.join(num(c) for c in ma['topEdgeColumns'])} / {', '.join(num(c) for c in ma['truncatedColumns']) or 'none'}"),
+        ("Floor", None),
+        (r"stamp median window (the Gain Map) / per-harmonic path", num(fl["stampMedianPoints"]) + " points / 1 (verbatim)"),
+        (r"calibration analyzed sweeps / level", num(fl["calibrationAnalyzedSweepCount"]) + " / " + num(fl["calibrationLevelDBFS"]) + " dBFS"),
+        (r"calibration sweep (the app's)", f"{num(sy['calibrationStartHz'])} Hz to round({num(sy['calibrationEndFraction'])} $f_s$), {num(sy['calibrationDurationS'])} s, {num(sy['calibrationPrerollS'])} s before / {num(sy['calibrationTailS'])} s after"),
+        (r"residue capture drive", residue_drive + " dBFS (a literal; the read is a ratio)"),
+        ("Peak tile", None),
+        (r"minimum margin", num(pk["minimumMarginDB"]) + " dB"),
+        ("Cleanup", None),
+        (r"threshold (bisected from the shipped initializer)", num(cl["threshold"]) + " (" + num(100 * cl["threshold"]) + r" \%)"),
+        (r"tile column (nearest in log frequency)", num(cl["tileFrequencyHz"]) + " Hz"),
+        (r"summaries' fallback: reference / minimum levels / confidence", summaries_hz + " Hz (linear nearest) / 3 / " + summaries_confidence + " (literals)"),
+        (r"crossing interpolation guard", guard + " (a literal)"),
+        (r"Oracle (\texttt{analysisdump journey-synth})", None),
+        (r"ladder quadrature points", num(sy["quadraturePoints"])),
+    ]
+    out = ["% GENERATED by gen_docs.py from generated/manifest.json — do not edit\n",
+           r"\begin{longtable}{@{}p{0.5\linewidth}p{0.45\linewidth}@{}}" + "\n",
+           r"\toprule Parameter & Value \\ \midrule \endhead" + "\n"]
+    for label, value in rows:
+        if value is None:
+            out.append(r"\multicolumn{2}{@{}l}{\textbf{%s}} \\" % label + "\n")
+        else:
+            out.append(f"{label} & {value} \\\\\n")
+    out.append(r"\bottomrule" + "\n" + r"\end{longtable}" + "\n")
+    write(os.path.join(GENERATED, "parameters-journey.tex"), "".join(out))
+
+
+def gen_residue_journey(gmap):
+    """The residue per column per length on the shipped grid, from the
+    manifest (the shipped derivation RUN there), as a table and as the
+    macros the prose quotes."""
+    pl, fl = gmap["plan"], gmap["floor"]
+    grid = pl["exportGridHz"]
+    lengths = [str(int(x)) for x in pl["sweepDurationChoicesS"]]
+    out = ["% GENERATED by gen_docs.py from generated/manifest.json — do not edit\n"]
+    out.append(r"\newcommand{\journeyResidueTable}{" + "\n")
+    out.append(r"\begin{tabular}{@{}rr" + "r" * len(lengths) + "r@{}}" + "\n")
+    out.append(r"\toprule $j$ & $f_j$ (Hz) & " + " & ".join(f"{l} s" for l in lengths) + r" & worst \\ \midrule" + "\n")
+    for j, f in enumerate(grid[:8]):
+        cells = " & ".join(num(fl["residuePerLengthDB"][l][j], 4) for l in lengths)
+        out.append(f"{j} & {num(f, 4)} & {cells} & {num(fl['residueWorstDB'][j], 4)} \\\\\n")
+    out.append(r"\bottomrule" + "\n" + r"\end{tabular}" + "\n}\n")
+    out.append(r"\newcommand{\journeyResidueColumnOneHz}{%s}" % num(grid[1], 4) + "\n")
+    for l in lengths:
+        out.append(r"\newcommand{\journeyResidueColumnOne%s}{%s}" % ({"2": "Two", "5": "Five", "10": "Ten"}[l], num(fl["residuePerLengthDB"][l][1], 4)) + "\n")
+        out.append(r"\newcommand{\journeyResidueColumnTwo%s}{%s}" % ({"2": "Two", "5": "Five", "10": "Ten"}[l], num(fl["residuePerLengthDB"][l][2], 4)) + "\n")
+    out.append(r"\newcommand{\journeyResidueWorstColumnOne}{%s}" % num(fl["residueWorstDB"][1], 4) + "\n")
+    out.append(r"\newcommand{\journeyHardwareStep}{%s}" % num((gmap["probe"]["ceilingDBFS"] - gmap["probe"]["floorDBFS"]) / (gmap["probe"]["defaultLevels"] - 1), 4) + "\n")
+    out.append(r"\newcommand{\journeyPluginStep}{%s}" % num((gmap["probe"]["pluginCeilingDBFS"] - gmap["probe"]["pluginFloorDBFS"]) / (gmap["probe"]["defaultLevels"] - 1), 4) + "\n")
+    # The stamp's grid (floor.stampSourceRule): 128 log points from 1.5·f1 to
+    # the calibration sweep's f2 = round(0.45·fs) — the 1.5 and the 128 are
+    # the kernel's literals (rule strings); f1, 0.45 and fs are the named
+    # statics the oracle exposes. ±3 points of 127 intervals over that span.
+    sc = gmap["shippedConstants"]
+    stamp_top_hz = round(sc["JourneySynthPlan.calibrationEndFraction"] * gmap["plan"]["sampleRateHz"])
+    stamp_bottom_hz = 1.5 * sc["JourneySynthPlan.calibrationStartHz"]
+    out.append(r"\newcommand{\journeyStampMedianOctaves}{%s}" % num(((fl["stampMedianPoints"] - 1) / 2) * math.log2(stamp_top_hz / stamp_bottom_hz) / 127, 2) + "\n")
+    write(os.path.join(GENERATED, "residue-journey.tex"), "".join(out))
+
+
+def gen_parity_journey(m):
+    import parity_journey as P
+    tool = P.build_tool()
+    results = P.run_all(tool, m)
+    leakage = P.leakage_from(results)
+    reports = {name: P.compare(case, swift, python, m, leakage) for name, (case, swift, python) in results.items()}
+    out = ["% GENERATED by gen_docs.py from a parity run (Swift vs Python vs the closed-form ladder) — do not edit\n"]
+    for macro, value in (("SwiftTolerance", P.T_SWIFT_DB), ("SwiftFilteredTolerance", P.T_SWIFT_DB_FILTERED),
+                         ("EmptyDepth", P.EMPTY_DEPTH_DB), ("TruthSmooth", P.T_TRUTH_SMOOTH_DB), ("TruthPhantom", P.T_TRUTH_PHANTOM_DB),
+                         ("TruthFiltered", P.T_TRUTH_FILTERED_DB), ("THDSmooth", P.T_THD_SMOOTH_DB), ("THDFiltered", P.T_THD_FILTERED_DB),
+                         ("Cleanup", P.T_CLEANUP_DB), ("ResidueVsLaw", P.T_RESIDUE_VS_LAW_DB), ("GainInvariance", P.T_GAIN_INVARIANCE_DB),
+                         ("Latency", P.T_LATENCY_DB), ("CorpusPeak", P.T_CORPUS_PEAK_DB), ("CorpusBound", P.T_CORPUS_BOUND_RELATIVE)):
+        out.append(r"\newcommand{\jparity%s}{%s}" % (macro, num(value, 3)) + "\n")
+    out.append(r"\newcommand{\jparityCaseCount}{%d}" % len(P.CASES) + "\n")
+    out.append(r"\newcommand{\jparityTwinCount}{%d}" % len(P.TWIN_OF) + "\n")
+    unfiltered = [r for r in reports.values() if not r.case.filtered]
+    filtered = [r for r in reports.values() if r.case.filtered]
+    out.append(r"\newcommand{\jparityWorstSwift}{%s}" % num(max(max(r.swift_header_db, r.swift_row_db) for r in unfiltered), 2) + "\n")
+    out.append(r"\newcommand{\jparityWorstSwiftFiltered}{%s}" % num(max(max(r.swift_header_db, r.swift_row_db) for r in filtered), 2) + "\n")
+    # The leakage map: the first four unmasked-side columns per order.
+    out.append(r"\newcommand{\jparityLeakageTable}{" + "\n")
+    out.append(r"\begin{tabular}{@{}r" + "r" * 5 + "@{}}" + "\n")
+    grid = m["gainMap"]["plan"]["exportGridHz"]
+    cols = [1, 2, 3, 4, 8]
+    out.append(r"\toprule $k$ & " + " & ".join("%s Hz" % num(grid[j], 4) for j in cols) + r" \\ \midrule" + "\n")
+    for k in sorted(leakage):
+        out.append(f"{k} & " + " & ".join(num(leakage[k][j], 4) for j in cols) + " \\\\\n")
+    out.append(r"\bottomrule" + "\n" + r"\end{tabular}" + "\n}\n")
+    out.append(r"\newcommand{\jparityLeakageHTwoColumnOne}{%s}" % num(leakage[2][1], 4) + "\n")
+    out.append(r"\newcommand{\jparityLeakageHThreeColumnOne}{%s}" % num(leakage[3][1], 4) + "\n")
+    out.append(r"\newcommand{\jparityLeakageHFiveColumnOne}{%s}" % num(leakage[5][1], 4) + "\n")
+    out.append(r"\newcommand{\jparityLeakageHThreeColumnTwo}{%s}" % num(leakage[3][2], 4) + "\n")
+    # The device table: every noiseless case beside its bars.
+    out.append(r"\newcommand{\jparityDeviceTable}{" + "\n")
+    out.append(r"\begin{tabular}{@{}lrrrrrrrr@{}}" + "\n")
+    out.append(r"\toprule case & cells & S$-$P (dB) & raw (dB) & at & residue (dB) & 30 dB bar & 40 dB bar & THD residue \\ \midrule" + "\n")
+    for name, r in reports.items():
+        if r.content_count == 0 or r.case.kind == "linear":
+            continue
+        out.append(f"{tex_escape(name)} & {r.content_count} & {num(max(r.swift_header_db, r.swift_row_db), 2)} & {num(r.truth_error_db, 3)} & {tex_escape(r.truth_error_label)} & {num(max(r.truth_residue_db, 0.0), 2)} & {num(r.bar_error[30][0], 3)} & {num(r.bar_error[40][0], 3)} & {num(max(r.thd_residue_db, 0.0), 2)} \\\\\n")
+    out.append(r"\bottomrule" + "\n" + r"\end{tabular}" + "\n}\n")
+    # The read-time table: every noisy case's tiles on the Swift side.
+    tile = "cleanup tile (nearest column to 220.0 Hz)"
+    out.append(r"\newcommand{\jparityReadTimeTable}{" + "\n")
+    out.append(r"\begin{tabular}{@{}llrlrrr@{}}" + "\n")
+    out.append(r"\toprule case & peak tile & value (\%) & cleanup tile & level (dBFS) & absent & S$-$P (dB) \\ \midrule" + "\n")
+    for name, r in reports.items():
+        if not r.case.noisy:
+            continue
+        h = r.swift.header
+        pk = h["peak tile"]
+        value = pk["peak_pct"] if pk["state"] == "peak" else pk["bound_pct"]
+        value = "--" if value == "nan" else num(float(value), 4)
+        state = {"peak": "peak", "at_floor": "at floor ($\\le$)", "fundamental_absent": "no fundamental"}.get(pk["state"], pk["state"])
+        c = h[tile]
+        level = "--" if c["level_dbfs"] == "nan" else num(float(c["level_dbfs"]), 4)
+        out.append(f"{tex_escape(name)} & {state} & {value} & {tex_escape(c['state'].replace('_', ' '))} & {level} & {h['fundamental verdict']['absent']} & {num(max(r.swift_header_db, r.swift_row_db), 2)} \\\\\n")
+    out.append(r"\bottomrule" + "\n" + r"\end{tabular}" + "\n}\n")
+    # Headline numbers the prose quotes.
+    worked = reports[P.WORKED]
+    ws = worked.swift
+    out.append(r"\newcommand{\jparityWorkedPeak}{%s}" % num(float(ws.header["peak tile"]["peak_pct"]), 4) + "\n")
+    out.append(r"\newcommand{\jparityWorkedTruthPeak}{%s}" % num(float(ws.header["truth peak tile"]["peak_pct"]), 4) + "\n")
+    out.append(r"\newcommand{\jparityWorkedCleanup}{%s}" % num(float(ws.header[tile]["level_dbfs"]), 4) + "\n")
+    out.append(r"\newcommand{\jparityWorkedTruthCleanup}{%s}" % num(float(ws.header["truth " + tile]["level_dbfs"]), 4) + "\n")
+    out.append(r"\newcommand{\jparityWorkedCleanupColumnHz}{%s}" % num(float(ws.header[tile]["column_hz"]), 4) + "\n")
+    out.append(r"\newcommand{\jparityWorkedContent}{%d}" % worked.content_count + "\n")
+    out.append(r"\newcommand{\jparityWorkedRaw}{%s}" % num(worked.truth_error_db, 3) + "\n")
+    out.append(r"\newcommand{\jparityWorkedRawAt}{%s}" % tex_escape(worked.truth_error_label) + "\n")
+    out.append(r"\newcommand{\jparityWorkedResidue}{%s}" % num(max(worked.truth_residue_db, 0.0), 2) + "\n")
+    out.append(r"\newcommand{\jparityWorkedThirty}{%s}" % num(worked.bar_error[30][0], 3) + "\n")
+    out.append(r"\newcommand{\jparityWorkedForty}{%s}" % num(worked.bar_error[40][0], 3) + "\n")
+    out.append(r"\newcommand{\jparityWorkedTHDResidue}{%s}" % num(max(worked.thd_residue_db, 0.0), 2) + "\n")
+    out.append(r"\newcommand{\jparityWorkedCleanupError}{%s}" % num(worked.cleanup_error_db, 3) + "\n")
+    out.append(r"\newcommand{\jparityBoundThirty}{%s}" % num(20 * math.log10(1 + 10 ** (-30 / 20)), 3) + "\n")
+    out.append(r"\newcommand{\jparityBoundForty}{%s}" % num(20 * math.log10(1 + 10 ** (-40 / 20)), 3) + "\n")
+    out.append(r"\newcommand{\jparityWorstThirty}{%s}" % num(max(r.bar_error[30][0] for r in reports.values() if r.content_count and not r.case.filtered and r.case.kind != "linear"), 3) + "\n")
+    out.append(r"\newcommand{\jparityWorstForty}{%s}" % num(max(r.bar_error[40][0] for r in reports.values() if r.content_count and not r.case.filtered and r.case.kind != "linear"), 3) + "\n")
+    out.append(r"\newcommand{\jparityWorstResidueSmooth}{%s}" % num(max(max(reports[n].truth_residue_db, 0.0) for n in ("a-tanh", "a-poly")), 2) + "\n")
+    out.append(r"\newcommand{\jparityWorstResiduePhantom}{%s}" % num(max(max(reports[n + "-twin"].truth_residue_db, 0.0) for n in P.TWIN_OF), 2) + "\n")
+    out.append(r"\newcommand{\jparityWorstResidueFiltered}{%s}" % num(max(max(r.truth_residue_db, 0.0) for r in filtered), 2) + "\n")
+    out.append(r"\newcommand{\jparityWorstTHDSmooth}{%s}" % num(max(max(reports[n].thd_residue_db, 0.0) for n in ("a-tanh", "a-poly")), 2) + "\n")
+    out.append(r"\newcommand{\jparityWorstTHDFiltered}{%s}" % num(max(max(r.thd_residue_db, 0.0) for r in filtered), 2) + "\n")
+    out.append(r"\newcommand{\jparityWorstCleanup}{%s}" % num(max(r.cleanup_error_db for r in reports.values()), 3) + "\n")
+    # The identity through noise: the residue at the first unmasked column, the law's numbers.
+    b5 = reports["b-identity-5s"].python
+    first = b5.lists["masks"]["bottom_edge"].index("0")
+    for label, seconds in (("Two", 2), ("Five", 5), ("Ten", 10)):
+        out.append(r"\newcommand{\jparityResiduePython%s}{%s}" % (label, num(float(b5.series["residue length_s=%s" % hd.fmt(float(seconds))][first]), 4)) + "\n")
+        out.append(r"\newcommand{\jparityResidueLaw%s}{%s}" % (label, num(P.RESIDUE_LAW_DB[seconds], 4)) + "\n")
+    bp = reports["b-identity-5s"].swift.header["peak tile"]
+    out.append(r"\newcommand{\jparityIdentityBound}{%s}" % num(float(bp["bound_pct"]), 3) + "\n")
+    # The gain invariance and the latency identity.
+    g0, g12 = reports["e-tanh-gain0"].swift, reports["e-tanh-gain12"].swift
+    out.append(r"\newcommand{\jparityGainShift}{%s}" % num(g12.rows[0]["h1_db"] - g0.rows[0]["h1_db"], 6) + "\n")
+    out.append(r"\newcommand{\jparityGainMarginMove}{%s}" % num(max(P._diff(a["margin_db"], b["margin_db"]) for a, b in zip(g0.rows, g12.rows)), 2) + "\n")
+    out.append(r"\newcommand{\jparityGainStamp}{%s}" % num(float(g12.header["calibration"]["chain_gain_db"]), 5) + "\n")
+    zero, late = reports["a-tanh"].swift, reports["j-latency"].swift
+    out.append(r"\newcommand{\jparityLatencyFound}{%s}" % late.header["calibration"]["latency_samples"] + "\n")
+    out.append(r"\newcommand{\jparityLatencyMove}{%s}" % num(max(max(P._diff(a[f"h{k}_db"], b[f"h{k}_db"]) for k in zero.orders) for a, b in zip(zero.rows, late.rows)), 2) + "\n")
+    # The operative floor and the absent fundamental.
+    f = reports["f-operative"].swift
+    out.append(r"\newcommand{\jparityOperativeAbsolute}{%s}" % num(float(f.header["precheck"]["absolute_dbfs"]), 4) + "\n")
+    out.append(r"\newcommand{\jparityOperativePeak}{%s}" % num(float(f.header["peak tile"]["peak_pct"]), 4) + "\n")
+    out.append(r"\newcommand{\jparityOperativeStampFloor}{%s}" % num(20 * math.log10(max(float(x.split(":")[1]) for x in f.series["stamp"].values())), 3) + "\n")
+    c = reports["c-absent"].swift.header
+    out.append(r"\newcommand{\jparityAbsentDepth}{%s}" % num(float(c["peak tile"]["depth_db"]), 4) + "\n")
+    out.append(r"\newcommand{\jparityAbsentFraction}{%s}" % num(float(c["fundamental verdict"]["absent_fraction"]), 3) + "\n")
+    g = reports["g-plugin-hardclip"].swift.header
+    out.append(r"\newcommand{\jparityPluginPeak}{%s}" % num(float(g["peak tile"]["peak_pct"]), 4) + "\n")
+    out.append(r"\newcommand{\jparityPluginCleanup}{%s}" % num(float(g[tile]["level_dbfs"]), 4) + "\n")
+    d = reports["d-never-clean"].swift.header
+    out.append(r"\newcommand{\jparityNeverCleanPeak}{%s}" % num(float(d["peak tile"]["peak_pct"]), 4) + "\n")
+    # Part B on the corpus: the Python's tiles beside the kernel's.
+    out.append(r"\newcommand{\jparityCorpusTable}{" + "\n")
+    out.append(r"\begin{tabular}{@{}rlrr@{}}" + "\n")
+    out.append(r"\toprule record & tile & Python (\%) & kernel (\%) \\ \midrule" + "\n")
+    corpus_ok = True
+    for r in P.corpus_records():
+        reading = P.corpus_reading(r, m)
+        state, value = P.CORPUS_PINNED[r.pk]
+        label = "peak" if state == "peak" else "at floor ($\\le$)"
+        out.append(f"{r.pk} & {label} & {num(reading.peak[1], 6)} & {num(value, 6)} \\\\\n")
+        if reading.peak[0] != state:
+            corpus_ok = False
+        elif state == "peak" and abs(20 * math.log10(reading.peak[1] / value)) >= P.T_CORPUS_PEAK_DB:
+            corpus_ok = False
+        elif state != "peak" and abs(reading.peak[1] - value) > P.T_CORPUS_BOUND_RELATIVE * value:
+            corpus_ok = False
+    out.append(r"\bottomrule" + "\n" + r"\end{tabular}" + "\n}\n")
+    # Part B's status is GENERATED from the run, never typed.
+    part_b = [reports[n] for n in ("b-identity-2s", "b-identity-5s", "b-identity-10s", "c-absent", "d-never-clean",
+                                   "e-tanh-gain0", "e-tanh-gain12", "f-operative", "g-plugin-hardclip")]
+    ok = corpus_ok and all(not (r.discrete_mismatches or r.header_field_mismatches) and r.swift_row_db <= r.case.swift_tolerance_db for r in part_b)
+    sentence = ("Part B's parity is established: on every read-time case — the identity through noise at the three sweep lengths, the device with no fundamental, the never-clean clipper, the loop 12 dB louder, the operative floor on a silent stamp, and the plugin window — the two implementations agree on every margin, every flag, every tile and every verdict, and on the corpus grids the reimplementation reproduces the kernel's own tiles to the digit."
+                if ok else
+                "Part B's parity is NOT yet established: at least one read-time case, or a corpus tile, reads differently on the two sides on this run; the cases are marked expected-failure in the test and the follow-up issue is named in the handoff.")
+    out.append(r"\newcommand{\jparityPartBStatus}{%s}" % sentence + "\n")
+    write(os.path.join(GENERATED, "parity-journey.tex"), "".join(out))
+
 # --- Numbers in words (#307) --------------------------------------------------
 # A tolerance such as 1e-10 prints as "1e-10" in lay prose because the parity
 # macros are shared with the technical chapter. Beside each scalar macro the
@@ -1146,10 +1387,13 @@ def main(argv=None):
     gen_parameters_transfer(transfer)
     gen_parameters_imd(whole["chordIMD"])
     gen_lattice_imd(whole["chordIMD"])
+    gen_parameters_journey(whole["gainMap"])
+    gen_residue_journey(whole["gainMap"])
     if not args.no_parity:
         gen_parity(m)
         gen_parity_transfer(transfer)
         gen_parity_imd(whole)
+        gen_parity_journey(whole)
     # The plain writers run last: their words-form macros read the parity
     # fragments as this run left them (the committed ones under --no-parity).
     gen_plain(m)

@@ -95,7 +95,7 @@ private, so they cannot run there; the public README says what can.
 ```
 generated/   manifest.json + the .tex fragments (plain-<kind>.tex holds the lay
              chapter's macros and the parity words forms) — COMMITTED, drift-checked
-figures/     hd-*.png, transfer-*.png, imd-*.png, explained-*.png + .tsv sidecars — COMMITTED, drift-checked
+figures/     hd-*.png, transfer-*.png, imd-*.png, journey-*.png, explained-*.png + .tsv sidecars — COMMITTED, drift-checked
 py/          harmonic_distortion.py  the reimplementation
              parity_hd.py           the comparison + tolerances (shared by test and generator)
              test_parity_hd.py      the CI parity test
@@ -105,6 +105,9 @@ py/          harmonic_distortion.py  the reimplementation
              chord_imd.py           the Chord IMD reimplementation (#306 chapter three)
              parity_imd.py          its comparison + tolerances
              test_parity_imd.py     its CI parity test
+             gain_map.py            the Gain Map reimplementation (#306 chapter four; imports harmonic_distortion.py)
+             parity_journey.py      its comparison + tolerances
+             test_parity_journey.py its CI parity test
              make_figures.py        the figures
              gen_docs.py            the fragments (both registers)
              test_terms.py          the terms guard

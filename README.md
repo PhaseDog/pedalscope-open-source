@@ -61,9 +61,9 @@ and everything they are built from:
   (parameter tables, glossaries, the parity numbers, the lay chapters'
   macros).
 - `methods/figures/` — every figure in the documents as PNG, each with a
-  `.tsv` sidecar of the values it plots; plus the four charts the documents
-  reproduce from PedalScope's user guide (`*--sim*.png`), rendered by the
-  app itself.
+  `.tsv` sidecar of the values it plots; plus the app's own charts the
+  chapters include (`*--sim*.png`), rendered by the app itself from its
+  user guide's figure pipeline and carried into this folder automatically.
 - `methods/terms.yaml` — the terms source both glossaries are generated
   from, with a technical and a plain definition per term.
 
@@ -113,16 +113,18 @@ stated as found:
   every figure in `methods/figures/` byte-identical to what is committed,
   except `hd-residuals.png`, which needs the Swift oracle's output for the
   same case (`--swift`) and is left as committed.
-- **The PDFs** — `latexmk` as above: 49 and 42 pages, the same page counts
-  as the committed PDFs.
+- **The PDFs** — `latexmk` as above: the same page counts as the committed
+  PDFs.
 - **The parity tests cannot run here.** `test_parity_hd.py`,
-  `test_parity_transfer.py` and `test_parity_imd.py` call the private
-  Swift tool (`analysisdump synth`, `transfer-synth`, `imd-synth`), which
+  `test_parity_transfer.py`, `test_parity_imd.py` and
+  `test_parity_journey.py` call the private Swift tool (`analysisdump
+  synth`, `transfer-synth`, `imd-synth`, `journey-synth`), which
   runs the app's own analysis code on a synthetic device beside the Python's
   and holds the two to each other and to the analytic truth. Those tests
   run in the private repository's CI on every change; they are published
   here as the record of **what is asserted and at what tolerance** — read
-  `parity_hd.py`, `parity_transfer.py` and `parity_imd.py`, where each
+  `parity_hd.py`, `parity_transfer.py`, `parity_imd.py` and
+  `parity_journey.py`, where each
   tolerance is quoted with the measurement it was set from — and the
   numbers they produced are in the documents' worked examples.
 

@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import io
+import json
 import math
 import os
 import sys
@@ -23,6 +24,8 @@ import numpy as np
 import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt  # noqa: E402
+import matplotlib.patches  # noqa: E402
+import matplotlib.colors  # noqa: E402
 
 import harmonic_distortion as hd  # noqa: E402
 import transfer_curve as tc  # noqa: E402
@@ -961,6 +964,263 @@ def imd_figures(manifest_path, out):
     fig_explained_skirt(m, out)
 
 
+
+# --- The Gain Map chapter's figures (#306 chapter four) ----------------------
+# Every figure is computed from the Python reimplementation's own runs:
+# the worked example (tanh, gain 2, the hardware lattice, noiseless — the
+# parity's case a), the identity through seeded noise (case b), the three
+# cleanup devices (a, b, d), and the pure phantom (the leakage map).
+
+import gain_map as gmap  # noqa: E402
+
+JOURNEY_NOISE_DB = -100.0
+
+
+def _journey_plan(m, kind, params=None, noise_db=None, amps=None, plugin=False, gain_db=0.0):
+    gm_ = m["gainMap"]
+    probe, plan = gm_["probe"], gm_["plan"]
+    floor = probe["pluginFloorDBFS"] if plugin else probe["floorDBFS"]
+    ceiling = probe["pluginCeilingDBFS"] if plugin else probe["ceilingDBFS"]
+    jp = gmap.JourneyPlan(float(plan["startHz"]), float(plan["endHz"]), float(plan["sweepDurationS"]),
+                          float(plan["sampleRateHz"]), gmap.levels(floor, ceiling, int(probe["defaultLevels"])),
+                          float(plan["prerollS"]), float(plan["tailS"]))
+    if kind == "phantom":
+        source = gmap.Source("phantom", None, [list(amps)])
+    else:
+        source = gmap.Source(kind, tc.Device(kind, params or {}, None, None, False), None)
+    noise = None if noise_db is None else 10 ** (noise_db / 20)
+    return gmap.Plan(source, jp, 0, gain_db, noise, 1, None, float(gm_["floor"]["calibrationLevelDBFS"]))
+
+
+def _journey_runs(m):
+    tanh_params = dict(gain=2.0, threshold=0.1, a2=0.0, a3=0.0, negative_scale=0.5)
+    hard_params = dict(gain=4.0, threshold=0.002, a2=0.0, a3=0.0, negative_scale=0.5)
+    return {
+        "tanh": gmap.run(_journey_plan(m, "tanh", tanh_params), m),
+        "tanh-noise": gmap.run(_journey_plan(m, "tanh", tanh_params, JOURNEY_NOISE_DB), m),
+        "identity": gmap.run(_journey_plan(m, "identity", {}, JOURNEY_NOISE_DB), m),
+        "never": gmap.run(_journey_plan(m, "hardclip", hard_params, JOURNEY_NOISE_DB), m),
+        "linear": gmap.run(_journey_plan(m, "phantom", amps=[1.0]), m),
+    }
+
+
+def fig_journey_map(runs, m, out):
+    """The worked example's THD map: cells as a colour by THD, opacity by the
+    composed margin, the masked columns hatched, the corroborated peak and
+    the cleanup crossing marked."""
+    r = runs["tanh-noise"]
+    s, rd = r.summary, r.reading
+    levels, freqs = s.levels_db, s.frequencies
+    thd = np.array([[np.nan if v is None else 100 * v for v in row] for row in s.thd])
+    margins = np.array([[np.nan if v is None else v for v in row] for row in rd.margins])
+    fig, ax = plt.subplots(figsize=(7.2, 4.0))
+    lo = np.nanmin(thd[:, 1:-1]); hi = np.nanmax(thd[:, 1:-1])
+    norm = matplotlib.colors.LogNorm(vmin=max(lo, 1e-4), vmax=hi)
+    for i in range(len(levels)):
+        for j in range(len(freqs)):
+            if np.isnan(thd[i, j]):
+                continue
+            alpha = 1.0 if np.isnan(margins[i, j]) else float(np.clip(margins[i, j] / 6.0, 0.15, 1.0))
+            colour = plt.cm.viridis(norm(max(thd[i, j], 1e-4)))
+            hatch = "////" if rd.excluded[j] else None
+            ax.add_patch(matplotlib.patches.Rectangle((j - 0.5, i - 0.5), 1, 1, facecolor=colour, alpha=alpha,
+                                                      hatch=hatch, edgecolor="0.7" if hatch else "none", linewidth=0.3))
+            if rd.corroborated[i][j] and rd.peak[0] == "peak" and abs(thd[i, j] - rd.peak[1]) < 1e-9:
+                ax.plot(j, i, marker="*", color=RED, markersize=12)
+    col = rd.tile_column
+    if rd.tile[0] == "cleans_up":
+        y = np.interp(rd.tile[1], levels, range(len(levels)))
+        ax.plot(col, y, marker="v", color=ORANGE, markersize=9)
+    ax.set_xlim(-0.5, len(freqs) - 0.5); ax.set_ylim(-0.5, len(levels) - 0.5)
+    ax.set_xticks(range(0, len(freqs), 3)); ax.set_xticklabels(["%.0f" % freqs[j] for j in range(0, len(freqs), 3)])
+    ax.set_yticks(range(len(levels))); ax.set_yticklabels(["%.1f" % l for l in levels])
+    ax.set_xlabel("column fundamental (Hz)"); ax.set_ylabel("drive level (dBFS)")
+    sm = plt.cm.ScalarMappable(norm=norm, cmap="viridis"); sm.set_array([])
+    fig.colorbar(sm, ax=ax, label="THD (%)")
+    ax.set_title("tanh(2x) at −100 dBFS loop noise: colour = THD, opacity = composed margin / 6 dB,\n"
+                 "hatched = masked columns; star = corroborated peak %.3f %%, triangle = cleanup crossing %.2f dBFS at %.0f Hz"
+                 % (rd.peak[1], rd.tile[1], freqs[col]), fontsize=8)
+    fig.savefig(os.path.join(out, "journey-map.png"), **SAVE)
+    plt.close(fig)
+    rows = [(i, j, freqs[j], levels[i], thd[i, j], margins[i, j], int(rd.excluded[j]), int(rd.clear[i][j]), int(rd.corroborated[i][j]))
+            for i in range(len(levels)) for j in range(len(freqs))]
+    write_sidecar(os.path.join(out, "journey-map.tsv"),
+                  ["level_index", "freq_index", "freq_hz", "level_dbfs", "thd_pct", "margin_db", "masked", "clear", "corroborated"],
+                  list(zip(*rows)))
+
+
+def fig_journey_floor(runs, m, out):
+    """One column's floor composition against level, and one level's against
+    frequency: the stamp raw and median-read, the drive term with its clamp,
+    the residue, and the composed margin."""
+    r = runs["tanh-noise"]
+    s, rd, cal = r.summary, r.reading, r.cal
+    median_points = int(m["gainMap"]["floor"]["stampMedianPoints"])
+    j = rd.tile_column
+    f = s.frequencies[j]
+    stamp_median = gmap.pooled_floor_db(cal.stamp_all, f, median_points)
+    stamp_raw = gmap.pooled_floor_db(cal.stamp_all, f, 1)
+    cal_abs = cal.delivered_dbfs
+    levels = s.levels_db
+    delivered = [levels[i] + s.harmonic_db[1][i][j] for i in range(len(levels))]
+    drive_term = [max(0.0, cal_abs - d) for d in delivered]
+    rig_floor = [stamp_median + t for t in drive_term]
+    thd_db = [20 * math.log10(s.thd[i][j]) for i in range(len(levels))]
+    residue = rd.residue[j]
+    margins = [rd.margins[i][j] for i in range(len(levels))]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.2, 3.6))
+    a1.plot(levels, thd_db, "o-", color=BLUE, label="THD cell (dB)")
+    a1.plot(levels, rig_floor, "s-", color=ORANGE, label="rig-noise floor: median stamp + drive term")
+    a1.axhline(stamp_median, color=ORANGE, linestyle=":", label="stamp (median read) %.1f dB" % stamp_median)
+    a1.axhline(stamp_raw, color="0.5", linestyle=":", label="stamp (verbatim) %.1f dB" % stamp_raw)
+    a1.axhline(residue, color=RED, linestyle="--", label="analyzer residue %.1f dB" % residue)
+    a1.axvline(cal_abs, color="0.3", linestyle="-.", label="calibration delivered %.1f dBFS" % cal_abs)
+    a1.set_xlabel("drive level (dBFS)"); a1.set_ylabel("dB re fundamental")
+    a1.set_title("column %.0f Hz: the floor's sources vs level" % f, fontsize=8)
+    a1.legend(fontsize=5.5, loc="upper left")
+    ax2 = a1.twinx()
+    ax2.plot(levels, margins, "^-", color=GREEN, label="composed margin (dB)")
+    ax2.axhline(float(m["gainMap"]["peak"]["minimumMarginDB"]), color=GREEN, linestyle=":")
+    ax2.set_ylabel("composed margin (dB)", color=GREEN)
+    i = len(levels) - 1
+    freqs = s.frequencies
+    thd_f = [20 * math.log10(s.thd[i][jj]) if s.thd[i][jj] else np.nan for jj in range(len(freqs))]
+    stamp_f = [gmap.pooled_floor_db(cal.stamp_all, ff, median_points) for ff in freqs]
+    raw_f = [gmap.pooled_floor_db(cal.stamp_all, ff, 1) for ff in freqs]
+    res_f = rd.residue
+    a2.semilogx(freqs, thd_f, "o-", color=BLUE, label="THD cell")
+    a2.semilogx(freqs, stamp_f, "s-", color=ORANGE, label="stamp, median read")
+    a2.semilogx(freqs, raw_f, ":", color="0.5", label="stamp, verbatim")
+    a2.semilogx(freqs, res_f, "--", color=RED, label="analyzer residue (worst over lengths)")
+    a2.set_xlabel("column fundamental (Hz)"); a2.set_ylabel("dB re fundamental")
+    a2.set_title("loudest level (%.0f dBFS): floor vs frequency" % levels[i], fontsize=8)
+    a2.legend(fontsize=6, loc="lower left")
+    fig.suptitle("The composed floor: the larger of the rig-noise bound and the analyzer's residue", fontsize=9)
+    fig.savefig(os.path.join(out, "journey-floor.png"), **SAVE)
+    plt.close(fig)
+    write_sidecar(os.path.join(out, "journey-floor.tsv"),
+                  ["level_dbfs", "thd_db", "delivered_dbfs", "drive_term_db", "rig_floor_db", "margin_db"],
+                  [levels, thd_db, delivered, drive_term, rig_floor, margins])
+    write_sidecar(os.path.join(out, "journey-floor-frequency.tsv"),
+                  ["freq_hz", "thd_db", "stamp_median_db", "stamp_raw_db", "residue_db"],
+                  [freqs, thd_f, stamp_f, raw_f, res_f])
+
+
+def fig_journey_residue(runs, m, out):
+    """#291's own picture: the analyzer's residue per column at the three
+    offered sweep lengths on the shipped grid, and the leakage map."""
+    r = runs["identity"]
+    s, rd = r.summary, r.reading
+    freqs = s.frequencies
+    lin = runs["linear"]
+    fig, (a1, a2) = plt.subplots(1, 2, figsize=(7.2, 3.6))
+    for sec, colour in zip(sorted(rd.residue_per_length), (RED, ORANGE, BLUE)):
+        vals = [np.nan if v is None else v for v in rd.residue_per_length[sec]]
+        a1.semilogx(freqs, vals, "o-", color=colour, label="%g s sweep" % sec, markersize=3)
+    worst = [np.nan if v is None else v for v in rd.residue]
+    a1.semilogx(freqs, worst, "k--", label="worst (the floor)", linewidth=0.8)
+    a1.axvspan(freqs[0] * 0.9, freqs[0] * float(m["gainMap"]["masks"]["bottomEdgeGuardRatio"]), color="0.9")
+    a1.set_ylim(-240, 0); a1.set_xlabel("column fundamental (Hz)"); a1.set_ylabel("THD of nothing (dB re fundamental)")
+    a1.set_title("the analyzer's residue per column and sweep length\n(first unmasked column: %.1f / %.1f / %.1f dB)"
+                 % tuple(rd.residue_per_length[k][1] for k in sorted(rd.residue_per_length)), fontsize=8)
+    a1.legend(fontsize=7)
+    ls, lrd = lin.summary, lin.reading
+    for k in (2, 3, 5, 7, 9):
+        vals = []
+        for j in range(len(freqs)):
+            best = -np.inf
+            for i in range(len(ls.levels_db)):
+                hk, h1 = ls.harmonic_db[k][i][j], ls.harmonic_db[1][i][j]
+                if hk is not None and h1 is not None:
+                    best = max(best, hk - h1)
+            vals.append(best if np.isfinite(best) else np.nan)
+        a2.semilogx(freqs, vals, "o-", markersize=3, label="into H%d's window" % k)
+    a2.set_ylim(-240, 0); a2.set_xlabel("column fundamental (Hz)"); a2.set_ylabel("leakage (dB re H1)")
+    a2.set_title("the leakage map: a pure fundamental\nread at every other order", fontsize=8)
+    a2.legend(fontsize=7)
+    fig.savefig(os.path.join(out, "journey-residue.png"), **SAVE)
+    plt.close(fig)
+    cols = [freqs] + [[np.nan if v is None else v for v in rd.residue_per_length[k]] for k in sorted(rd.residue_per_length)] + [worst]
+    write_sidecar(os.path.join(out, "journey-residue.tsv"),
+                  ["freq_hz"] + ["residue_%gs_db" % k for k in sorted(rd.residue_per_length)] + ["worst_db"], cols)
+
+
+def fig_journey_cleanup(runs, m, out):
+    """THD against level at the tile's column for the three cleanup states."""
+    threshold = float(m["gainMap"]["cleanup"]["threshold"])
+    fig, ax = plt.subplots(figsize=(7.2, 3.4))
+    cols = {}
+    for name, colour, label in (("tanh-noise", BLUE, "tanh(2x)"), ("identity", GREEN, "identity"), ("never", RED, "hard clip at 0.002")):
+        r = runs[name]
+        s, rd = r.summary, r.reading
+        j = rd.tile_column
+        levels = s.levels_db
+        thd = [100 * s.thd[i][j] if s.thd[i][j] else np.nan for i in range(len(levels))]
+        state, level = rd.tile
+        text = {"cleans_up": "cleans up at %.2f dBFS" % (level or 0), "never_clean": "never clean", "always_clean": "always clean"}[state]
+        ax.semilogy(levels, thd, "o-", color=colour, label="%s: %s" % (label, text))
+        if state == "cleans_up":
+            ax.plot([level], [100 * threshold], marker="v", color=colour, markersize=10)
+        cols[name] = thd
+    ax.axhline(100 * threshold, color="0.3", linestyle="--", label="threshold %.0f %%" % (100 * threshold))
+    ax.set_xlabel("drive level (dBFS)"); ax.set_ylabel("THD (%) at the tile's column")
+    ax.set_title("The three cleanup states at %.0f Hz: a genuine crossing, always clean, never clean" % runs["tanh-noise"].summary.frequencies[runs["tanh-noise"].reading.tile_column], fontsize=8)
+    ax.legend(fontsize=7)
+    fig.savefig(os.path.join(out, "journey-cleanup.png"), **SAVE)
+    plt.close(fig)
+    levels = runs["tanh-noise"].summary.levels_db
+    write_sidecar(os.path.join(out, "journey-cleanup.tsv"), ["level_dbfs", "tanh_thd_pct", "identity_thd_pct", "never_thd_pct"],
+                  [levels, cols["tanh-noise"], cols["identity"], cols["never"]])
+
+
+def fig_journey_peak(runs, m, out):
+    """The corroboration rule: the identity-plus-noise map's clearing cells
+    against the clipper's shoulder — margins per column at the loudest
+    level and at the quietest."""
+    minimum = float(m["gainMap"]["peak"]["minimumMarginDB"])
+    fig, axes = plt.subplots(1, 2, figsize=(7.2, 3.4))
+    data = {}
+    for ax, name, title in zip(axes, ("identity", "tanh-noise"), ("identity through −100 dBFS noise", "tanh(2x) through the same loop")):
+        r = runs[name]
+        s, rd = r.summary, r.reading
+        freqs = s.frequencies
+        for i, colour in ((len(s.levels_db) - 1, BLUE), (0, GREY)):
+            margins = [np.nan if rd.margins[i][j] is None else rd.margins[i][j] for j in range(len(freqs))]
+            ax.bar([j + (0.2 if i == 0 else -0.2) for j in range(len(freqs))], margins, width=0.4, color=colour,
+                   label="level %.0f dBFS" % s.levels_db[i])
+            for j in range(len(freqs)):
+                if rd.corroborated[i][j]:
+                    ax.plot(j + (0.2 if i == 0 else -0.2), margins[j], marker="*", color=RED, markersize=7)
+                elif rd.clear[i][j]:
+                    ax.plot(j + (0.2 if i == 0 else -0.2), margins[j], marker="x", color=ORANGE, markersize=6)
+            data[(name, i)] = margins
+        ax.axhline(minimum, color="0.3", linestyle="--")
+        ax.set_ylim(-40, max(40, ax.get_ylim()[1]))
+        ax.set_xticks(range(0, len(freqs), 4)); ax.set_xticklabels(["%.0f" % freqs[j] for j in range(0, len(freqs), 4)])
+        ax.set_xlabel("column fundamental (Hz)"); ax.set_ylabel("composed margin (dB)")
+        ax.set_title("%s\npeak tile: %s %s" % (title, rd.peak[0].replace("_", " "), "%.3g %%" % rd.peak[1] if rd.peak[1] else ""), fontsize=8)
+        ax.legend(fontsize=7)
+    fig.suptitle("Clear (x) is not enough: a peak needs a clear frequency neighbour (star); a lone clearing cell stays a bound", fontsize=8)
+    fig.savefig(os.path.join(out, "journey-peak.png"), **SAVE)
+    plt.close(fig)
+    freqs = runs["identity"].summary.frequencies
+    n = len(runs["identity"].summary.levels_db)
+    write_sidecar(os.path.join(out, "journey-peak.tsv"),
+                  ["freq_hz", "identity_loud_margin_db", "identity_quiet_margin_db", "tanh_loud_margin_db", "tanh_quiet_margin_db"],
+                  [freqs, data[("identity", n - 1)], data[("identity", 0)], data[("tanh-noise", n - 1)], data[("tanh-noise", 0)]])
+
+
+def journey_figures(manifest_path, out):
+    with open(manifest_path, encoding="utf-8") as f:
+        m = json.load(f)
+    runs = _journey_runs(m)
+    fig_journey_map(runs, m, out)
+    fig_journey_floor(runs, m, out)
+    fig_journey_residue(runs, m, out)
+    fig_journey_cleanup(runs, m, out)
+    fig_journey_peak(runs, m, out)
+
+
 def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--out", default=DEFAULT_OUT)
@@ -970,6 +1230,7 @@ def main(argv=None):
     os.makedirs(args.out, exist_ok=True)
     transfer_figures(args.manifest, args.out)
     imd_figures(args.manifest, args.out)
+    journey_figures(args.manifest, args.out)
     m = hd.load_manifest(args.manifest)
     sweep = hd.Sweep.from_manifest(m)
     sweep.check_against(m)

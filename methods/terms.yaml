@@ -802,3 +802,244 @@ terms:
       The whole-number version of the interval you asked for --- three to
       two for a fifth --- which decides where each invented tone falls
       musically.
+
+  # --- Gain Map (#306 chapter four) ---------------------------------------
+
+  - key: gain-map
+    term: gain map
+    technical: >-
+      The level-resolved harmonic measurement (§6.2's gain journey): the
+      Harmonic Distortion sweep repeated at each drive level of a lattice,
+      each level analyzed on its own, and the results summarized on one
+      export grid as $\mathrm{thd}[i][j]$ and $H_k[i][j]$ --- a map of the
+      device's distortion against level and note.
+    plain: >-
+      The same test tone played at several loudnesses in turn, from quiet to
+      hot, so that the distortion can be drawn as a map --- how loud you play
+      up one side, which note along the other.
+
+  - key: drive-level
+    term: drive level
+    technical: >-
+      The digital level of one level's sweep, $20\log_{10} A$ in dBFS, where
+      $A$ is the sweep amplitude the device is driven with. On a hardware
+      record it is the interface's output level; on a plugin record it is
+      digital full scale itself. The lattice is a list of these.
+    plain: >-
+      How hard the app drives the pedal for one row of the map --- the
+      electronic stand-in for how hard you pick and where your guitar's
+      volume sits. The pedal's own knobs are never touched.
+
+  - key: level-lattice
+    term: level lattice
+    technical: >-
+      The drive levels a journey measures, evenly spaced in dB from a floor
+      to a ceiling inclusive, one sweep per level; the hardware and plugin
+      windows set the two ends and the level count.
+    plain: >-
+      The ladder of loudnesses the map is measured at, evenly spaced from
+      the quietest rung to the loudest.
+
+  - key: drive-window
+    term: drive window
+    technical: >-
+      The floor and ceiling of the lattice. The hardware window's ceiling is
+      the loudest drive that cannot clip the converter once the input is
+      staged for the pedal, its floor a fixed travel below; the plugin
+      window's ceiling is digital full scale (the float render path has no
+      converter) and its floor is lower, where high-gain preamp knees sit.
+    plain: >-
+      The quietest and loudest rungs of the ladder. A real interface must not
+      be driven into clipping, so its top rung is held back; a plugin has no
+      converter to protect and is driven to the very top.
+
+  - key: map-cell
+    term: cell
+    technical: >-
+      One (level, column) of the summary grid: a THD figure over the
+      declared band and one figure per stored harmonic order, each read
+      from that level's own analysis at the column's fundamental.
+    plain: >-
+      One square of the map: one loudness, one note, and the distortion the
+      pedal made there.
+
+  - key: export-grid
+    term: export grid
+    technical: >-
+      The summary's frequency columns: a fixed count of fundamentals
+      log-spaced from the sweep's start to its end inclusive, so the first
+      and last columns sit at the sweep's edges, inside its fade ramps.
+    plain: >-
+      The notes the map is drawn at, evenly spaced across the keyboard from
+      the lowest the sweep plays to the highest.
+
+  - key: truncated-column
+    term: truncated column
+    technical: >-
+      A column where the validity bound removed an order that the declared
+      band would have counted, so its THD cells under-read their band; the
+      column is flagged and excluded from the tiles, never corrected.
+    plain: >-
+      A column near the top of the map where some of a note's harmonics
+      were too high to be measured honestly, so its distortion figure is
+      known to be short and is kept out of the headline numbers.
+
+  - key: edge-mask
+    term: edge mask
+    technical: >-
+      The two columns that sit within a quarter tone of the grid's edges
+      --- the sweep's fade-in and fade-out ramps --- masked from the tiles
+      and the presence verdict; derived from the grid alone, because the
+      artifact reproduces on a jumpered wire.
+    plain: >-
+      The first and last columns of the map, where the test tone was still
+      fading in or already fading out; what they show is the test, not the
+      pedal, so they are drawn faint and left out of the headline numbers.
+
+  - key: delivered-fundamental
+    term: delivered fundamental
+    technical: >-
+      A cell's drive level plus its stored $H_1$, in absolute dBFS. The
+      journey's harmonic cells are uncompensated --- the loop's gain is in
+      them --- so this is the level the fundamental actually reached at the
+      converter, the quantity the floor's drive term compares against.
+    plain: >-
+      How loud the note itself actually arrived at the interface for one
+      square of the map, with everything the loop added.
+
+  - key: floor-stamp
+    term: calibration stamp
+    technical: >-
+      The embedded calibration's THD-versus-frequency curve: one read of the
+      loopback's own distortion-plus-noise at each of a log-spaced set of
+      fundamentals, measured once at the calibration's own drive, stored in
+      every record.
+    plain: >-
+      A note the app keeps with every measurement of how much distortion
+      and noise the bare loop --- cable, interface and nothing else ---
+      showed at each pitch when it was checked.
+
+  - key: median-read
+    term: median read
+    technical: >-
+      How the Gain Map reads the calibration stamp: each point replaced by
+      the running median of its neighbours over an odd window before the
+      interpolation, so a single-read trough cannot set the floor; the
+      per-harmonic path reads the stamp verbatim (a window of one).
+    plain: >-
+      Reading the loop's noise note by taking the middle value of a few
+      neighbouring pitches at once, so one unlucky reading cannot make the
+      loop look quieter than it is.
+
+  - key: drive-term
+    term: drive term
+    technical: >-
+      The floor's adjustment for a cell delivered quieter than the
+      calibration: the stamp's ratio rises by the difference, because the
+      rig's noise is absolute; for a cell delivered louder it stays at the
+      stamp's own ratio --- never extrapolated past what the calibration
+      measured, since the rig's own distortion rises with drive.
+    plain: >-
+      The allowance for a square of the map being quieter than the loop
+      check was: the same noise is a bigger share of a quieter note. Louder
+      than the check, no allowance is given.
+
+  - key: operative-floor
+    term: operative floor
+    technical: >-
+      A plugin record's own noise bound: the larger of its silence render's
+      rms and its A/A residual, stamped at run initiation; it enters the
+      floor as an absolute dBFS bound with no chain-gain term, and governs
+      where the render-path calibration is numerically silent.
+    plain: >-
+      For a plugin, the noise the plugin itself makes, measured before the
+      run, which stands in for the loop noise a hardware rig would have.
+
+  - key: analyzer-residue
+    term: analyzer residue
+    technical: >-
+      The THD the shipped analyzer reads with nothing in the loop --- the
+      plan's own sweep handed back as its capture --- per column of the
+      record's grid, the worst over the sweep lengths the sheet offers,
+      computed at read time from the record's geometry. One column above the
+      sweep's start the fade-in ramp leaks coherently into the
+      second-harmonic window, and a noise floor cannot see a leak that
+      scales with the signal.
+    plain: >-
+      The small amount of distortion the analysis reports even when there is
+      nothing at all in the loop --- a property of the test, worked out
+      afresh for each map and subtracted from what the map may claim.
+
+  - key: composed-margin
+    term: composed margin
+    technical: >-
+      A cell's THD in dB over the applicable floor, the floor being the
+      larger of the rig-noise bound (the median-read stamp with its drive
+      term, or the operative floor) and the analyzer residue --- the larger
+      floor is the smaller margin. Nil where neither rig source is usable.
+    plain: >-
+      How far a square's distortion stands above the biggest of the things
+      that could fake it: the loop's noise, the plugin's noise, or the
+      analysis's own residue.
+
+  - key: corroborated-peak
+    term: corroborated peak
+    technical: >-
+      A cell that stands clear of its floor by the minimum margin AND whose
+      neighbour one column either side --- the same level, a third of an
+      octave away --- also stands clear; a real peak has a shoulder in
+      frequency, a floor-riding read has none. Corroboration is never asked
+      for in level.
+    plain: >-
+      A square that is clearly above the noise and whose neighbouring note
+      is too. Real distortion spills onto the next note; a noise blip
+      happens to one square alone.
+
+  - key: peak-tile
+    term: peak tile
+    technical: >-
+      The map's headline figure, in three states: the loudest corroborated
+      clear cell as a peak; else the loudest unmasked cell as a bound
+      (``at or below''); else, when the map's fundamental is absent, no
+      percentage at all.
+    plain: >-
+      The map's headline number, which says one of three things: the most
+      distortion the pedal clearly made; or only that it made no more than
+      some small amount the rig could not see under; or that no percentage
+      can be quoted at all.
+
+  - key: cleanup-reading
+    term: cleanup reading
+    technical: >-
+      A column's THD-versus-level curve read as one of three states: the
+      interpolated level at which it first reaches the threshold (cleans
+      up); at or above the threshold already at the quietest level (never
+      clean, within this map's range); under it at every level (always
+      clean). The tile reads the column nearest the Compression probe's note.
+    plain: >-
+      Where, going up the ladder, the pedal starts to distort: a loudness if
+      there is one; ``never clean'' if it distorts even at the quietest rung;
+      ``always clean'' if it never reaches the line.
+
+  - key: audition-model
+    term: audition model
+    technical: >-
+      The per-level Hammerstein fit the record carries beside the grid,
+      consumed by the Hear-it panels only: no measured quantity reads it, and
+      a render between two of its levels invents a bracket-shaped clipping
+      the device does not have.
+    plain: >-
+      A separate model of the pedal at each rung of the ladder that the
+      listening panels play through; none of the map's numbers come from it.
+
+  - key: leakage-map
+    term: leakage map
+    technical: >-
+      The parity's own instrument: the pure phantom $[1]$ --- a fundamental
+      and nothing else --- through the journey's geometry, whose every
+      higher-order read is the analyzer's leakage into that order's window
+      at that column; the allowance every truth comparison subtracts.
+    plain: >-
+      A test with a perfectly clean signal, whose only distortion is what the
+      analysis itself invents --- measured so that it can be allowed for
+      when checking the real cases.

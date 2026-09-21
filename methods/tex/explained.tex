@@ -1880,6 +1880,35 @@ running them are in the repository named on the first page.
 
 \clearpage
 
+\section{Gain Map}
+\label{sec:journey-plain}
+
+This chapter is not yet written; the technical reference's Gain Map
+chapter is, and this page names what its plain-language counterpart will
+explain, in the words the glossary already defines. A \term{gain-map} plays
+the same test tone at every \term{drive-level} of a \term{level-lattice} in
+turn, quiet to hot inside one of two \term{drive-window}s, and draws the
+result as a map: one \term{map-cell} per loudness and per note of the
+\term{export-grid}. Two columns are the tone's own fade ramps and wear an
+\term{edge-mask}; a \term{truncated-column} near the top is known to be
+short. Before a square may be called a measurement it must stand clear of
+three things at once --- the loop's own noise, read from the
+\term{floor-stamp} through a \term{median-read} with a \term{drive-term}
+for how loud the note's \term{delivered-fundamental} actually arrived, or a
+plugin's \term{operative-floor}; and the \term{analyzer-residue}, the
+distortion the analysis reports with nothing in the loop --- and the
+\term{composed-margin} is how far it stands above the biggest of them. The
+\term{peak-tile} quotes the loudest \term{corroborated-peak}, a square whose
+neighbouring note also stands clear, or else only a bound; the
+\term{cleanup-reading} says where the pedal starts to distort, or that it
+never does, or that it always does. The \term{audition-model}s beside the
+map are for the listening panels and none of the numbers come from them,
+and the \term{leakage-map} is how the check of all this is kept honest. The
+lay chapter will explain each of those in turn, with the technical
+chapter's figures.
+
+\clearpage
+
 \section{Glossary, in plain language}
 \input{../generated/glossary-plain.tex}
 \end{document}
