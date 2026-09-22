@@ -14,6 +14,9 @@
 \input{../generated/parity-hd.tex}
 \input{../generated/plain-transfer.tex}
 \input{../generated/parity-transfer.tex}
+\input{../generated/plain-journey.tex}
+\input{../generated/residue-journey.tex}
+\input{../generated/parity-journey.tex}
 \input{../generated/lattice-imd.tex}
 \input{../generated/plain-imd.tex}
 \input{../generated/parity-imd.tex}
@@ -1037,6 +1040,668 @@ running them are in the repository named on the first page.
 \end{figure}
 
 \clearpage
+\section{Compression}
+\label{sec:compression-plain}
+
+This chapter is not yet written; the technical reference's Compression
+chapter is, and this page names what its plain-language counterpart will
+explain, in the words the glossary already defines. A
+\term{compression-curve} plays one note at every loudness of a
+\term{probe-grid} in turn, with a \term{fine-window} of closer steps
+where the user asks for one; the \term{stepped-tone} climbs the ladder
+with a \term{settle-window} at every rung, its measured stretch trimmed
+by the \term{cycle-snap} so the \term{one-bin-estimator} reads the note
+exactly. The silence before the note is the \term{noise-stamp}, and the
+\term{noise-gate} leaves out rungs where the note is lost in the
+hiss. From the curve the app reads the \term{incremental-slope} between
+rungs and fits a \term{hinge-fit} --- two straight lines with a corner
+--- whose corner is the \term{knee}: a number with a \term{resolution-band}
+when the quiet end is clean, or ``at or below'' when the \term{unity-guard}
+finds the pedal already squashing at the quietest rung or the corner sits
+in the \term{bound-zone}. The \term{cleanup-reading} says where the
+distortion first crosses the line, or that it never does, or that it
+always is. The \term{noise-bound} says how much distortion the hiss alone
+could fake at each rung, a \term{null-run-reference} says how much the
+loop itself adds, the \term{floor-source} names which one the chart
+drew, the \term{floor-class} says of each rung whether its reading is
+the pedal, a mix, or the hiss, and the \term{floor-runs} are the stretches
+drawn solid, dotted or faint. The \term{summed-presence} checks
+that the note came through at all before any of that is quoted. The lay
+chapter will explain each of those in turn, with the technical chapter's
+figures.
+
+\clearpage
+\section{Gain Map}
+\label{sec:journey-plain}
+
+\subsection{What this measurement tells you, and what it cannot}
+
+The Harmonic Distortion measurement of Section~\ref{sec:hd-plain} asks
+one question at one loudness: play a note into the pedal at a stated
+level, and list the harmonics that come out. But a distortion pedal is
+not one thing at all loudnesses. Play it softly and it may pass the note
+almost untouched; dig in and it clips; somewhere between the two it
+changes. A \term{gain-map} asks chapter one's question again at each rung
+of a ladder of loudnesses --- one sweep per rung, each analysed on its own
+--- and draws the answers as a map: how hard the pedal is driven up one
+side, which note you play along the other, and one square per loudness
+and note holding the distortion the pedal made there.
+
+\paragraph{Loudness as an axis.} The new axis needs a sentence of its
+own, because it is easy to mistake for a knob. The \term{drive-level} of a
+row is how hard the app drives the pedal --- the level of the test signal
+going into it, as your pick and your guitar's volume knob would drive it.
+The pedal's own knobs are never touched while a map is measured; they
+stay wherever you set them, and that setting is recorded with the
+measurement. So the vertical axis is not the drive knob. It is the thing
+the drive knob is turned to suit: the signal arriving at the circuit. To
+map what a knob does, you measure one map per knob position. The rungs of
+the ladder are the \term{level-lattice}, and the quietest and loudest
+rungs are its \term{drive-window}.
+
+Figure~\ref{fig:column-plain} is the whole idea in one picture, computed
+from the worked example of the earlier chapters --- the soft clipper of
+the \term{tanh} curve --- through the pipeline described later. On the
+left is one \term{map-cell}: one note, one loudness, and the ladder of
+harmonics the analysis reads there, exactly chapter one's picture at one
+point of the range. In the middle is the same note at every rung of the
+ladder, the ladder of harmonics growing rung by rung as the pedal is
+driven harder. On the right is the whole map, with that column and that
+cell outlined. A cell is one measurement; a column is the rungs of one
+note stacked; a map is the columns side by side. Everything the rest of
+this chapter says is about how those cells are filled in and which of
+them may be believed.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.98\linewidth]{explained-column.png}
+  \caption{A map is a stack of single-loudness measurements. Left: one
+  cell of the worked example --- the soft clipper at the loudest rung of
+  the hardware ladder, at the note the cleanup tile reads --- as the
+  measured level of each harmonic relative to the note (blue for the odd
+  harmonics, grey for the even ones, which this clipper does not make and
+  which read the loop's own noise), with the exact answer marked by a
+  cross; the ninth harmonic's exact answer lies under the loop's noise,
+  just below the pane. Middle: the same note at all \gmLevels{} rungs,
+  quiet to loud, each rung's THD in the legend. Right: the whole map, THD as
+  colour, the fade columns hatched, the column outlined in red and the
+  cell in white.}
+  \label{fig:column-plain}
+\end{figure}
+
+When a map is opened, the app states three things beside it, each worked
+out afresh from the stored squares: the \term{peak-tile}, the most
+distortion the pedal clearly made anywhere on the map, or a bound when
+nothing clearly stands out; the \term{cleanup-reading}, where, going up
+the ladder at one note, the pedal starts to distort; and the
+\term{fundamental-presence} verdict, whether the note itself survived
+well enough for any ratio to it to mean anything. Each has its own
+section below.
+
+\paragraph{What it cannot tell you.} Stated once.
+\begin{enumerate}
+  \item \textbf{Nothing about the pedal's own volume or gain.} Every
+  square is a ratio: the harmonics compared with the note itself, in that
+  square. A pedal that is loud and clean and one that is quiet and clean
+  draw the same square. And the vertical axis is the signal driving the
+  circuit, never a knob on it.
+  \item \textbf{Nothing between two rungs.} Each rung is its own capture,
+  seconds apart from the next. A pedal whose behaviour drifts or sags
+  between them --- a dying battery, a warming transistor --- shows the
+  drift as a wobble from row to row, which the map draws and does not
+  name.
+  \item \textbf{Whether a square near the floor is the pedal or the rig.}
+  Below the margin described later, a square is quoted as a bound ---
+  ``no more than this'' --- never as a figure.
+  \item \textbf{Nothing in the two fade columns.} The first and last notes
+  of the map sit inside the sweep's fade-in and fade-out, and what they
+  show is the test signal, not the pedal.
+  \item \textbf{Nothing a short column lost.} Near the top of the map some
+  of a note's harmonics lie too high to be counted honestly, and that
+  column's distortion figure is known to be short.
+  \item \textbf{Nothing about listening.} The map says how much distortion
+  there is at each loudness and note. It says nothing about what the distortion sounds like.
+\end{enumerate}
+
+\subsection{The test signal, and the ladder of loudnesses}
+
+The ladder first. On a hardware rig the map is measured at
+\gmLevels{} rungs, from \gmHardwareFloorDBFS{} to
+\gmHardwareCeilingDBFS{}~\term{dbfs}, a span of \gmHardwareTravelDB{}~dB
+climbed in equal steps of \journeyHardwareStep{}~dB. Equal steps in
+decibels are equal \emph{ratios}, not equal amounts: each rung is the same
+proportion louder than the one below. The top rung is held back from full
+scale on purpose. An interface's input has to be set so that the pedal's
+output never clips the converter at the loudest drive; with the input
+staged that way, the top rung is the loudest drive that cannot clip it,
+and the ladder reaches down a fixed span below. A plugin has no
+converter to protect --- it is arithmetic on numbers --- so its ladder
+runs to the very top, from \gmPluginFloorDBFS{} to
+\gmPluginCeilingDBFS{}~dBFS in steps of \journeyPluginStep{}~dB, its
+quietest rung lower still, down where high-gain plugin amplifiers were
+measured to start bending.
+
+At each rung the test signal is the same gliding tone as chapter one's
+--- the \term{sweep}, from \gmStartHz{} to \gmEndHz{}~Hz, with the same
+fades --- at that rung's loudness. There is one difference that matters
+later: by default each rung's sweep lasts \gmSweepDefaultS{} seconds,
+\gmSweepShareOfFingerprint{} the \hdRequestedDurationS{}~seconds of
+chapter one's, because \gmLevels{} sweeps take \gmLevels{} times as long; the measure
+sheet offers \gmSweepChoicesS{} seconds, and the length chosen is not
+written into the record. Each sweep is played after \gmPrerollS{}~s of
+silence and followed by \gmTailS{}~s more, and the analysis that reads it
+is also \gmTransformShareOfFingerprint{} as fine as chapter one's. A
+shorter sweep is a coarser instrument: the analysis's own small residue
+--- the distortion it reports with nothing in the loop --- is larger for
+it, and a later section says by how much.
+
+The notes the map is drawn at are chosen once, as a grid: \gmGridCount{}
+of them, spaced by equal musical intervals --- \gmColumnSemitones{}
+semitones, \gmColumnOctaves{} of an octave --- from the lowest note the
+sweep plays to the highest. That is the \term{export-grid}. Its first and
+last columns sit exactly at the sweep's two ends, inside the fades, which
+is why those two columns are masked, as the next section explains.
+
+The rungs are played and recorded one after another, and each recording
+is analysed entirely on its own, as if it were the only sweep. Nothing about one rung leaks into another. Figure~\ref{fig:map-plain}
+is what the measurement produces: the worked example's map, computed by
+the pipeline through a loop with a little noise in it, coloured by
+distortion and marked with the tiles the later sections explain.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.95\linewidth]{journey-map.png}
+  \caption{The worked example's map: the soft clipper on the hardware
+  ladder through a loop with a little noise. Colour is THD; a square is
+  drawn fainter the less clearly it stands above the floor described in
+  the next section; the two fade columns are hatched; the star is the
+  peak the tile quotes and the triangle is where the cleanup reading
+  places the crossing at the tile's note.}
+  \label{fig:map-plain}
+\end{figure}
+
+\subsection{How the map is built}
+
+Five steps, each in words; the technical reference gives the exact rule
+for each.
+
+\paragraph{Cutting each recording to size.} Every signal through a rig
+comes back a little late --- the round trip through the converters and
+cables. The calibration measured that delay, and each rung's recording
+is cut at the moment the sweep is known to have arrived: the silence
+before it dropped, the sweep and the silence after it kept, and never a
+sample past the recording's end. A plugin measures its own delay on every
+render and hands back a recording with none. The delay is never guessed.
+
+\paragraph{Reading each rung as chapter one does.} Each cut recording
+goes through exactly the analysis of Section~\ref{sec:hd-plain}: the
+glide undone, each harmonic's blip cut out with its own window, and every
+harmonic read against frequency. The app reads \gmHarmonicCount{}
+harmonics at each rung, and the note's level along with them. Nothing is
+corrected for the rig here: the loop's own gain and tone stay in every
+reading, so a square's note level is the level the note actually reached
+at the interface, with everything the loop added --- its
+\term{delivered-fundamental}. That number is a level, not a reference,
+and the floor's arithmetic in the next section leans on it.
+
+\paragraph{Filling the squares.} For each rung and each note of the grid,
+the app reads the \term{thd} over the audible band (\gmAudibleLowHz{} to
+\gmAudibleHighHz{}~Hz), exactly as chapter one defines it, and the level
+of each \term{harmonic-order} at that note. A harmonic that would lie
+above half the sample rate, or a note at which the fundamental reads
+nothing, leaves its square empty rather than wrong.
+
+\paragraph{Masking what the test made.} Two columns are marked as the
+test's own: the first and the last, which sit within a quarter tone
+(\gmEdgeGuardCents{}~cents) of the sweep's two ends and were therefore
+excited while the tone was still fading in or already fading out. A
+plain wire shows the same readings there, so they describe the
+measurement and not the pedal. They wear an \term{edge-mask}: drawn
+faint, kept out of every headline number, and never allowed to set the
+colour scale. A third kind of column is marked near the top of the map: a
+\term{truncated-column}, where some harmonic that the audible band would
+count lies past its \term{validity-bound}, so the column's distortion
+figure is known to be short. It is flagged and kept out of the tiles,
+never corrected.
+
+\paragraph{What is stored, and what is not.} The record keeps the grid
+of numbers --- every square's THD and harmonic levels --- the rungs, the
+harmonics read, the sample rate and the band, and beside them one
+\term{audition-model} per rung, a separate model of the pedal at that
+loudness that only the listening panels use. Nothing described in the
+next section is stored: every verdict below is worked out afresh each
+time the record is opened, so a better rule corrects every map ever
+made. A record from before the sample rate and the band were stored
+derives no masks and no residue, and its squares summed every harmonic
+below half the sample rate; the app treats it as the older reading it is.
+
+\subsection{What the app decides when it reads a record back}
+
+\paragraph{A floor, and a margin.} Everything the app says about a map
+rests on one question, asked of every square: how far above the largest
+thing that could fake it does this square's distortion stand? A square is
+called a measurement only while it stands clear of \emph{every} fake at
+once; below that it is a bound. The distance is the square's
+\term{composed-margin}, and the things that could fake it are three.
+
+The first is the loop's own noise. During calibration the app played its
+sweep through the rig with a cable in place of the pedal and kept a note
+of how much distortion and noise the bare loop showed at each pitch ---
+the \term{floor-stamp}, stored inside every record made with that
+calibration. It is a single reading at each pitch, and a single reading
+can be unlucky, so the map reads it through a \term{median-read}: at each
+pitch the stamp is replaced by the middle value of \gmStampMedianPoints{}
+neighbouring points on its own grid, \gmStampMedianSide{} to either side,
+\gmStampMedianOctavesWords{} of an octave (\journeyStampMedianOctaves{})
+each way. That is wide enough that one unlucky trough cannot make the
+loop look quieter than it is, and about as wide in all as one column of
+the map, so a feature a column can resolve is not smoothed away. Then
+comes an allowance, the \term{drive-term}, for the fact that the
+calibration was checked at one loudness (\gmCalibrationLevelDBFS{}~dBFS)
+and the map's squares are at many. Noise is a fixed amount, not a fixed
+share: the same hiss is a bigger share of a quieter note. So a square
+whose note arrived quieter than the calibration's did is given a floor
+that much higher. A square whose note arrived louder gets no allowance in
+the other direction --- the floor is never pushed lower than the
+calibration measured, because the rig's own distortion grows with drive
+and the calibration measured noise and distortion together at one level.
+The comparison uses the delivered fundamental, the level the note
+actually reached, and the calibration's own level plus the gain the loop
+was measured to add; leave that gain out and every margin comes out
+better than it is.
+
+The second, on a plugin, is the plugin's own noise. A plugin's
+calibration is a loop with nothing in it and no converters, numerically
+silent, so it measures nothing the plugin does; instead the app measured
+the plugin's own noise before the run, and that \term{operative-floor}
+stands in for the loop noise a hardware rig would have.
+
+The third is the one a noise floor cannot see: the \term{analyzer-residue},
+the distortion the analysis itself reports with nothing at all in the
+loop. Take the sweep, hand it straight back as its own recording, and
+analyse it: a perfectly clean signal should read no distortion, and
+almost everywhere it does. But at the first note after the masked
+column, the sweep's fade-in ramp leaks into the window that reads the
+second harmonic, and the analysis reports a little distortion that is
+entirely its own. It is a fixed share of the note, not a fixed amount
+--- it is the same at every rung --- which is exactly why a noise floor
+cannot bound it. It shrinks as the sweep gets longer: at
+\journeyResidueColumnOneHz{}~Hz it reads \journeyResidueColumnOneFive{}~dB
+below the note on the default sweep, \journeyResidueColumnOneTwo{} on the
+shortest and \journeyResidueColumnOneTen{} on the longest, and one column
+higher it has already fallen to \journeyResidueColumnTwoFive{}, under any
+real rig's noise. The app works the residue out afresh for each map's
+own grid. Because the sweep's length is not written in the record, it
+assumes the worst --- the shortest sweep the sheet offers, so the first
+unmasked column is floored at \journeyResidueWorstColumnOne{}~dB on every
+record --- a claim it can make about any record, at the price the last
+section states. The left panel of Figure~\ref{fig:residue-plain} shows the
+residue at every column for the three sweep lengths; the right panel is
+the parity's own instrument, explained later.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.95\linewidth]{journey-residue.png}
+  \caption{Left: the analysis's own residue at every column of the map
+  for the three sweep lengths --- the fade-in leak at the first unmasked
+  column, largest on the shortest sweep --- and the worst case the record
+  assumes (dashed). Right: the leakage map used by the check described
+  later: a signal containing only its note, read at every other
+  harmonic.}
+  \label{fig:residue-plain}
+\end{figure}
+
+The composed margin is the square's distance above the \emph{largest} of
+the three, because the largest fake is the one that binds. A square
+clears when that distance is at least \gmMinimumMarginDB{}~dB.
+Figure~\ref{fig:floor-plain} is the picture of it at one note of the
+worked example. On the left, against loudness: the square's own THD
+falling as the drive is turned down, the loop's floor read through the
+median (with the single-reading version beside it), rising at the quiet
+rungs by the drive term and flat above the calibration's level, the
+analysis's residue far below at this note, and, on the right-hand scale,
+the margin --- how far the square stands above whichever floor is higher
+--- against the minimum. On the right, the same at the loudest rung
+across every note.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.95\linewidth]{journey-floor.png}
+  \caption{The floor, composed from its sources, at one column of the
+  worked example (left): the square's THD against loudness, the
+  calibration's floor read verbatim and through the median, the drive
+  term rising below the calibration's own level and flat above it, the
+  analysis's residue, and the margin (green, right-hand scale) against
+  its minimum. Right: the same at the loudest rung against note.}
+  \label{fig:floor-plain}
+\end{figure}
+
+\paragraph{Is the note there?} Every square is a ratio to its own note,
+and a ratio to a note that is not there means nothing. A few devices ---
+an octave-up effect at full tilt, a rectifier --- remove so much of the
+note that what the analysis reads at the note's own frequency is its own
+leakage from the louder harmonics. Chapter one measured how far below
+the loudest thing in a reading the note can sit before that happens
+(\hdSeparationDB{}~dB), and each square is judged by that rule on its
+own: present, absent, or undetermined when the note read nothing. The
+map's verdict is then a majority over every square outside the two fade
+columns, and it outranks the peak tile: when most squares have no note,
+no percentage is quoted at all, only how deep the note sits. The verdict
+is a majority for a reason the check at the end of this chapter shows.
+On a device that has no note at all, a few squares still read
+``present'' honestly --- at the quietest rungs the note's window holds
+the loop's noise, and beside the low edge it holds the second harmonic's
+own leakage --- and one square's truth must not overrule the map's.
+
+\paragraph{The peak tile.} The headline number is the loudest square that
+can be believed, and belief takes two steps. First, the fade columns and
+the truncated columns are set aside, and so is every square whose note is
+absent; among what remains, a square is \emph{clear} when its composed
+margin reaches the minimum. Second --- and this is the step that keeps a
+clean pedal from reading a number --- a clear square counts only when
+the square one column beside it, the same rung one note away, is also
+clear. That is a \term{corroborated-peak}. Real distortion spills onto
+the neighbouring notes: a circuit that clips at one drive clips the note
+next door too, and distortion changes slowly from one column to the
+next. A noise reading happens to one square alone. The neighbour is asked
+for along the note axis and never along the loudness axis, because
+distortion can change a great deal from one rung to the next --- a
+genuine onset at the loudest rung may have no clearing rung beneath it
+--- while two noisy squares in adjacent rungs of one column are as likely
+as any other pair.
+
+The tile can therefore say one of three things. If any corroborated
+square exists, the loudest of them is the peak: the most distortion the
+pedal clearly made. If none does but some unmasked square has a figure,
+the loudest of those is quoted as a bound, written with $\le$: the pedal
+made no more than this, and the rig could not see under it. If the note
+is absent over the map, no percentage at all. The bound is what a very
+clean pedal earns, and it is not a small number: a plain wire through a
+quiet loop reads a bound of \jparityIdentityBound{}\,\% on the default
+sweep, because that is what the loop's noise adds up to at the loudest
+of \gmCellCount{} squares, and nothing under it can be told
+from the rig. Figure~\ref{fig:peak-plain} shows the rule deciding: on
+the left, a plain wire through noise, where no square clears and the
+tile is a bound; on the right, the soft clipper through the same loop,
+where every clear square has a clear neighbour and the tile is a peak.
+One case is left open on purpose: a map with no floor information at all
+--- Simulation Mode, or a record made with no calibration --- has nothing
+to judge its squares against, so every square counts as clear and
+corroborated, and the tile states the loudest one as a peak. That is
+reported rather than changed, and the last section returns to it.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.95\linewidth]{journey-peak.png}
+  \caption{The corroboration rule. Each panel shows the composed margin
+  at every column for the loudest rung (blue) and the quietest (grey)
+  against the minimum (dashed); a cross marks a square that clears on
+  its own, a star one whose neighbouring note clears too. Left: a plain
+  wire through a little noise --- nothing clears, and the tile is a
+  bound. Right: the soft clipper through the same loop --- every clear
+  square has a clear neighbour, and the tile is a peak.}
+  \label{fig:peak-plain}
+\end{figure}
+
+\paragraph{Does it clean up?} Take one column of the map and read its
+THD from the quietest rung to the loudest. The \term{cleanup-reading}
+says where, going up, the pedal crosses the line of
+\gmCleanupThresholdPercent{}\,\% distortion --- a convention for reading
+the map, drawn where the app's own code draws it; the value is read out
+of the app rather than typed, by probing the shipped rule until it
+answers. The reading has three states, and the endpoints are never
+dressed up as a crossing. If the quietest rung is already over the line,
+the pedal is \emph{never clean} --- within this map's range, which is
+the only range the map can speak for. If some rung is the first over the
+line, the pedal \emph{cleans up}, and the level is placed between that
+rung and the one below in proportion to how far each sits from the line.
+If no rung reaches the line, the pedal is \emph{always clean} --- again,
+as far as this map goes. The tile beside the map reads the column
+nearest \gmCleanupTileHz{}~Hz (\gmCleanupTileNote), the note the
+Compression measurement probes, so the two records' cleanup figures are
+about one pitch; every other column carries the same three-state reading
+too, and the chart's markers draw the genuine crossings. When the tile
+says never clean, its subtitle says which range it means, and when the
+pedal's own Compression record --- which probes further down --- finds a
+genuine crossing below the map's floor, the subtitle points there
+instead. Figure~\ref{fig:cleanup-plain} shows the three states at the
+tile's note: the soft clipper crossing the line between two rungs, a
+plain wire never reaching it, and a clipper whose threshold sits under
+the ladder's quietest rung.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.85\linewidth]{journey-cleanup.png}
+  \caption{THD against loudness at the tile's column for the three
+  cleanup states: the soft clipper crosses the line between two rungs
+  (the triangle marks the crossing); a plain wire stays under it
+  throughout; a hard clipper is over it at every rung.}
+  \label{fig:cleanup-plain}
+\end{figure}
+
+\subsection{The settings}
+
+Every setting is in the technical reference's Gain Map chapter, in one
+table read from the manifest. This chapter repeats the handful a reader
+acts on. The hardware ladder runs from \gmHardwareFloorDBFS{} to
+\gmHardwareCeilingDBFS{}~dBFS in \gmLevels{} rungs
+(\journeyHardwareStep{}~dB apart) and the plugin ladder from
+\gmPluginFloorDBFS{} to \gmPluginCeilingDBFS{}~dBFS
+(\journeyPluginStep{}~dB apart); the sweep lasts \gmSweepDefaultS{}~s by
+default, with \gmSweepChoicesS{}~s offered and the choice not stored; the
+map has \gmGridCount{} note columns; the calibration's floor is read
+through a median of \gmStampMedianPoints{} points; a square clears at a
+margin of \gmMinimumMarginDB{}~dB; and the cleanup line is
+\gmCleanupThresholdPercent{}\,\%, read at the column nearest
+\gmCleanupTileHz{}~Hz.
+
+\subsection{What the result looks like}
+
+The app's own chart, rendered from its chart code on its simulated pedal
+(never a screenshot), is Figure~\ref{fig:app-journey}. Across the top run
+three tiles: the drive range, with the number of rungs measured; the
+cleanup reading at \gmCleanupTileNote{}, with a line saying which range
+the verdict covers; and the peak distortion, with a line saying it is the
+loudest THD anywhere on the map. The chart itself puts the drive level up the
+side, labelled so that up is digging in, and the note you play along the
+bottom, named with its frequency; each square's colour is its THD, with
+the scale under the chart running from the map's own faintest square to
+its strongest, in percent, and the legend saying that a faded column is
+a band edge --- the outermost columns are drawn faded. This particular
+map is the app's simulated pedal at a setting that is over the cleanup
+line at every rung, as its middle tile says. Figure~\ref{fig:map-plain}
+above is the same kind of map as the pipeline
+draws it, with the margins, the masks and the tiles' marks made visible.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.85\linewidth]{gain-map--sim-thd-map.png}
+  \caption{The Gain Map view as the app draws it, for its simulated
+  pedal: the three tiles, the THD map over note and drive level, and the
+  outermost columns drawn faded.}
+  \label{fig:app-journey}
+\end{figure}
+
+\subsection{How you can check that the app does what this says}
+
+As in the earlier chapters, a second program was written from the
+description --- in Python, independently, not by translating the app's
+code --- and the \term{parity} runs both on the same made-up devices and
+demands the same answer. It runs \jparityCaseCount{} cases, and two of
+the device cases a second time as their \term{phantom} twins
+(\jparityTwinCount{} twins). Every case is a known device through a
+known loop: a delay, a stream of noise added at the interface's input,
+and a gain applied after them as an input knob would apply it; the
+calibration is the app's own sweep through the same loop with nothing in
+it, analysed by the app's own calibrator, whose measured delay is what
+cuts every rung --- the app's own flow, end to end.
+
+The known answer is chapter one's. For a device with no memory, the
+exact size of every harmonic at any loudness can be computed from the
+device's formula, so the second program prints, beside every square, the
+exact ladder at that rung's drive and the exact THD it implies; and for
+the read-time half it applies the app's own rules to those exact squares,
+so the peak, the cleanup and the verdict have exact answers too. One idea
+is new here, and it is worth a paragraph: the \term{leakage-map}. A signal
+containing only its note and nothing else --- a phantom with one entry
+--- is run through the same analysis, and whatever it reads at every
+other harmonic is what the analysis itself invents at that note and
+harmonic. The right panel of Figure~\ref{fig:residue-plain} is that map.
+It is measured first and allowed for before any real case is judged: a
+square whose true content sits close to the leakage landing in its
+window can read a little off for the analysis's own reasons, that much
+is subtracted from the disagreement, and what remains is held to the
+bar. Chapter one's bound on how far one harmonic can leak into another
+does not carry over, because a shorter sweep leaks worse at the low
+edge; the leakage map states it here, column by column.
+
+The case families, in a sentence each. The soft clipper and a gentle
+polynomial curve, each again as its phantom twin. A plain wire through
+noise at each of the three sweep lengths. A phantom whose note sits far
+under its own second harmonic, so that the map has no note. A hard
+clipper over the line at every rung. The soft clipper through the same
+loop twice, once with the interface's gain turned up. A plugin whose own
+noise floor stands in for the calibration's. A hard clipper on the
+plugin ladder, driven to the very top. The worked example recorded late,
+so that the calibrator must find the delay. And the soft clipper behind a
+tone filter and the polynomial ahead of one.
+
+The demands, in numbers the pipeline writes into this document. The two
+programs must agree, at every square and every harmonic, to within
+\jparitySwiftToleranceWords{} of a decibel (\jparitySwiftTolerance{}~dB)
+with no filter in the loop --- on the run that built this document the
+worst disagreement was \jparityWorstSwiftWords{} of a decibel
+(\jparityWorstSwift{}) --- and to within
+\jparitySwiftFilteredToleranceWords{} (\jparitySwiftFilteredTolerance{})
+through a filter (measured \jparityWorstSwiftFilteredWords{},
+\jparityWorstSwiftFiltered{}); every yes-or-no reading --- each mask,
+each square's presence, clear and corroborated, every tile's state and
+every column's cleanup state --- must be identical, the calibration's
+stamp identical point for point, and the residue identical at every
+column and length. The app's reading of every square must match the
+exact ladder, once the leakage is allowed for, within
+\jparityTruthSmoothWords{} of a decibel (\jparityTruthSmooth{}) for the
+smooth devices (measured \jparityWorstResidueSmooth{}), within
+\jparityTruthPhantomWords{} (\jparityTruthPhantom{}) on the twins
+(\jparityWorstResiduePhantom{}), and within
+\jparityTruthFilteredWords{} (\jparityTruthFiltered{}) through a filter
+(\jparityWorstResidueFiltered{} --- the exact answer treats each note as a
+steady tone through the filter, and a sweep is not steady); the THD
+squares the same way, within \jparityTHDSmoothWords{}
+(\jparityTHDSmooth{}) and \jparityTHDFilteredWords{}
+(\jparityTHDFiltered{}). Every cleanup crossing must land within
+\jparityCleanupWords{} of a decibel (\jparityCleanup{}~dB) of the exact
+curve's crossing (measured \jparityWorstCleanup{}, at the first unmasked
+column in every case, where the residue's leak sits inside the sum). The
+plain wire's residue at the first unmasked column must reproduce the
+three figures the app derives --- \jparityResiduePythonTwo{},
+\jparityResiduePythonFive{} and \jparityResiduePythonTen{}~dB from the
+second program against the app's \jparityResidueLawTwo{},
+\jparityResidueLawFive{} and \jparityResidueLawTen{} --- within
+\jparityResidueVsLawWords{} of a decibel (\jparityResidueVsLaw{}), and
+its tile must be a bound of \jparityIdentityBound{}\,\% at the default
+length with every column always clean. Turning the interface's gain up
+by \jparityGainShift{}~dB must move the note's level by exactly that
+much, the calibration's stamped gain by exactly that much
+(\jparityGainStamp{}), and any square's margin by
+\jparityGainMarginMoveWords{} of a decibel (\jparityGainMarginMove{}; the
+bar is \jparityGainInvarianceWords{}, \jparityGainInvariance{}) --- the
+app's reading of the pedal does not move when the interface is turned
+up, which is the whole point of the drive term's gain. A recording
+\jparityLatencyFound{} samples late must be found by the calibrator and
+cut so that every square moves by \jparityLatencyMove{}~dB --- nothing
+the arithmetic can tell from no move at all. \jparityPartBStatus
+
+Two of the results are worth stating in words. The device with no note
+--- the phantom whose note sits \jparityAbsentDepth{}~dB under its second
+harmonic --- reads absent on \jparityAbsentFractionWords{} of its squares
+(\jparityAbsentFraction{}) and gets a tile with no percentage; the
+squares that still read present are at the quietest rungs and beside the
+low edge, exactly where the previous section said the note's window
+holds noise and leakage, which is why the verdict is a majority. And
+the worked example itself, the soft clipper on the hardware ladder with
+no noise: \jparityWorkedContent{} squares compared, the worst raw
+disagreement with the exact ladder \jparityWorkedRaw{}~dB and
+\jparityWorkedResidue{}~dB once the leakage is allowed for; its peak tile
+reads \jparityWorkedPeak{}\,\% against the exact grid's
+\jparityWorkedTruthPeak{}\,\%, and its cleanup tile places the crossing
+at \jparityWorkedCleanup{}~dBFS at the column at
+\jparityWorkedCleanupColumnHz{}~Hz, against the exact curve's
+\jparityWorkedTruthCleanup{}. The hard clipper on the plugin ladder
+reads a peak of \jparityPluginPeak{}\,\% and cleans up at
+\jparityPluginCleanup{}~dBFS; the clipper over the line everywhere reads
+\jparityNeverCleanPeak{}\,\% at every rung of its tile column and never
+clean.
+
+One last check starts from stored records rather than from a made-up
+device, and it is the only one that does: the read-time rules --- the
+floor, the margins, the corroboration and the tile --- were run by the
+second program on the stored grids and calibration stamps of
+\gmCorpusRecords{} real records from the project's own library, and
+reproduced the app's tiles on every one, \gmCorpusPeaks{} peaks within
+\jparityCorpusPeak{}~dB and \gmCorpusBounds{} bounds to within
+\jparityCorpusBoundWords{} of their value (\jparityCorpusBound{}). A
+stored record holds results rather than a recording, so for this half of
+the check the stored grid is the input, and those grids are the same
+figures the app's own tests pin.
+
+The test runs automatically on every change to the app, and the tables
+and figures in both documents are regenerated on every change and
+compared with the committed copies; the scripts and the instructions for
+running them are in the repository named on the first page.
+
+\subsection{Where it stops being a measurement}
+
+\begin{itemize}
+  \item \textbf{The sweep's length is not on the record, and the floor
+  pays for it.} The residue is taken at the shortest sweep the sheet
+  offers, whatever length was used, so a record made at the default
+  length has its first unmasked column judged \gmResiduePenaltyDefaultDB{}~dB
+  harder than it deserves --- the shortest sweep's
+  \journeyResidueColumnOneTwo{}~dB against the default's own
+  \journeyResidueColumnOneFive{} --- and a record made at the longest
+  length \gmResiduePenaltyLongestDB{}~dB harder. That is a bound in the
+  honest direction, never a wrong number, and storing the length would
+  tighten it; that is a change to what a record holds, not to how one is
+  read.
+  \item \textbf{The note's level is a level, and your interface is part of
+  the circuit.} Nothing in a square is corrected for the rig, so the
+  note's level in each square is the level the pedal delivered through
+  the interface, its gain and all. On a pedal with a resistor ahead of
+  its clipper that level is also a reading of how hard the interface's
+  input loads it: the same pedal at the same setting into two interfaces
+  with different input impedances is driven differently, and can
+  legitimately make different amounts of distortion. Compare maps taken
+  on different rigs by their shape, never by their absolute figures, and
+  read a difference between two interfaces as a difference between two
+  pedal-and-interface pairs.
+  \item \textbf{A shorter sweep leaks more.} The map's sweep and its
+  analysis are each \gmTransformShareOfFingerprint{} as fine as chapter
+  one's, so a loud harmonic leaks more into its neighbours' windows at
+  the low edge than chapter one's measured bound allows; the leakage map
+  states the amount per column and harmonic, and a square whose content
+  sits inside it is the analysis's, not the pedal's --- which is what the
+  residue and the margins say, and why a device with no note reads
+  ``present'' beside the low edge.
+  \item \textbf{A map with no floor information quotes its loudest square
+  as a peak.} Without a calibration or a plugin's own floor there is
+  nothing to judge the squares against; every one counts as clear and
+  corroborated, and the tile states the raw maximum. Simulation Mode and
+  every record made without a calibration are in that state. Reported,
+  not changed.
+  \item \textbf{The models beside the map are for listening.} The record
+  carries one model of the pedal per rung, played by the listening
+  panels; none of the map's numbers come from them. A rendering between
+  two rungs blends two models, and the quieter one clips the signal in a
+  way the pedal does not; that is a property of what the models play,
+  measured in its own chapter, and never of the map.
+  \item \textbf{The fade columns and the short column.} The first and last
+  columns are the sweep's ramps; a column near the top may have lost a
+  harmonic above the band. All are drawn faint and kept out of the tiles,
+  and none is corrected.
+  \item \textbf{Nothing between rungs.} Each rung is its own sweep,
+  seconds apart from the next; a pedal that drifts between them shows it
+  as row-to-row wobble, which the map draws and does not name.
+  \item \textbf{The drive is the signal, never a knob.} The vertical axis
+  is how hard the pedal is driven; the pedal's knobs are wherever you
+  left them, and a knob is mapped one map per position.
+\end{itemize}
+
+\clearpage
+
 \section{Slots: how a spectrum is read}
 \label{sec:slots-plain}
 
@@ -1877,35 +2542,6 @@ running them are in the repository named on the first page.
   inside the budget is refused before anything plays rather than measured
   on a lattice whose labels are not facts.
 \end{itemize}
-
-\clearpage
-
-\section{Gain Map}
-\label{sec:journey-plain}
-
-This chapter is not yet written; the technical reference's Gain Map
-chapter is, and this page names what its plain-language counterpart will
-explain, in the words the glossary already defines. A \term{gain-map} plays
-the same test tone at every \term{drive-level} of a \term{level-lattice} in
-turn, quiet to hot inside one of two \term{drive-window}s, and draws the
-result as a map: one \term{map-cell} per loudness and per note of the
-\term{export-grid}. Two columns are the tone's own fade ramps and wear an
-\term{edge-mask}; a \term{truncated-column} near the top is known to be
-short. Before a square may be called a measurement it must stand clear of
-three things at once --- the loop's own noise, read from the
-\term{floor-stamp} through a \term{median-read} with a \term{drive-term}
-for how loud the note's \term{delivered-fundamental} actually arrived, or a
-plugin's \term{operative-floor}; and the \term{analyzer-residue}, the
-distortion the analysis reports with nothing in the loop --- and the
-\term{composed-margin} is how far it stands above the biggest of them. The
-\term{peak-tile} quotes the loudest \term{corroborated-peak}, a square whose
-neighbouring note also stands clear, or else only a bound; the
-\term{cleanup-reading} says where the pedal starts to distort, or that it
-never does, or that it always does. The \term{audition-model}s beside the
-map are for the listening panels and none of the numbers come from them,
-and the \term{leakage-map} is how the check of all this is kept honest. The
-lay chapter will explain each of those in turn, with the technical
-chapter's figures.
 
 \clearpage
 

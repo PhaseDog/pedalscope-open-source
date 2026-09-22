@@ -72,7 +72,11 @@ T_SWIFT_DB_FILTERED = 1e-3
 T_SWIFT_TRUTH_RELATIVE = 1e-8
 # The polynomial's closed form against the quadrature, relative.
 # Measured ≤ 4.4e−14 (the trapezoid rule is exact for a cubic).
-T_CLOSED_FORM_RELATIVE = 1e-10
+# RAISED 1e−10 → 1e−9 on 2026-09-22 (the drift ruling, `machine_floor.py`):
+# a bar at the machine floor claims agreement the machine does not
+# reproduce between two runners, and the document's bound "≤ floor" beside
+# it would claim nothing; 1e−9 is a decade above the floor.
+T_CLOSED_FORM_RELATIVE = 1e-9
 # An analytically empty recipe on a noiseless capture reads numerical
 # dust on both sides: the two FFTs' dust differs freely, so the pin is
 # that both sit under this depth re the louder tone. Measured worst

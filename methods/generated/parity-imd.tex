@@ -2,19 +2,20 @@
 \newcommand{\iparitySwift}{1e-07}
 \newcommand{\iparitySwiftFiltered}{0.001}
 \newcommand{\iparityTruthRelative}{1e-08}
-\newcommand{\iparityClosedForm}{1e-10}
+\newcommand{\iparityClosedForm}{1e-09}
 \newcommand{\iparityEmptyDepth}{-200}
 \newcommand{\iparityTruthBandlimited}{0.001}
 \newcommand{\iparityTruthKinked}{0.05}
 \newcommand{\iparityTruthPhantom}{1e-08}
 \newcommand{\iparityFloor}{3}
 \newcommand{\iparityCoherenceNoise}{6}
+\newcommand{\iparityLatencyTolerance}{1e-05}
 \newcommand{\iparityCaseCount}{28}
 \newcommand{\iparityTwinCount}{9}
 \newcommand{\iparityWorstSwift}{1.8e-08}
 \newcommand{\iparityWorstSwiftFiltered}{0.00016}
 \newcommand{\iparityWorstTruthRelative}{2.6e-10}
-\newcommand{\iparityWorstClosedForm}{4.4e-14}
+\newcommand{\iparityWorstClosedForm}{$\le$\,1e-10}
 \newcommand{\iparityWorstEmpty}{-273.8}
 \newcommand{\iparityLatticeTable}{
 \begin{tabular}{@{}lrrlrrrrr@{}}
@@ -35,25 +36,25 @@ a-refusal & 96\,000 & $2^{16}$ & refused & 25 : 50 & 25 & 1 : 2 & 1\,200 & -4.11
 \newcommand{\iparityDeviceTable}{
 \begin{tabular}{@{}lrrrrrrl@{}}
 \toprule case & content & present & S$-$P (dB) & floor (dBc) & vs truth (dB) & residue (dB) & at \\ \midrule
-b-poly & 10 & 10 & 1.7e-09 & -166.84 & 7.53e-06 & 0 & 3f2 \\
-b-poly-twin & 10 & 16 & 7.1e-15 & -334.09 & 4.82e-14 & 4.8e-14 & 3f2 \\
-b-squarer & 4 & 4 & 1.9e-09 & -166.53 & 2.86e-07 & 0 & 2f2 \\
-b-squarer-twin & 4 & 15 & 3.6e-15 & -333.84 & 1.06e-14 & 1.1e-14 & 2f1 \\
+b-poly & 10 & 10 & 1.7e-09 & -166.84 & 7.53e-06 & $\le$\,1e-10 & 3f2 \\
+b-poly-twin & 10 & 16 & $\le$\,1e-10 & -334.09 & $\le$\,1e-10 & $\le$\,1e-10 & 3f2 \\
+b-squarer & 4 & 4 & 1.9e-09 & -166.53 & 2.86e-07 & $\le$\,1e-10 & 2f2 \\
+b-squarer-twin & 4 & 15 & $\le$\,1e-10 & -333.84 & $\le$\,1e-10 & $\le$\,1e-10 & 2f1 \\
 b-asym & 54 & 53 & 2.3e-09 & -- & 0.0298 & 0.03 & 7f1 \\
-b-asym-twin & 54 & 53 & 3.4e-12 & -- & 1.48e-10 & 1.5e-10 & 7f1 \\
-c-tanh & 30 & 29 & 1.6e-09 & -171.17 & 0.0224 & 0 & 7f1 \\
-c-tanh-twin & 30 & 33 & 2.1e-12 & -318.75 & 2.91e-10 & 2.9e-10 & 7f1 \\
-c-hardclip & 30 & 29 & 5.8e-11 & -156.53 & 0.0128 & 0.013 & f1+4f2 \\
-c-hardclip-twin & 30 & 46 & 1.4e-14 & -305.72 & 1.5e-12 & 1.5e-12 & 5f1−2f2 \\
-d-phantom & 54 & 53 & 1.3e-13 & -- & 2.48e-10 & 2.5e-10 & 5f1−2f2 \\
-f-squarer-hp & 4 & 4 & 0.00016 & -166.53 & 3.04e-07 & 0 & 2f2 \\
-f-squarer-hp-twin & 4 & 15 & 7.1e-15 & -333.82 & 1.16e-14 & 1.2e-14 & 2f1 \\
-f-squarer-lp & 4 & 4 & 2.1e-07 & -166.53 & 2.09e-07 & 0 & 2f2 \\
-f-squarer-lp-twin & 4 & 15 & 3.6e-15 & -333.81 & 1.06e-14 & 1.1e-14 & 2f1 \\
-f-tanh-prehp & 30 & 29 & 4.1e-05 & -171.17 & 0.0294 & 0 & 7f1 \\
-f-tanh-prehp-twin & 30 & 33 & 2.3e-12 & -318.91 & 2.96e-10 & 3e-10 & 7f1 \\
-j-latency & 30 & 29 & 1.6e-09 & -171.16 & 0.0223 & 0 & 7f1 \\
-j-latency-twin & 30 & 33 & 2.1e-12 & -318.75 & 2.91e-10 & 2.9e-10 & 7f1 \\
+b-asym-twin & 54 & 53 & $\le$\,1e-10 & -- & 1.48e-10 & 1.5e-10 & 7f1 \\
+c-tanh & 30 & 29 & 1.6e-09 & -171.17 & 0.0224 & $\le$\,1e-10 & 7f1 \\
+c-tanh-twin & 30 & 33 & $\le$\,1e-10 & -318.75 & 2.91e-10 & 2.9e-10 & 7f1 \\
+c-hardclip & 30 & 29 & $\le$\,1e-10 & -156.53 & 0.0128 & 0.013 & f1+4f2 \\
+c-hardclip-twin & 30 & 46 & $\le$\,1e-10 & -305.72 & $\le$\,1e-10 & $\le$\,1e-10 & 5f1−2f2 \\
+d-phantom & 54 & 53 & $\le$\,1e-10 & -- & 2.48e-10 & 2.5e-10 & 5f1−2f2 \\
+f-squarer-hp & 4 & 4 & 0.00016 & -166.53 & 3.04e-07 & $\le$\,1e-10 & 2f2 \\
+f-squarer-hp-twin & 4 & 15 & $\le$\,1e-10 & -333.82 & $\le$\,1e-10 & $\le$\,1e-10 & 2f1 \\
+f-squarer-lp & 4 & 4 & 2.1e-07 & -166.53 & 2.09e-07 & $\le$\,1e-10 & 2f2 \\
+f-squarer-lp-twin & 4 & 15 & $\le$\,1e-10 & -333.81 & $\le$\,1e-10 & $\le$\,1e-10 & 2f1 \\
+f-tanh-prehp & 30 & 29 & 4.1e-05 & -171.17 & 0.0294 & $\le$\,1e-10 & 7f1 \\
+f-tanh-prehp-twin & 30 & 33 & $\le$\,1e-10 & -318.91 & 2.96e-10 & 3e-10 & 7f1 \\
+j-latency & 30 & 29 & 1.6e-09 & -171.16 & 0.0223 & $\le$\,1e-10 & 7f1 \\
+j-latency-twin & 30 & 33 & $\le$\,1e-10 & -318.75 & 2.91e-10 & 2.9e-10 & 7f1 \\
 \bottomrule
 \end{tabular}
 }
@@ -84,7 +85,7 @@ i-loud-squarer & 4 & 0 & 50 & 49 & detector & 6.3 / 30 & none \\
 \newcommand{\iparityWorkedContent}{30}
 \newcommand{\iparityWorkedTruthError}{0.022}
 \newcommand{\iparityWorkedTruthErrorAt}{7f1}
-\newcommand{\iparityWorkedResidue}{0}
+\newcommand{\iparityWorkedResidue}{$\le$\,1e-10}
 \newcommand{\iparityWorkedCoherenceExcess}{6.3}
 \newcommand{\iparityWorkedLoudest}{-25.83}
 \newcommand{\iparityWorkedTwoFOneMinusFTwoLevel}{-25.832}
@@ -104,13 +105,12 @@ i-loud-squarer & 4 & 0 & 50 & 49 & detector & 6.3 / 30 & none \\
 \newcommand{\iparityAsymAlias}{0.0298}
 \newcommand{\iparityAsymAliasAt}{7f1}
 \newcommand{\iparityAsymTwin}{1.5e-10}
-\newcommand{\iparityHardclipTwin}{1.5e-12}
+\newcommand{\iparityHardclipTwin}{$\le$\,1e-10}
 \newcommand{\iparityTanhTwin}{2.9e-10}
 \newcommand{\iparityWorstBandlimitedResidue}{-1.2e-07}
 \newcommand{\iparityPhantomWorst}{2.5e-10}
 \newcommand{\iparityPhantomPresent}{53}
 \newcommand{\iparityPhantomOutOfBand}{1}
-\newcommand{\iparityLatencyTolerance}{1e-05}
 \newcommand{\iparityWorstLatencyShift}{2.2e-06}
 \newcommand{\iparityLatencySamples}{100}
 \newcommand{\iparityPerBinLong}{58.79}

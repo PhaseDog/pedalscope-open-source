@@ -49,6 +49,15 @@
 % Terms: \term{key} prints the glossary name and links to the entry;
 % \termas{key}{text} links custom text. Both are what the terms guard scans.
 \input{../generated/terms-macros.tex}
+% The machine floor (ruled 2026-09-22, py/machine_floor.py): a measured
+% deviation under \machineFloor{} is printed as the bound "≤ floor", and
+% the sentence each parity section states once is defined here, once.
+\input{../generated/machine-floor.tex}
+\newcommand{\machineFloorNote}{A measured figure under \machineFloor{} is
+printed as the bound $\le$\,\machineFloor: below it the digits are the
+machine's last-bit arithmetic rather than the method's, and two machines
+running the same code do not share them. A stated tolerance keeps its
+digits.}
 \newcommand{\term}[1]{\hyperlink{term:#1}{\csname term@#1\endcsname}}
 \newcommand{\termas}[2]{\hyperlink{term:#1}{#2}}
 \newcommand{\code}[1]{\texttt{#1}}

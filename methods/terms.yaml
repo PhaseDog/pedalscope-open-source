@@ -368,7 +368,7 @@ terms:
       A level relative to the note (or tone) that caused it, so that ``how big
       is the distortion'' does not depend on how loud the test was.
 
-  # --- Transfer Curve (#306 chapter two) ------------------------------------
+  # --- Transfer Curve (#306) ------------------------------------
 
   - key: transfer-curve
     term: transfer curve
@@ -569,7 +569,7 @@ terms:
       because a tone filter ahead of the clipper draws the same kind of loop
       as mild memory and one note cannot tell them apart.
 
-  # --- Chord IMD (#306 chapter three) ---------------------------------------
+  # --- Chord IMD (#306) ---------------------------------------
 
   - key: two-tone
     term: two-tone measurement
@@ -803,7 +803,7 @@ terms:
       two for a fifth --- which decides where each invented tone falls
       musically.
 
-  # --- Gain Map (#306 chapter four) ---------------------------------------
+  # --- Gain Map (#306) ---------------------------------------
 
   - key: gain-map
     term: gain map
@@ -815,8 +815,8 @@ terms:
       device's distortion against level and note.
     plain: >-
       The same test tone played at several loudnesses in turn, from quiet to
-      hot, so that the distortion can be drawn as a map --- how loud you play
-      up one side, which note along the other.
+      hot, so that the distortion can be drawn as a map --- how hard the
+      pedal is driven up one side, which note along the other.
 
   - key: drive-level
     term: drive level
@@ -826,9 +826,9 @@ terms:
       record it is the interface's output level; on a plugin record it is
       digital full scale itself. The lattice is a list of these.
     plain: >-
-      How hard the app drives the pedal for one row of the map --- the
-      electronic stand-in for how hard you pick and where your guitar's
-      volume sits. The pedal's own knobs are never touched.
+      How hard the app drives the pedal for one row of the map: the level
+      of the signal going into it, as your pick and your guitar's volume
+      knob would drive it. The pedal's own knobs are never touched.
 
   - key: level-lattice
     term: level lattice
@@ -837,8 +837,9 @@ terms:
       to a ceiling inclusive, one sweep per level; the hardware and plugin
       windows set the two ends and the level count.
     plain: >-
-      The ladder of loudnesses the map is measured at, evenly spaced from
-      the quietest rung to the loudest.
+      The ladder of loudnesses the map is measured at, from the quietest
+      rung to the loudest in equal steps of decibels --- each rung the same
+      ratio louder than the one below, not the same amount.
 
   - key: drive-window
     term: drive window
@@ -870,7 +871,7 @@ terms:
       log-spaced from the sweep's start to its end inclusive, so the first
       and last columns sit at the sweep's edges, inside its fade ramps.
     plain: >-
-      The notes the map is drawn at, evenly spaced across the keyboard from
+      The notes the map is drawn at, spaced by equal musical intervals from
       the lowest the sweep plays to the highest.
 
   - key: truncated-column
@@ -968,7 +969,8 @@ terms:
     plain: >-
       The small amount of distortion the analysis reports even when there is
       nothing at all in the loop --- a property of the test, worked out
-      afresh for each map and subtracted from what the map may claim.
+      afresh for each map, and one of the things a square must stand clear
+      of before it may be called a measurement.
 
   - key: composed-margin
     term: composed margin
@@ -1011,11 +1013,14 @@ terms:
   - key: cleanup-reading
     term: cleanup reading
     technical: >-
-      A column's THD-versus-level curve read as one of three states: the
-      interpolated level at which it first reaches the threshold (cleans
-      up); at or above the threshold already at the quietest level (never
-      clean, within this map's range); under it at every level (always
-      clean). The tile reads the column nearest the Compression probe's note.
+      A THD-versus-level curve read as one of three states: the interpolated
+      level at which it first reaches the threshold (cleans up); at or above
+      the threshold already at the quietest level (never clean, within the
+      probed range); under it at every level (always clean). On a Gain Map
+      it is a column's read and the tile reads the column nearest the
+      Compression probe's note; on a Compression record it is the curve's
+      own read, the same three states by the same rule, the top of the
+      probed range never dressed up as a crossing.
     plain: >-
       Where, going up the ladder, the pedal starts to distort: a loudness if
       there is one; ``never clean'' if it distorts even at the quietest rung;
@@ -1043,3 +1048,250 @@ terms:
       A test with a perfectly clean signal, whose only distortion is what the
       analysis itself invents --- measured so that it can be allowed for
       when checking the real cases.
+
+  # --- Compression (#306 chapter five) -------------------------------
+
+  - key: compression-curve
+    term: compression curve
+    technical: >-
+      The touch-response measurement (§6.3): one tone stepped through a
+      lattice of input levels, and at each step the fundamental's output
+      amplitude and the THD at the probe note — output level against input
+      level, both in dB, with THD against level as its companion.
+    plain: >-
+      One note played at many loudnesses in turn, from a whisper to a roar,
+      to find where playing harder stops making the pedal louder.
+
+  - key: probe-grid
+    term: probe grid
+    technical: >-
+      The lattice of input levels a compression run steps through: a
+      uniform ladder in dB from a floor to a ceiling, with an optional
+      fine window merged in at a denser spacing; the grid is the user's
+      per run and is read from a record's own points, never assumed.
+    plain: >-
+      The list of loudnesses the test plays, evenly spaced from quietest to
+      loudest, with an optional cluster of extra steps where the user wants
+      a closer look.
+
+  - key: fine-window
+    term: fine window
+    technical: >-
+      An optional span of the probe grid filled at a finer spacing
+      (clamped inside the sweep, capped in count so a wide window widens
+      its own spacing), merged into the uniform lattice and sorted, so a
+      transition that falls between two coarse rungs gets several points.
+    plain: >-
+      Extra, closer-spaced loudness steps over one stretch of the range,
+      for when a feature is too narrow for the ordinary spacing to show.
+
+  - key: stepped-tone
+    term: stepped tone
+    technical: >-
+      The stimulus: a single sine at the probe note whose amplitude steps
+      through the grid, each step a settle region (with a raised-cosine
+      ramp from the previous amplitude) followed by a measurement window,
+      the phase continuous across steps, a final fade to zero over one ramp.
+    plain: >-
+      The test note itself: one pitch, held steady, climbing the loudness
+      ladder one rung at a time, with a short smooth ramp between rungs.
+
+  - key: settle-window
+    term: settle region and measurement window
+    technical: >-
+      Each step's two parts: the settle region, in which the amplitude ramps
+      to the step's value and the device's response is allowed to settle
+      (not read), and the measurement window that follows, over which the
+      estimator reads the tone.
+    plain: >-
+      Within each rung, first a short wait for the pedal to settle at the
+      new loudness, then the stretch that is actually measured.
+
+  - key: cycle-snap
+    term: cycle snap
+    technical: >-
+      The measurement window's length rounded to a whole number of periods
+      of the probe note (at least four), so the window holds an integer
+      number of cycles of the fundamental and of every harmonic, and the
+      one-bin estimator sees no leakage from the tone itself.
+    plain: >-
+      The measured stretch is trimmed to a whole number of cycles of the
+      note, so the note fits it exactly and does not smear.
+
+  - key: one-bin-estimator
+    term: one-bin estimator
+    technical: >-
+      The amplitude reader: a Hann-windowed single-frequency DFT bin with
+      the window's coherent gain compensated, $2\,|\sum x w e^{-j\omega n}| /
+      \sum w$ — exact on the snapped window for a pure tone, and robust to
+      the ramp's tail and to a slightly wrong latency cut.
+    plain: >-
+      The way the app measures how loud the note (or one of its overtones)
+      is inside the measured stretch: it asks for one exact pitch and
+      ignores everything else.
+
+  - key: noise-stamp
+    term: noise stamp
+    technical: >-
+      The rms of the capture's own silent pre-roll — the loop plus the
+      device's hiss, measured in the same capture — stored on the curve as
+      its noise floor; the per-step gate and the noise bound both read it,
+      and no calibration stamp enters the compression floor.
+    plain: >-
+      How much hiss the loop and the pedal make on their own, measured in
+      the silence just before the note starts and kept with the record.
+
+  - key: noise-gate
+    term: per-step noise gate
+    technical: >-
+      A probe step whose measurement-window rms sits within the stated
+      margin of the noise stamp is excluded from the curve and counted: its
+      "output level" would be the hiss, not the tone, and would flatten the
+      quiet end into a phantom knee; the quietest surviving step is then
+      the effective floor.
+    plain: >-
+      Rungs where the note is lost in the hiss are left out and
+      counted, so the hiss cannot pretend to be a flat, compressed pedal.
+
+  - key: incremental-slope
+    term: incremental slope
+    technical: >-
+      Between consecutive points, the change in output dB per change in
+      input dB: 1 is clean (one dB out per dB in), 0 is a hard limit; the
+      slope arriving at each point.
+    plain: >-
+      How much louder the output gets for each step louder at the input: one
+      for one is clean, nothing for one is a wall.
+
+  - key: hinge-fit
+    term: hinge fit
+    technical: >-
+      The two-segment least-squares fit of output dB against input dB:
+      $y = c_0 + c_1 x + c_2\max(0, x - k)$, two lines meeting continuously
+      at a breakpoint $k$ swept over a fine set of candidates between the
+      second and the third-from-last probe, each candidate solved by normal
+      equations with a small ridge; the best candidate's slopes are the
+      pre- and post-knee slopes.
+    plain: >-
+      Drawing the loudness curve as two straight lines joined at a corner,
+      and sliding the corner along until the two lines fit the points best.
+
+  - key: knee
+    term: knee
+    technical: >-
+      The breakpoint of the hinge fit, quoted as a POINT (an input level
+      with a resolution) when the fit is anchored by a unity segment below
+      it, or as a BOUND (at or below a level, with the probe step as its
+      resolution) when the curve is already compressing at the quietest
+      probe or the breakpoint sits within one probe step of the floor.
+    plain: >-
+      The loudness at which playing harder stops making the pedal louder —
+      given as a number when the test could see it, and as "at or below"
+      when the pedal was already squashing at the quietest step.
+
+  - key: bound-zone
+    term: floor-bound zone
+    technical: >-
+      The first probe step above the floor: a fitted breakpoint landing in
+      it cannot be anchored from below and is reported as a bound at that
+      level, never as a point.
+    plain: >-
+      The bottom rung of the ladder: a corner found there might really lie
+      lower still, so it is reported as "at or below".
+
+  - key: resolution-band
+    term: resolution band
+    technical: >-
+      For a point knee, the interval of candidate breakpoints whose fit
+      error stays within five percent of the best; half its width is the
+      knee's resolution, never finer than the candidate spacing, and it
+      sets the decimals the level is displayed with.
+    plain: >-
+      How precisely the corner is known: the range of corner positions that
+      fit the points about as well as the best one.
+
+  - key: unity-guard
+    term: unity guard
+    technical: >-
+      The pre-knee test: a fitted lower segment more than a stated tolerance
+      under 1 dB/dB means no clean segment anchors the fit — the device is
+      already compressing at the quietest probe — so the knee is a bound at
+      the floor with the fitted slope quoted as evidence; the test is against
+      unity, not against the compression threshold.
+    plain: >-
+      A check that the quiet end of the curve really is clean before a
+      corner is believed; if the pedal was already squashing at the quietest
+      step, the corner is reported as "at or below the quietest step".
+
+  - key: noise-bound
+    term: noise bound
+    technical: >-
+      The noise stamp expressed as a worst-case THD at one point,
+      $\sqrt2\,\mathrm{rms}/a_1$: if every bit of the broadband noise power
+      landed in the harmonic bins the THD numerator would read exactly that,
+      so a read at or below it is indistinguishable from the rig; it climbs
+      toward the quiet end as the fundamental shrinks.
+    plain: >-
+      The largest distortion reading the hiss alone could produce at each
+      loudness; anything under it is the rig, not the pedal.
+
+  - key: floor-class
+    term: floor class
+    technical: >-
+      Each point's THD read against the applicable floor: clear (at least
+      the stated margin above it — distortion), noise-dominated (above it
+      but within the margin — distortion mixed with rig noise), or below
+      the floor (at or under it — the read is the rig).
+    plain: >-
+      Whether a distortion reading is clearly the pedal, a mix of pedal and
+      hiss, or just the hiss.
+
+  - key: floor-runs
+    term: floor runs
+    technical: >-
+      The THD trace split into maximal runs by floor class, each segment
+      between adjacent points wearing the worse endpoint's class and the
+      boundary points shared, so the solo and compare charts draw one
+      segmentation.
+    plain: >-
+      The stretches of the distortion trace drawn solid, dotted or faint
+      according to how far above the hiss they stand.
+
+  - key: null-run-reference
+    term: null-run reference
+    technical: >-
+      A loop-only control capture of the Compression kind under the same
+      calibration, offered as a second floor: its added-harmonic AMPLITUDE
+      (its THD times its fundamental) interpolated between its rungs and
+      divided by this capture's fundamental — an absolute contribution,
+      never its ratio read across — and only inside its own probed span.
+    plain: >-
+      A recording of the loop with nothing in it, used to say how much
+      distortion the rig itself adds at each loudness, scaled to how loud
+      this pedal's note actually was.
+
+  - key: floor-source
+    term: floor source
+    technical: >-
+      Which of the three bounds the drawn floor came from — the capture's
+      own noise stamp, a null-run reference, or a plugin's stated floor —
+      named only when that source actually sets the floor at some point;
+      the applied floor is always the largest of the available bounds.
+    plain: >-
+      A label saying where the hiss line on the chart came from, so the
+      reader knows which measurement they are looking at.
+
+  - key: summed-presence
+    term: summed presence reading
+    technical: >-
+      The fundamental-presence reading at one compression point, with the
+      SUMMED harmonic content as the reference in place of the loudest
+      order (the payload stores only the sum) — at most $10\log_{10}(K-1)$
+      dB more eager than the per-order form, conservative in the
+      refuse-to-quote direction; the majority over the points gates the
+      knee, the cleanup and every quoted THD.
+    plain: >-
+      The check that the note itself came through, done from the one
+      distortion number each rung stores; if it fails on most rungs, no
+      knee, cleanup level or percentage is quoted.
+

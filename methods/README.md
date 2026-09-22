@@ -22,6 +22,16 @@ enforced by CI, not remembered.** Nothing here is bundled into the app.
    provenance).
 4. **The drift check.** `make methods-drift` regenerates `generated/` and
    `figures/` and fails on any diff; CI runs it beside the parity test.
+   A generated file may therefore carry only digits the METHOD determines
+   (ruled 2026-09-22, after the `macos-26` runner's arithmetic moved a
+   sidecar column by one ulp and five Swift−Python figures at 1e−13…1e−12):
+   a MEASURED deviation under `py/machine_floor.py`'s `MACHINE_FLOOR`
+   (1e−10, derived there) prints as the bound "≤ 1e-10" through the one
+   formatter `gen_docs.dev`, a STATED bar keeps its digits and never sits
+   at or under the floor, and every sidecar value is written at
+   `SIDECAR_SIGNIFICANT_FIGURES` (12) through `make_figures.write_sidecar`.
+   `generated/machine-floor.tex` quotes the floor so the documents print
+   the one they used; `py/test_machine_floor.py` guards the formatter.
 
 Plus the **terms source** `terms.yaml`: both documents' glossaries are
 generated from it and `py/test_terms.py` fails on an undefined `\term{}`
@@ -79,8 +89,10 @@ directory minus `.venv/`, `py/__pycache__/`, `py/.pytest_cache/` and
 from `make methods-pdf`, copied with `rsync --delete` scoped to `methods/`,
 committed as `methods: Docs/Methods at <private short SHA> (<date>)`. It
 refuses unless this tree is clean on `main` and `make methods-test` and
-`make methods-drift` are green, and it STOPS before the push
-(`PUBLISH_METHODS_PUSH=1` pushes). The public copy's PDFs are a published
+`make methods-drift` are green; it prints the clone's `--stat` and the
+list of files removed from `methods/` (or "nothing removed"), and then
+PUSHES by default (ruled 2026-09-21) — `PUBLISH_METHODS_PUSH=0` is the
+opt-out that stops before the push. The public copy's PDFs are a published
 artefact named by the SHA they were built at — the never-committed rule
 above is about this tree, which has a drift check; the site's `/methods/`
 and the repo's `methods/pdf/` both regenerate from one commit, the site on
@@ -95,22 +107,33 @@ private, so they cannot run there; the public README says what can.
 ```
 generated/   manifest.json + the .tex fragments (plain-<kind>.tex holds the lay
              chapter's macros and the parity words forms) — COMMITTED, drift-checked
-figures/     hd-*.png, transfer-*.png, imd-*.png, journey-*.png, explained-*.png + .tsv sidecars — COMMITTED, drift-checked
+figures/     hd-*.png, transfer-*.png, imd-*.png, journey-*.png, compression-*.png, explained-*.png + .tsv sidecars — COMMITTED, drift-checked
 py/          harmonic_distortion.py  the reimplementation
              parity_hd.py           the comparison + tolerances (shared by test and generator)
              test_parity_hd.py      the CI parity test
-             transfer_curve.py      the Transfer Curve reimplementation (#306 chapter two)
+             transfer_curve.py      the Transfer Curve reimplementation (#306)
              parity_transfer.py     its comparison + tolerances
              test_parity_transfer.py  its CI parity test
-             chord_imd.py           the Chord IMD reimplementation (#306 chapter three)
+             chord_imd.py           the Chord IMD reimplementation (#306)
              parity_imd.py          its comparison + tolerances
              test_parity_imd.py     its CI parity test
-             gain_map.py            the Gain Map reimplementation (#306 chapter four; imports harmonic_distortion.py)
+             gain_map.py            the Gain Map reimplementation (#306; imports harmonic_distortion.py)
              parity_journey.py      its comparison + tolerances
              test_parity_journey.py its CI parity test
+             compression_curve.py   the Compression reimplementation (#306 chapter five; imports
+                                    harmonic_distortion.py's devices and noise, transfer_curve.py's filters)
+             parity_compression.py  its comparison + tolerances
+             test_parity_compression.py  its CI parity test
              make_figures.py        the figures
              gen_docs.py            the fragments (both registers)
              test_terms.py          the terms guard
+             test_module_names.py   the module-name guard (no py/ module may take a
+                                    stdlib name — Python 3.14's `compression` shadowed
+                                    py/compression.py on CI, 2026-09-21)
+             machine_floor.py       the drift ruling's constants (2026-09-22): the machine
+                                    floor under which a measured deviation prints as a
+                                    bound, its derivation, and the sidecars' significant figures
+             test_machine_floor.py  its guard, on the formatter
 tex/         methods.tex explained.tex preamble.tex references.bib latexmkrc
              build/                 latexmk products — ignored
 terms.yaml   the terms source
@@ -154,18 +177,28 @@ Chapters two through N are mechanical. For a measurement kind X:
    emitting the oracle's exact column set. Establish parity BEFORE writing
    the test: run both, tabulate `|Swift − Python|` and `|Swift − truth|` per
    order/point, and only then set tolerances just above the measured maxima
-   (the way `parity_hd.py` documents each of its own). Show the test red
-   (a deliberate one-sample error), then green.
+   (the way `parity_hd.py` documents each of its own) — and never at or
+   under `machine_floor.MACHINE_FLOOR`; in the fragment, a bar goes through
+   `num` and a measured deviation through `dev`, which prints the bound
+   below the floor. Show the test red (a deliberate one-sample error),
+   then green.
 4. **Figures.** `py/make_figures.py` gains X's figures (seeded, `SAVE`
-   metadata stripped, a TSV sidecar per figure).
+   metadata stripped, a TSV sidecar per figure written through
+   `write_sidecar` at the stated significant figures).
 5. **Terms.** Add X's terms to `terms.yaml`; the guard names what is
    missing or unused.
 6. **Chapter.** A `\section` in `methods.tex` in the HD chapter's order
    (purpose and what it cannot tell you; stimulus; pipeline as numbered
    steps; the generated parameter table; figures; the worked example with
    the parity numbers; limits), a stub section in `explained.tex`, and
-   `gen_docs.py` writers for X's fragments. No third-party name in a
-   finding; nothing "sounds" like anything (the terms guard scans both).
+   `gen_docs.py` writers for X's fragments. The chapters of both
+   documents sit in `MeasurementKind.displayOrder` (Harmonic Distortion,
+   Transfer Curve, Compression, Gain Map, Chord IMD, Waveform Matrix —
+   the app's one presentation order, `Library.swift`), so a new chapter
+   is PLACED there, never appended because it is new: Compression goes
+   before the Gain Map and the Waveform Matrix last when they land, and
+   the §1 pipeline list and the appendix table follow the same order. No
+   third-party name in a finding; nothing "sounds" like anything (the terms guard scans both).
 7. `make methods-docs`, `make methods-test`, `make methods-drift`, commit
    the regenerated `generated/` and `figures/`.
 
@@ -194,19 +227,28 @@ measurement kind X whose technical chapter exists:
    "about N ×10^k" in words, and a value with no name comes back as the
    number). The lay prose quotes the words form with the number beside
    it; the plain writers therefore run AFTER the parity writers in
-   `gen_docs.py` so the words never lag the numbers.
+   `gen_docs.py` so the words never lag the numbers. **A derived figure
+   asserts its premise**: a plain macro that says "half" (the Gain Map's
+   sweep against chapter one's) or "a quarter tone" (the edge guard in
+   cents) is computed from the manifest AND `assert`ed on the relation it
+   states, so a moved constant changes the sentence or fails the
+   generator, never leaves a false word standing. A lay fragment's macro
+   prefix must not collide with a technical fragment the lay document
+   also inputs (`plain-journey.tex` uses `\gm…` because
+   `residue-journey.tex`, input by both documents, owns `\journey…`).
 3. **Concept figures.** `make_figures.py` gains `explained-*.png` figures
    computed from the reimplementation's own devices and the truth function
    the parity code uses (`fig_clipping` is the model), seeded or
-   deterministic, a TSV sidecar per plotted set, byte-stable across two
-   runs (`make methods-figures` twice, hash the directory).
+   deterministic, a TSV sidecar per plotted set through `write_sidecar`
+   (12 significant figures), byte-stable across two runs
+   (`make methods-figures` twice, hash the directory).
 4. **Groundwork inline.** A concept the reader may lack (what a harmonic
    is, what clipping does, what "at the floor" means, what a loop in an
    output-against-input picture means) is explained where the chapter
    first needs it; if the inline groundwork for one idea runs past about
    a page, lift it into a short section placed before the chapter and say
    so in the handoff, which names the concept chapters the paragraphs
-   seed (chapter three lifted *Slots: how a spectrum is read* ahead of
+   seed (the Chord IMD chapter lifted *Slots: how a spectrum is read* ahead of
    Chord IMD — the seed of the "what a spectrum's slots are" concept
    chapter). A concept figure carries the groundwork where a picture is
    the explanation (`explained-ellipse.png`: a sine against a shifted copy
@@ -215,7 +257,9 @@ measurement kind X whose technical chapter exists:
    shift, the fractional offset) is PRINTED in the panel title, so the
    caption is checkable against the figure. **View every PNG once after
    `make methods-figures`** — a title that fits in the code can run off
-   the pane at 110 dpi.
+   the pane at 110 dpi. A bar chart of levels in decibels below a
+   reference rises from the pane's FLOOR (`bottom=`), or a longer bar
+   reads as a quieter harmonic (`explained-column.png`, first render).
 5. **Terms.** `\term{key}` at first use; improve a `plain` definition the
    chapter shows to be too technical (that field exists for this
    document); a new term needs `technical` and `plain` and a chapter that
@@ -234,7 +278,18 @@ measurement kind X whose technical chapter exists:
    PNG and nothing else: a chart element the renderer does not draw, or a
    rule the code does not carry (the static curve is dashed on EVERY
    loop, open or closed — read in the view, 2026-09-17), is an unpinned
-   claim.
+   claim. `test_module_names.py` refuses a `py/` module whose basename the
+   standard library uses or will use — the running interpreter's
+   `sys.stdlib_module_names` UNION a pinned set of newer releases' names
+   (the union is the point: a 3.13 developer cannot see 3.14's additions,
+   which is how `compression.py` was green here and red on CI's 3.14
+   runner, 2026-09-21). A new chapter's module name is checked there
+   before it is written. `test_machine_floor.py` pins the drift ruling:
+   a measured deviation under the floor prints the bound, a value above
+   keeps its digits, a stated bar is never bounded and clears the floor,
+   a sidecar value is written at the stated figures, and the committed
+   fragments and sidecars carry no digit the rule forbids — a new
+   chapter's measured figures go through `dev`, its bars through `num`.
 7. `make methods-test`, `make methods-drift`, `make methods-pdf`; read the
    built chapter through once as its reader; quote its page range in the
    handoff with the reader-of-record request.

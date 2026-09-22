@@ -1,37 +1,37 @@
 capture	offset	level_dbc
-clean loop	-9	-139.78238168201986
-clean loop	-8	-146.41756329559908
-clean loop	-7	-132.71577290491456
-clean loop	-6	-135.49510190456394
-clean loop	-5	-135.93599983055543
-clean loop	-4	-133.48939020263992
-clean loop	-3	-130.37710490735586
-clean loop	-2	-141.2631422259456
-clean loop	-1	-138.25451635782687
-clean loop	1	-131.92928322283396
-clean loop	2	-132.07759488312473
-clean loop	3	-140.26758689231687
-clean loop	4	-137.38909085037085
-clean loop	5	-146.26289559798562
-clean loop	6	-148.0829200493137
-clean loop	7	-137.987466438755
-clean loop	8	-132.78927362365903
-clean loop	9	-136.42919782679502
-wander δ = 6.1e−5, one cycle per window	-9	-139.73585517585582
-wander δ = 6.1e−5, one cycle per window	-8	-146.37098441766457
-wander δ = 6.1e−5, one cycle per window	-7	-132.66786490466166
-wander δ = 6.1e−5, one cycle per window	-6	-135.37146591157597
-wander δ = 6.1e−5, one cycle per window	-5	-132.88284547860158
-wander δ = 6.1e−5, one cycle per window	-4	-104.17448120390836
-wander δ = 6.1e−5, one cycle per window	-3	-73.19652620923138
-wander δ = 6.1e−5, one cycle per window	-2	-44.452350842163725
-wander δ = 6.1e−5, one cycle per window	-1	-19.227266939211237
-wander δ = 6.1e−5, one cycle per window	1	-19.227260907381332
-wander δ = 6.1e−5, one cycle per window	2	-44.45196721349021
-wander δ = 6.1e−5, one cycle per window	3	-73.2089083679591
-wander δ = 6.1e−5, one cycle per window	4	-104.34769686850007
-wander δ = 6.1e−5, one cycle per window	5	-135.89562881285357
-wander δ = 6.1e−5, one cycle per window	6	-148.1759458200941
-wander δ = 6.1e−5, one cycle per window	7	-137.93847873631995
-wander δ = 6.1e−5, one cycle per window	8	-132.74273360135138
-wander δ = 6.1e−5, one cycle per window	9	-136.38266991571533
+clean loop	-9	-139.782381682
+clean loop	-8	-146.417563296
+clean loop	-7	-132.715772905
+clean loop	-6	-135.495101905
+clean loop	-5	-135.935999831
+clean loop	-4	-133.489390203
+clean loop	-3	-130.377104907
+clean loop	-2	-141.263142226
+clean loop	-1	-138.254516358
+clean loop	1	-131.929283223
+clean loop	2	-132.077594883
+clean loop	3	-140.267586892
+clean loop	4	-137.38909085
+clean loop	5	-146.262895598
+clean loop	6	-148.082920049
+clean loop	7	-137.987466439
+clean loop	8	-132.789273624
+clean loop	9	-136.429197827
+wander δ = 6.1e−5, one cycle per window	-9	-139.735855176
+wander δ = 6.1e−5, one cycle per window	-8	-146.370984418
+wander δ = 6.1e−5, one cycle per window	-7	-132.667864905
+wander δ = 6.1e−5, one cycle per window	-6	-135.371465912
+wander δ = 6.1e−5, one cycle per window	-5	-132.882845479
+wander δ = 6.1e−5, one cycle per window	-4	-104.174481204
+wander δ = 6.1e−5, one cycle per window	-3	-73.1965262092
+wander δ = 6.1e−5, one cycle per window	-2	-44.4523508422
+wander δ = 6.1e−5, one cycle per window	-1	-19.2272669392
+wander δ = 6.1e−5, one cycle per window	1	-19.2272609074
+wander δ = 6.1e−5, one cycle per window	2	-44.4519672135
+wander δ = 6.1e−5, one cycle per window	3	-73.208908368
+wander δ = 6.1e−5, one cycle per window	4	-104.347696869
+wander δ = 6.1e−5, one cycle per window	5	-135.895628813
+wander δ = 6.1e−5, one cycle per window	6	-148.17594582
+wander δ = 6.1e−5, one cycle per window	7	-137.938478736
+wander δ = 6.1e−5, one cycle per window	8	-132.742733601
+wander δ = 6.1e−5, one cycle per window	9	-136.382669916

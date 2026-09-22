@@ -46,9 +46,13 @@ PY = os.path.join(HERE, "transfer_curve.py")
 # residuals, the fit terms. Measured maximum 2.5e−13 (a paired device behind
 # a biquad — scipy's filter loop and the Swift loop round differently over
 # 144 000 samples) and 2.2e−16 with no filter (double rounding only). Set
-# 400× above the filtered figure; a one-bin change in the phase binning
+# 4 000× above the filtered figure; a one-bin change in the phase binning
 # moves a cycle value by ~1e−3, so the bar is far below any method change.
-T_SWIFT = 1e-10
+# RAISED 1e−10 → 1e−9 on 2026-09-22 (the drift ruling, `machine_floor.py`):
+# a bar at the machine floor claims agreement the machine does not
+# reproduce between two runners, and the document's bound "≤ floor" beside
+# it would claim nothing; 1e−9 is a decade above the floor.
+T_SWIFT = 1e-9
 # The fitted frame shift: measured 0 on every case (the two scans walk the
 # same doubles); a tie flipped by a last-ulp cosine difference would move
 # it by one fine step (0.001), which the bar is set to catch.

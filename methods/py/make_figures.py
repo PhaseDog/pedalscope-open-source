@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
-"""The Harmonic Distortion chapter's figures (hd-*.png) and the lay
-companion's concept figures (explained-*.png) — generated from the Python
+"""The Harmonic Distortion chapter's figures (hd-*.png), the later chapters'
+(transfer-*, imd-*, journey-*, compression-*) and the lay companion's
+concept figures (explained-*.png) — generated from the Python
 reimplementation (never screenshotted), seeded, fixed DPI, no timestamps
 or version strings in the images, so the committed PNGs are a drift-check
 subject. Beside every PNG a `.tsv` sidecar carries the plotted values; if a
@@ -30,6 +31,7 @@ import matplotlib.colors  # noqa: E402
 import harmonic_distortion as hd  # noqa: E402
 import transfer_curve as tc  # noqa: E402
 import chord_imd as ci  # noqa: E402
+import machine_floor as mf  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_OUT = os.path.normpath(os.path.join(HERE, "..", "figures"))
@@ -53,10 +55,14 @@ def load_tsv(path):
 
 
 def write_sidecar(path, header, columns):
+    """The ONE sidecar writer: every plotted value at
+    `machine_floor.SIDECAR_SIGNIFICANT_FIGURES` significant figures (the
+    2026-09-22 ruling — a value printed to its 17th digit is the machine's
+    arithmetic, and two machines' differ there)."""
     with open(path, "w", encoding="utf-8") as f:
         f.write("\t".join(header) + "\n")
         for row in zip(*columns):
-            f.write("\t".join(hd.fmt(v) for v in row) + "\n")
+            f.write("\t".join(mf.sidecar_value(v) for v in row) + "\n")
 
 
 def fig_sweep(sweep, out):
@@ -1210,6 +1216,89 @@ def fig_journey_peak(runs, m, out):
                   [freqs, data[("identity", n - 1)], data[("identity", 0)], data[("tanh-noise", n - 1)], data[("tanh-noise", 0)]])
 
 
+def fig_explained_column(runs, m, out):
+    """The lay companion's concept figure for the Gain Map: a MAP is a stack
+    of chapter-one measurements. Left: one cell — the harmonic ladder the
+    analysis reads at one note and one drive level (the loudest rung of the
+    hardware window, the column the cleanup tile reads), with the closed-form
+    ladder beside it. Middle: the same note at every rung of the lattice, the
+    ladder growing rung by rung. Right: the whole map with that column and
+    that cell outlined. Everything is the worked example's own run through
+    the reimplementation (tanh(2x) through the seeded loop) and the parity
+    code's own truth; nothing is drawn by hand. The chosen drive, note and
+    THD are printed in the panel titles."""
+    r = runs["tanh-noise"]
+    s, rd, t = r.summary, r.reading, r.truth
+    levels, freqs, orders = s.levels_db, s.frequencies, s.orders
+    j = rd.tile_column
+    i_top = len(levels) - 1
+    f = freqs[j]
+
+    def re_note(summary, k, i):
+        hk, h1 = summary.harmonic_db[k][i][j], summary.harmonic_db[1][i][j]
+        return np.nan if hk is None or h1 is None else hk - h1
+
+    odd = [k for k in orders if k % 2 == 1]
+    even = [k for k in orders if k % 2 == 0]
+    cell_measured = [re_note(s, k, i_top) for k in orders]
+    cell_truth = [re_note(t, k, i_top) for k in orders]
+    fig, (a, b, c) = plt.subplots(1, 3, figsize=(7.6, 3.3), gridspec_kw={"width_ratios": [1.0, 1.15, 1.35]})
+    floor_db = -130.0    # the bars rise from the pane's floor, so a taller bar is a louder harmonic
+    a.bar(odd, [cell_measured[k - 1] - floor_db for k in odd], bottom=floor_db, color=BLUE, width=0.7, label="measured, odd")
+    a.bar(even, [cell_measured[k - 1] - floor_db for k in even], bottom=floor_db, color=GREY, width=0.7,
+          label="measured, even (the loop's noise)")
+    a.plot(odd, [cell_truth[k - 1] for k in odd], "x", color="k", markersize=6, label="exact answer")
+    a.set_ylim(floor_db, 8)
+    a.set_xticks(orders)
+    a.set_xlabel("harmonic"); a.set_ylabel("level (dB re the note)")
+    a.set_title("one cell: %.1f dBFS, %.1f Hz\nTHD %.2f %%" % (levels[i_top], f, 100 * s.thd[i_top][j]), fontsize=8)
+    a.legend(fontsize=5.5, loc="upper right")
+    stack_rows = []
+    for i, level in enumerate(levels):
+        colour = plt.cm.viridis(i / (len(levels) - 1))
+        vals = [re_note(s, k, i) for k in odd]
+        b.plot(odd, vals, "o-", color=colour, markersize=3, linewidth=1.0,
+               label="%.1f dBFS: THD %.2f %%" % (level, 100 * s.thd[i][j]))
+        for k in orders:
+            stack_rows.append((level, k, re_note(s, k, i), re_note(t, k, i), 100 * s.thd[i][j]))
+    b.set_ylim(-130, 8)
+    b.set_xticks(odd)
+    b.set_xlabel("harmonic (odd only)"); b.set_ylabel("level (dB re the note)")
+    b.set_title("the same note at every rung:\n%d cells, quiet (dark) to loud (light)" % len(levels), fontsize=8)
+    b.legend(fontsize=5, loc="upper right")
+    thd = np.array([[np.nan if v is None else 100 * v for v in row] for row in s.thd])
+    lo = np.nanmin(thd[:, 1:-1]); hi = np.nanmax(thd[:, 1:-1])
+    norm = matplotlib.colors.LogNorm(vmin=max(lo, 1e-4), vmax=hi)
+    for i in range(len(levels)):
+        for jj in range(len(freqs)):
+            if np.isnan(thd[i, jj]):
+                continue
+            hatch = "////" if rd.excluded[jj] else None
+            c.add_patch(matplotlib.patches.Rectangle((jj - 0.5, i - 0.5), 1, 1,
+                                                     facecolor=plt.cm.viridis(norm(max(thd[i, jj], 1e-4))),
+                                                     hatch=hatch, edgecolor="0.7" if hatch else "none", linewidth=0.3))
+    c.add_patch(matplotlib.patches.Rectangle((j - 0.5, -0.5), 1, len(levels), fill=False, edgecolor=RED, linewidth=1.4))
+    c.add_patch(matplotlib.patches.Rectangle((j - 0.5, i_top - 0.5), 1, 1, fill=False, edgecolor="w", linewidth=1.6))
+    c.set_xlim(-0.5, len(freqs) - 0.5); c.set_ylim(-0.5, len(levels) - 0.5)
+    c.set_xticks(range(0, len(freqs), 4)); c.set_xticklabels(["%.0f" % freqs[jj] for jj in range(0, len(freqs), 4)], fontsize=7)
+    c.set_yticks(range(len(levels))); c.set_yticklabels(["%.0f" % l for l in levels], fontsize=7)
+    c.set_xlabel("note (Hz)"); c.set_ylabel("drive level (dBFS)")
+    c.set_title("the whole map: %d rungs by %d notes\ncolour = THD; column (red), cell (white)" % (len(levels), len(freqs)), fontsize=8)
+    fig.suptitle("A cell is one measurement at one loudness; a column is the rungs of one note stacked; a map is the columns side by side",
+                 fontsize=8)
+    fig.savefig(os.path.join(out, "explained-column.png"), **SAVE)
+    plt.close(fig)
+    write_sidecar(os.path.join(out, "explained-column-cell.tsv"),
+                  ["order", "measured_db_re_note", "truth_db_re_note"],
+                  [orders, cell_measured, cell_truth])
+    write_sidecar(os.path.join(out, "explained-column-stack.tsv"),
+                  ["level_dbfs", "order", "measured_db_re_note", "truth_db_re_note", "thd_pct"],
+                  list(zip(*stack_rows)))
+    map_rows = [(levels[i], freqs[jj], thd[i, jj], int(jj == j)) for i in range(len(levels)) for jj in range(len(freqs))]
+    write_sidecar(os.path.join(out, "explained-column-map.tsv"),
+                  ["level_dbfs", "freq_hz", "thd_pct", "in_column"], list(zip(*map_rows)))
+
+
 def journey_figures(manifest_path, out):
     with open(manifest_path, encoding="utf-8") as f:
         m = json.load(f)
@@ -1219,6 +1308,261 @@ def journey_figures(manifest_path, out):
     fig_journey_residue(runs, m, out)
     fig_journey_cleanup(runs, m, out)
     fig_journey_peak(runs, m, out)
+    fig_explained_column(runs, m, out)
+
+
+# --- The Compression chapter's figures (#306 chapter five) --------------------
+# Every figure is computed from the Python reimplementation's own runs on
+# the parity's own cases: the worked example (tanh 8, the hardware grid,
+# noiseless — case a), the hard clipper (case c) and the sub-floor clipper
+# (case d) for the SSE profiles, the identity through noise with a null run
+# through a loop with its own cubic (case b) for the floor picture, the
+# three cleanup devices, and the pure phantom for the estimator's error.
+
+import compression_curve as cmp  # noqa: E402
+
+COMPRESSION_NOISE_DB = -100.0
+
+
+def _compression_plan(m, kind, params=None, noise_db=None, amps=None, null_run=False, loop_a3=None,
+                      latency_error=0, plugin=False):
+    cm = m["compression"]
+    probe = cm["probe"]
+    floor = probe["pluginFloorDBFS"] if plugin else probe["floorDBFS"]
+    ceiling = probe["pluginCeilingDBFS"] if plugin else probe["ceilingDBFS"]
+    steps = probe["pluginSteps"] if plugin else probe["defaultSteps"]
+    levels = cmp.levels_db(floor, ceiling, steps, probe["fineStepDB"], probe["maximumFinePoints"])
+    if kind == "phantom":
+        source = cmp.Source("phantom", None, [list(amps)])
+    else:
+        source = cmp.Source(kind, tc.Device(kind, params or {}, None, None, False), None)
+    noise = None if noise_db is None else 10 ** (noise_db / 20)
+    return cmp.Plan(source, levels, float(cm["stimulus"]["frequencyHz"]), float(cm["stimulus"]["sampleRateHz"]),
+                    None, None, None, "app", 0, latency_error, 0.0, noise, 1, None, null_run, loop_a3)
+
+
+def _compression_runs(m):
+    tanh8 = dict(gain=8.0, threshold=0.1, a2=0.0, a3=0.0, negative_scale=0.5)
+    hard = dict(gain=4.0, threshold=0.1, a2=0.0, a3=0.0, negative_scale=0.5)
+    under = dict(gain=4.0, threshold=0.0002, a2=0.0, a3=0.0, negative_scale=0.5)
+    return {
+        "tanh8": cmp.run(_compression_plan(m, "tanh", tanh8), m),
+        "hardclip": cmp.run(_compression_plan(m, "hardclip", hard), m),
+        "under": cmp.run(_compression_plan(m, "hardclip", under), m),
+        "identity-null-loop": cmp.run(_compression_plan(m, "identity", {}, COMPRESSION_NOISE_DB, null_run=True, loop_a3=0.02), m),
+        "tanh8-noise": cmp.run(_compression_plan(m, "tanh", tanh8, COMPRESSION_NOISE_DB), m),
+        "linear": cmp.run(_compression_plan(m, "phantom", amps=[1.0]), m),
+        "linear-miscut": cmp.run(_compression_plan(m, "phantom", amps=[1.0], latency_error=1), m),
+    }
+
+
+def _hinge_profile(curve, m):
+    """The hinge fit's (k, SSE) profile and the line's SSE — the chapter's
+    own arithmetic, recomputed here for the picture."""
+    xs = [p.input_db for p in curve.points]
+    ys = [p.output_db for p in curve.points]
+    _, _, lin_sse = cmp._line_fit(xs, ys)
+    k_lo, k_hi = xs[1], xs[-2]
+    ks, sses = [], []
+    for i in range(1025):
+        k = k_lo + (k_hi - k_lo) * i / 1024
+        fit = cmp._hinge_fit(xs, ys, k)
+        if fit is not None:
+            ks.append(k)
+            sses.append(fit[3])
+    return np.array(ks), np.array(sses), lin_sse
+
+
+def fig_compression_curve(runs, m, out):
+    """The worked example's output-vs-input curve against unity, the hinge
+    fit drawn, the breakpoint and its resolution band, the bound zone."""
+    r = runs["tanh8"]
+    cm = m["compression"]
+    xs = np.array([p.input_db for p in r.curve.points])
+    ys = np.array([p.output_db for p in r.curve.points])
+    knee = r.reading.knee
+    fig, ax = plt.subplots(figsize=(7.2, 4.2))
+    ax.plot(xs, xs + (ys[0] - xs[0]), "--", color=GREY, label="unity (1 dB in, 1 dB out) through the first point")
+    ax.plot(xs, ys, "o-", color=BLUE, markersize=3, label="measured output level (the fundamental)")
+    if knee is not None and not knee.is_bound:
+        # The fitted hinge through the points.
+        k = knee.input_db
+        fit = cmp._hinge_fit(list(xs), list(ys), k)
+        xx = np.linspace(xs[0], xs[-1], 200)
+        ax.plot(xx, fit[0] + fit[1] * xx + fit[2] * np.maximum(0, xx - k), "-", color=ORANGE, linewidth=1.2,
+                label="the hinge fit: slopes %.2f and %.2f dB/dB" % (knee.pre_slope, knee.post_slope))
+        ax.axvspan(k - knee.resolution_db, k + knee.resolution_db, color=ORANGE, alpha=0.18,
+                   label="breakpoint %.2f dBFS, resolution ±%.2f dB" % (k, knee.resolution_db))
+        ax.axvline(k, color=ORANGE, linewidth=0.8)
+    step = xs[1] - xs[0]
+    ax.axvspan(xs[0], xs[0] + step, color=RED, alpha=0.12, hatch="//", label="the floor-bound zone (one probe step above the floor)")
+    cl = r.reading.cleanup
+    if cl[0] == "cleans_up":
+        ax.axvline(cl[1], color=GREEN, linestyle=":", label="cleanup crossing %.2f dBFS (%g %% THD)" % (cl[1], 100 * cm["cleanup"]["threshold"]))
+    ax.set_xlabel("input level (dBFS)")
+    ax.set_ylabel("output level (dBFS)")
+    ax.set_title("The worked example, $y = \\tanh(8x)$ at 220 Hz on the hardware grid", fontsize=9)
+    ax.legend(fontsize=7, loc="upper left")
+    fig.savefig(os.path.join(out, "compression-curve.png"), **SAVE)
+    plt.close(fig)
+    write_sidecar(os.path.join(out, "compression-curve.tsv"), ["input_dbfs", "output_dbfs", "thd_pct"],
+                  [xs, ys, [100 * p.thd for p in r.curve.points]])
+
+
+def fig_compression_knee(runs, m, out):
+    """The hinge fit's SSE profile over the candidate breakpoints for a
+    point knee (the hard clipper — the 5 % band is a width) and for a
+    clipper under the floor (the no-break and unity-guard legs — the
+    profile has no minimum to trust and the verdict is a bound)."""
+    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.4))
+    rows = {}
+    for ax, name, title in ((axes[0], "hardclip", "hard clip at 0.1: a point"), (axes[1], "under", "hard clip at 0.0002: a bound")):
+        r = runs[name]
+        ks, sses, lin = _hinge_profile(r.curve, m)
+        knee = r.reading.knee
+        ax.semilogy(ks, sses, "-", color=BLUE, label="hinge SSE per candidate breakpoint")
+        ax.axhline(lin, color=GREY, linestyle="--", label="the single line's SSE")
+        ax.axhline(0.5 * lin, color=GREY, linestyle=":", label="½ of it — the no-break bar")
+        if knee is not None:
+            tol = sses.min() * 1.05 + 1e-12
+            band = ks[sses <= tol]
+            if not knee.is_bound:
+                ax.axvspan(band.min(), band.max(), color=ORANGE, alpha=0.25, label="within 5 %% of the best: the resolution band (±%.3f dB)" % knee.resolution_db)
+                ax.axvline(knee.input_db, color=ORANGE, linewidth=0.8)
+            text = knee.label + ("; pre slope %.2f" % knee.pre_slope if knee.compressed_throughout(float(m["compression"]["knee"]["preKneeUnitySlopeTolerance"])) else "")
+        else:
+            text = "no knee"
+        ax.set_title("%s\nverdict: %s" % (title, text), fontsize=8)
+        ax.set_xlabel("candidate breakpoint (dBFS)")
+        ax.set_ylabel("SSE (dB²)")
+        ax.legend(fontsize=6)
+        rows[name] = (ks, sses)
+    fig.savefig(os.path.join(out, "compression-knee.png"), **SAVE)
+    plt.close(fig)
+    write_sidecar(os.path.join(out, "compression-knee.tsv"), ["hardclip_k_dbfs", "hardclip_sse", "under_k_dbfs", "under_sse"],
+                  [rows["hardclip"][0], rows["hardclip"][1], rows["under"][0], rows["under"][1]])
+
+
+def fig_compression_floor(runs, m, out):
+    """THD against level for the identity through seeded noise and a loop
+    with its own cubic, with the √2 noise bound, the shaded noise-dominated
+    band, the null-run bound where it governs, and the trace's segments in
+    the chart's three styles."""
+    r = runs["identity-null-loop"]
+    cm = m["compression"]
+    margin = float(cm["floor"]["thdNoiseClearMarginDB"])
+    pts = r.curve.points
+    xs = np.array([p.input_db for p in pts])
+    thd = np.array([100 * p.thd for p in pts])
+    noise = np.array([100 * (cmp.noise_floor_thd(r.curve, p) or np.nan) for p in pts])
+    null = np.array([100 * (cmp.null_run_floor_thd(p, r.reference) or np.nan) for p in pts])
+    floor = np.array([100 * (cmp.floor_thd(r.curve, p, r.reference, None) or np.nan) for p in pts])
+    classes = [cmp.floor_class(r.curve, p, r.reference, None, float(cm["floor"]["atFloorEpsilonDB"]), margin) for p in pts]
+    fig, ax = plt.subplots(figsize=(7.2, 4.0))
+    ax.fill_between(xs, floor, floor * 10 ** (margin / 20), color=GREY, alpha=0.25, label="noise-dominated band (%g dB over the floor)" % margin)
+    ax.semilogy(xs, noise, "--", color=GREY, linewidth=0.9, label="the capture's own noise bound, √2·rms / fundamental")
+    ax.semilogy(xs, null, "-.", color=GREEN, linewidth=0.9, label="the null run's bound (the loop's own cubic, an absolute contribution)")
+    ax.semilogy(xs, floor, "-", color=RED, linewidth=1.0, label="the applied floor: the larger")
+    styles = {"clear": ("-", 1.0), "noise_dominated": (":", 1.0), "below_floor": (":", 0.4)}
+    for i in range(1, len(xs)):
+        cls = classes[i - 1] if cmp.CLASS_RANK[classes[i - 1]] >= cmp.CLASS_RANK[classes[i]] else classes[i]
+        ls, alpha = styles[cls]
+        ax.semilogy(xs[i - 1:i + 1], thd[i - 1:i + 1], ls, color=BLUE, alpha=alpha, linewidth=1.6)
+    ax.plot([], [], "-", color=BLUE, label="THD read: solid clear, dotted noise-dominated, faint at or below the floor")
+    ax.axhline(100 * float(cm["cleanup"]["threshold"]), color="0.3", linestyle="--", linewidth=0.7, label="%g %% (the cleanup threshold)" % (100 * cm["cleanup"]["threshold"]))
+    source = r.reading.source
+    ax.set_title("The identity through −100 dBFS noise and a loop with its own cubic: floor source '%s'" % source, fontsize=9)
+    ax.set_xlabel("input level (dBFS)")
+    ax.set_ylabel("THD (%)")
+    ax.legend(fontsize=6.5, loc="upper right")
+    fig.savefig(os.path.join(out, "compression-floor.png"), **SAVE)
+    plt.close(fig)
+    write_sidecar(os.path.join(out, "compression-floor.tsv"), ["input_dbfs", "thd_pct", "noise_bound_pct", "null_run_bound_pct", "floor_pct", "class"],
+                  [xs, thd, noise, null, floor, classes])
+
+
+def fig_compression_cleanup(runs, m, out):
+    """THD against level for the three cleanup states: a genuine crossing
+    (tanh 8), a curve under the threshold throughout (the identity through
+    noise), a curve over it throughout (the clipper under the floor)."""
+    cm = m["compression"]
+    threshold = float(cm["cleanup"]["threshold"])
+    fig, ax = plt.subplots(figsize=(7.2, 3.6))
+    cols = {}
+    for name, colour, label in (("tanh8", BLUE, "tanh(8x)"), ("identity-null-loop", GREEN, "identity through noise"), ("under", RED, "hard clip at 0.0002")):
+        r = runs[name]
+        xs = [p.input_db for p in r.curve.points]
+        thd = [100 * p.thd if p.thd > 0 else np.nan for p in r.curve.points]
+        state, level = r.reading.cleanup
+        text = {"cleans_up": "cleans up at %.2f dBFS" % (level or 0), "never_clean": "never clean", "always_clean": "always clean"}[state]
+        ax.semilogy(xs, thd, "o-", color=colour, markersize=2.5, label="%s: %s" % (label, text))
+        if state == "cleans_up":
+            ax.plot([level], [100 * threshold], marker="v", color=colour, markersize=10)
+        cols[name] = (xs, thd)
+    ax.axhline(100 * threshold, color="0.3", linestyle="--", label="threshold %g %%" % (100 * threshold))
+    ax.set_xlabel("input level (dBFS)")
+    ax.set_ylabel("THD (%)")
+    ax.set_title("The three cleanup states at 220 Hz: a genuine crossing, always clean, never clean", fontsize=9)
+    ax.legend(fontsize=7)
+    fig.savefig(os.path.join(out, "compression-cleanup.png"), **SAVE)
+    plt.close(fig)
+    xs = cols["tanh8"][0]
+    write_sidecar(os.path.join(out, "compression-cleanup.tsv"), ["input_dbfs", "tanh8_thd_pct", "identity_thd_pct", "under_thd_pct"],
+                  [xs, cols["tanh8"][1], cols["identity-null-loop"][1], cols["under"][1]])
+
+
+def fig_compression_estimator(runs, m, out):
+    """The one-bin Hann estimator's own error on the pure phantom: the
+    fundamental's read against its truth per step on the snapped window and
+    on a window cut one sample late (left), and the leakage of the
+    fundamental into every harmonic bin (right) — the last step, under the
+    stimulus's fade, marked."""
+    exact = runs["linear"]
+    miscut = runs["linear-miscut"]
+    xs = np.array([p.input_db for p in exact.curve.points])
+    e_exact = np.array([p.output_db - t.output_db for p, t in zip(exact.curve.points, exact.truth_curve.points)])
+    e_miscut = np.array([p.output_db - t.output_db for p, t in zip(miscut.curve.points, miscut.truth_curve.points)])
+    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.4))
+    ax = axes[0]
+    ax.plot(xs[:-1], e_exact[:-1], "o-", color=BLUE, markersize=3, label="snapped window: |error| ≤ %.1e dB" % np.abs(e_exact[:-1]).max())
+    ax.plot(xs[:-1], e_miscut[:-1], "s--", color=ORANGE, markersize=3, label="window cut 1 sample late: |error| ≤ %.1e dB" % np.abs(e_miscut[:-1]).max())
+    ax.plot(xs[-1:], e_exact[-1:], "o", color=RED, label="the last step, under the final fade: %.4f dB" % e_exact[-1])
+    ax.axhline(0, color=GREY, linewidth=0.6)
+    ax.set_xlabel("input level (dBFS)")
+    ax.set_ylabel("fundamental read − truth (dB)")
+    ax.set_title("The estimator on a pure tone", fontsize=9)
+    ax.legend(fontsize=6.5)
+    ax = axes[1]
+    K = len(exact.truth.harmonic[0])
+    leak = np.full((len(xs), K - 1), np.nan)
+    for i in range(len(xs)):
+        h = exact.harmonics[i]
+        if h is None or h[0] is None or h[0] <= 0:
+            continue
+        for k in range(2, K + 1):
+            if h[k - 1] is not None and h[k - 1] > 0:
+                leak[i, k - 2] = 20 * np.log10(h[k - 1] / h[0])
+    orders = np.arange(2, K + 1)
+    ax.plot(orders, np.nanmedian(leak[:-1], axis=0), "o-", color=BLUE, label="every step but the last (the median; all within 0.1 dB)")
+    ax.plot(orders, leak[-1], "s--", color=RED, label="the last step, under the final fade")
+    ax.set_xlabel("harmonic bin $k$")
+    ax.set_ylabel("leakage of the fundamental (dB re H1)")
+    ax.set_title("The Hann's leakage into the harmonic bins", fontsize=9)
+    ax.legend(fontsize=6.5)
+    fig.savefig(os.path.join(out, "compression-estimator.png"), **SAVE)
+    plt.close(fig)
+    write_sidecar(os.path.join(out, "compression-estimator.tsv"), ["input_dbfs", "error_exact_db", "error_miscut_db"] + ["leak_h%d_db" % k for k in orders],
+                  [xs, e_exact, e_miscut] + [leak[:, k - 2] for k in orders])
+
+
+def compression_figures(manifest_path, out):
+    m = cmp.load_manifest(manifest_path)
+    runs = _compression_runs(m)
+    fig_compression_curve(runs, m, out)
+    fig_compression_knee(runs, m, out)
+    fig_compression_floor(runs, m, out)
+    fig_compression_cleanup(runs, m, out)
+    fig_compression_estimator(runs, m, out)
 
 
 def main(argv=None):
@@ -1231,6 +1575,7 @@ def main(argv=None):
     transfer_figures(args.manifest, args.out)
     imd_figures(args.manifest, args.out)
     journey_figures(args.manifest, args.out)
+    compression_figures(args.manifest, args.out)
     m = hd.load_manifest(args.manifest)
     sweep = hd.Sweep.from_manifest(m)
     sweep.check_against(m)
