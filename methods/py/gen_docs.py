@@ -1809,6 +1809,162 @@ def gen_plain_journey(m):
     write(os.path.join(GENERATED, "plain-journey.tex"), "".join(out))
 
 
+def gen_plain_compression(m):
+    """The lay Compression chapter's numbers (#307): one macro per value the
+    prose quotes, read from the manifest's compression object — the two
+    ladders with their steps and spans, the fine window, the gate, the
+    note, the tone's three durations and the cycle count they come to, the
+    assembly's silences, the analyzer's count and band, the fit's
+    constants, the cleanup line, the clear margin, Simulation Mode's two
+    qualities — every derived figure asserted on its premise (a step is
+    the span over the count less one and must equal the delivered lattice;
+    a duration in samples must equal the manifest's delivered count;
+    "one-for-one" is the slope 1), plus the words form of every scalar
+    parity-compression.tex carries. The parity fragment's own \\cparity...
+    macros are quoted by the chapter directly and never re-minted here."""
+    cm = m["compression"]
+    pr, st, asm, an, kn, cl, fl, fp, sm = (cm[k] for k in (
+        "probe", "stimulus", "assembly", "analyzer", "knee", "cleanup", "floor",
+        "fundamentalPresence", "summaries"))
+    parity_file = os.path.join(GENERATED, "parity-compression.tex")
+    fs = float(st["sampleRateHz"])
+    f0 = float(st["frequencyHz"])
+    # The ladders: the step is DERIVED from the ends and the count and must
+    # reproduce the delivered lattice's first rung and the manifest's own
+    # step, so a moved end or count changes the sentence or fails here.
+    hw_step = (pr["ceilingDBFS"] - pr["floorDBFS"]) / (pr["defaultSteps"] - 1)
+    pl_step = (pr["pluginCeilingDBFS"] - pr["pluginFloorDBFS"]) / (pr["pluginSteps"] - 1)
+    hw = pr["hardwareLevelsDBFS"]
+    pl = pr["pluginLevelsDBFS"]
+    assert len(hw) == pr["defaultSteps"] and len(pl) == pr["pluginSteps"]
+    assert abs(hw_step - pr["hardwareStepDB"]) < 1e-9 and abs(hw_step - (hw[1] - hw[0])) < 1e-9
+    assert abs(pl_step - pr["pluginStepDB"]) < 1e-9 and abs(pl_step - (pl[1] - pl[0])) < 1e-9
+    assert hw[0] == pr["floorDBFS"] and hw[-1] == pr["ceilingDBFS"]
+    assert pl[0] == pr["pluginFloorDBFS"] and pl[-1] == pr["pluginCeilingDBFS"]
+    # The fine-window example: the delivered count less the uniform lattice
+    # is what the window ADDED (near-duplicates dropped by the rule).
+    fine_levels = pr["fineExampleLevelsDBFS"]
+    fine_added = len(fine_levels) - pr["defaultSteps"]
+    assert fine_added > 0 and fine_levels == sorted(fine_levels)
+    fine_lo, fine_hi = pr["fineExampleRangeDBFS"]
+    # The gate in words: a margin of g dB is a ratio of 10^(g/20) in rms —
+    # "about twice" is asserted, never assumed.
+    gate_ratio = 10 ** (pr["minimumStepSNRDB"] / 20)
+    assert abs(gate_ratio - 2) < 0.01, f"the gate ratio is {gate_ratio}, not about twice"
+    # The tone: the three durations as the delivered counts, checked against
+    # the manifest's own samples; the measure duration is a rule-string
+    # literal (the Python's default_measure_s reads it the same way).
+    settle_s = float(st["settleS"])
+    ramp_s = float(st["rampS"])
+    measure_s = float(_rule_number(st["durationsRule"], r"measureDuration ([0-9.]+) s"))
+    assert int(settle_s * fs) == st["settleSamples"] and int(ramp_s * fs) == st["rampSamples"]
+    cycles = max(int(_rule_number(st["snapRule"], r"max\((\d+),")), round(measure_s * f0))
+    assert cycles == st["measureCycles"] and round(cycles / f0 * fs) == st["measureSamples"]
+    minimum_cycles = int(_rule_number(st["snapRule"], r"max\((\d+),"))
+    step_s = st["stepSamples"] / fs
+    tone_s = st["toneSamples"] / fs
+    assert st["stepSamples"] == st["settleSamples"] + st["measureSamples"]
+    assert st["toneSamples"] == st["stepSamples"] * pr["defaultSteps"]
+    assert abs(tone_s + asm["prerollS"] + asm["tailS"] - asm["stimulusS"]) < 1e-9
+    # The analyzer: the note above which the band's top removes the ninth
+    # harmonic from the sum, derived from the band and the count.
+    band_top_note = an["band"]["highHz"] / an["harmonicCount"]
+    # The fit's literals live in rule strings; each is read from its rule.
+    minimum_points = int(_rule_number(kn["minimumPointsRule"], r"fewer than (\d+) points"))
+    candidates = int(_rule_number(kn["candidateRule"], r"over (\d+) candidates"))
+    band_factor = float(_rule_number(kn["resolutionRule"], r"bestSSE·([0-9.]+)"))
+    band_percent = round((band_factor - 1) * 100, 6)
+    assert band_percent == 5, f"the resolution band is {band_percent} %, not five"
+    no_break = float(_rule_number(kn["noBreakRule"], r"bestSSE > ([0-9.]+)·linSSE"))
+    assert no_break == 0.5, "the no-break factor is no longer a half"
+    decimals_bar = float(_rule_number(kn["displayRule"], r"resolutionDB ≤ ([0-9.]+)"))
+    unity_guard = 1 - kn["preKneeUnitySlopeTolerance"]
+    assert abs(unity_guard - kn["unityGuardSlope"]) < 1e-12
+    # "one-for-one" is the slope 1 — the unity guard's reference, not a
+    # typed literal; a fit under it by more than the tolerance is a bound.
+    macros = {
+        "cmpHardwareFloorDBFS": num(pr["floorDBFS"]),
+        "cmpHardwareCeilingDBFS": num(pr["ceilingDBFS"]),
+        "cmpHardwareSteps": num(pr["defaultSteps"]),
+        "cmpHardwareStepDB": num(hw_step, 4),
+        "cmpHardwareTravelDB": num(pr["ceilingDBFS"] - pr["floorDBFS"]),
+        "cmpPluginFloorDBFS": num(pr["pluginFloorDBFS"]),
+        "cmpPluginCeilingDBFS": num(pr["pluginCeilingDBFS"]),
+        "cmpPluginSteps": num(pr["pluginSteps"]),
+        "cmpPluginStepDB": num(pl_step, 4),
+        "cmpPluginTravelDB": num(pr["pluginCeilingDBFS"] - pr["pluginFloorDBFS"]),
+        "cmpFineStepDB": num(pr["fineStepDB"]),
+        "cmpFineCap": num(pr["maximumFinePoints"]),
+        "cmpFineExampleLowDBFS": num(fine_lo),
+        "cmpFineExampleHighDBFS": num(fine_hi),
+        "cmpFineExampleDelivered": num(len(fine_levels)),
+        "cmpFineExampleAdded": num(fine_added),
+        "cmpGateDB": num(pr["minimumStepSNRDB"]),
+        "cmpGateRatioWords": "twice",
+        "cmpNoteHz": num(f0),
+        "cmpNoteName": nearest_note(f0),
+        "cmpSampleRateHz": num(fs),
+        "cmpSampleRateKHz": num(fs / 1000),
+        "cmpSettleS": num(settle_s),
+        "cmpSettleMs": num(settle_s * 1000),
+        "cmpMeasureS": num(measure_s),
+        "cmpMeasureMs": num(measure_s * 1000),
+        "cmpRampS": num(ramp_s),
+        "cmpRampMs": num(ramp_s * 1000),
+        "cmpMeasureCycles": num(cycles),
+        "cmpMinimumCycles": num(minimum_cycles),
+        "cmpStepS": num(step_s, 3),
+        "cmpToneS": num(tone_s, 3),
+        "cmpStimulusS": num(asm["stimulusS"], 3),
+        "cmpPrerollS": num(asm["prerollS"]),
+        "cmpPrerollMs": num(asm["prerollS"] * 1000),
+        "cmpTailS": num(asm["tailS"]),
+        "cmpHarmonicCount": num(an["harmonicCount"]),
+        "cmpHarmonicsSummed": num(an["harmonicCount"] - 1),
+        "cmpBandLowHz": num(an["band"]["lowHz"]),
+        "cmpBandHighHz": num(an["band"]["highHz"]),
+        "cmpBandTopNoteHz": num(band_top_note, 4),
+        "cmpBandTopNoteName": nearest_note(band_top_note),
+        "cmpSlopeThreshold": num(kn["slopeThreshold"], 3),
+        "cmpSlopeThresholdWords": in_words(round(kn["slopeThreshold"], 6), num(kn["slopeThreshold"], 3)),
+        "cmpUnityTolerance": num(kn["preKneeUnitySlopeTolerance"], 3),
+        "cmpUnityGuardSlope": num(unity_guard, 3),
+        "cmpUnityGuardWords": in_words(round(unity_guard, 6), num(unity_guard, 3)),
+        "cmpMinimumPoints": num(minimum_points),
+        "cmpCandidates": num(candidates),
+        "cmpResolutionBandPercent": num(band_percent),
+        "cmpNoBreakWords": in_words(no_break, num(no_break)),
+        "cmpDecimalsBarDB": num(decimals_bar),
+        "cmpCleanupThresholdPercent": num(100 * cl["threshold"]),
+        "cmpClearMarginDB": num(fl["thdNoiseClearMarginDB"]),
+        "cmpAtFloorEpsilonDB": num(fl["atFloorEpsilonDB"], 3),
+        "cmpSummedEagernessDB": num(fp["summedEagernessDB"], 3),
+        "cmpSimInteractiveSteps": num(asm["simulationInteractiveSteps"]),
+        "cmpSimInteractiveSettleS": num(asm["simulationInteractiveSettleS"]),
+        "cmpSimInteractiveMeasureS": num(asm["simulationInteractiveMeasureS"]),
+        "cmpSimInteractiveRateKHz": num(asm["simulationInteractiveSampleRateHz"] / 1000),
+        "cmpSimFullSteps": num(asm["simulationFullSteps"]),
+        "cmpSimFullSettleS": num(asm["simulationFullSettleS"]),
+        "cmpSimFullMeasureS": num(asm["simulationFullMeasureS"]),
+        "cmpSimFullRateKHz": num(asm["simulationFullSampleRateHz"] / 1000),
+    }
+    assert asm["simulationFullSteps"] == pr["defaultSteps"] and asm["simulationFullSettleS"] == settle_s \
+        and asm["simulationFullMeasureS"] == measure_s, "Simulation Mode's full quality no longer matches the app's tone"
+    out = ["% GENERATED by gen_docs.py from generated/manifest.json and parity-compression.tex — do not edit\n",
+           "% The lay Compression chapter's numbers: one macro per quoted value,\n",
+           "% the derived figures (the ladders' steps, the fine window's added\n",
+           "% points, the gate's ratio, the tone's cycle count and the step, tone\n",
+           "% and stimulus lengths, the band's top note, the fit's literals read\n",
+           "% from their rule strings) computed from the manifest's own values with\n",
+           "% their premises asserted, and the words form of every scalar the\n",
+           "% parity fragment prints (\\<name>Words beside \\<name>). The parity\n",
+           "% fragment's \\cparity... macros are quoted by the chapter, not re-minted.\n"]
+    for name, value in macros.items():
+        out.append(r"\newcommand{\%s}{%s}" % (name, value) + "\n")
+    out += parity_words_macros(parity_file)
+    write(os.path.join(GENERATED, "plain-compression.tex"), "".join(out))
+
+
 def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--no-parity", action="store_true", help="skip the parity table (no Swift tool needed)")
@@ -1840,6 +1996,7 @@ def main(argv=None):
     gen_plain_transfer(transfer)
     gen_plain_imd(whole["chordIMD"])
     gen_plain_journey(whole)
+    gen_plain_compression(whole)
     return 0
 
 

@@ -3,8 +3,10 @@
 % plainer words. It shares preamble.tex and terms.yaml with methods.tex and
 % prints the plain-language glossary from the same source. Every number in
 % the prose is a macro from ../generated (plain-hd.tex, parity-hd.tex,
-% plain-transfer.tex, parity-transfer.tex, lattice-imd.tex, plain-imd.tex,
-% parity-imd.tex); nothing numeric is typed here,
+% plain-transfer.tex, parity-transfer.tex, plain-compression.tex,
+% parity-compression.tex, plain-journey.tex, residue-journey.tex,
+% parity-journey.tex, lattice-imd.tex, plain-imd.tex, parity-imd.tex);
+% nothing numeric is typed here,
 % and each tolerance the prose quotes has a generated words form beside it
 % (\<name>Words). No third-party product is named, and
 % nothing in this document says what a measurement sounds like.
@@ -14,6 +16,8 @@
 \input{../generated/parity-hd.tex}
 \input{../generated/plain-transfer.tex}
 \input{../generated/parity-transfer.tex}
+\input{../generated/plain-compression.tex}
+\input{../generated/parity-compression.tex}
 \input{../generated/plain-journey.tex}
 \input{../generated/residue-journey.tex}
 \input{../generated/parity-journey.tex}
@@ -1043,32 +1047,684 @@ running them are in the repository named on the first page.
 \section{Compression}
 \label{sec:compression-plain}
 
-This chapter is not yet written; the technical reference's Compression
-chapter is, and this page names what its plain-language counterpart will
-explain, in the words the glossary already defines. A
-\term{compression-curve} plays one note at every loudness of a
-\term{probe-grid} in turn, with a \term{fine-window} of closer steps
-where the user asks for one; the \term{stepped-tone} climbs the ladder
-with a \term{settle-window} at every rung, its measured stretch trimmed
-by the \term{cycle-snap} so the \term{one-bin-estimator} reads the note
-exactly. The silence before the note is the \term{noise-stamp}, and the
-\term{noise-gate} leaves out rungs where the note is lost in the
-hiss. From the curve the app reads the \term{incremental-slope} between
-rungs and fits a \term{hinge-fit} --- two straight lines with a corner
---- whose corner is the \term{knee}: a number with a \term{resolution-band}
-when the quiet end is clean, or ``at or below'' when the \term{unity-guard}
-finds the pedal already squashing at the quietest rung or the corner sits
-in the \term{bound-zone}. The \term{cleanup-reading} says where the
-distortion first crosses the line, or that it never does, or that it
-always is. The \term{noise-bound} says how much distortion the hiss alone
-could fake at each rung, a \term{null-run-reference} says how much the
-loop itself adds, the \term{floor-source} names which one the chart
-drew, the \term{floor-class} says of each rung whether its reading is
-the pedal, a mix, or the hiss, and the \term{floor-runs} are the stretches
-drawn solid, dotted or faint. The \term{summed-presence} checks
-that the note came through at all before any of that is quoted. The lay
-chapter will explain each of those in turn, with the technical chapter's
-figures.
+\subsection{What this measurement tells you, and what it cannot}
+
+The Harmonic Distortion measurement listed what a pedal adds to one note
+at one loudness. This measurement keeps to one note --- one pitch, held
+steady --- and changes the loudness instead: the note is played at every
+rung of a ladder of loudnesses, quietest first, and at each rung the app
+reads two things, how loud the note came out and how much distortion came
+with it. The result is the \term{compression-curve}, the app's ``touch
+response'': how much louder the output gets for each step louder at the
+input.
+
+\paragraph{A curve of output against input.} The picture the chapter
+turns on is simple to draw and worth drawing once. Across the bottom is
+how loud the note went in, up the side is how loud it came out, both in
+\term{decibel}s, and each rung of the ladder is one dot. A pedal that
+does nothing but pass the note draws a straight line at exactly one dB
+out for every dB in --- \emph{one-for-one}, the line every panel in this
+chapter draws dashed. A pedal with gain draws the same line higher up. A
+pedal that compresses draws a line that starts one-for-one and then bends
+over: past some loudness each step louder in produces less than a step
+louder out, and at the extreme none at all. Figure~\ref{fig:ladder-plain}
+is the whole idea in one picture, computed from a steep soft clipper (the
+\term{tanh} curve of the earlier chapters with its input multiplied by
+eight before the bend, as the panel titles print --- steeper because the
+gentler one barely bends inside the ladder, a fact the section on reading
+a record back returns to). On the left is the test note's loudness over
+time: the ladder climbing, one rung marked. In the middle is that one rung
+close up. On the right is the curve the rungs draw, with the two straight
+lines the app fits through it and the corner where they meet. That corner
+is the \term{knee}, and most of this chapter is about how it is found and
+when it may be believed.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.98\linewidth]{explained-ladder.png}
+  \caption{One note, a ladder of loudnesses. Left: the test note's level
+  over time --- the silence before it, where the hiss is measured, then
+  the rungs climbing, with one rung's settle (orange) and measured stretch
+  (green) marked. Middle: that rung close up --- the short ramp from the
+  rung below, the rest of the settle, then the stretch that is read.
+  Right: output level against input level at the rungs for the steep soft
+  clipper named in the title, the one-for-one line dashed, the two fitted
+  lines of the hinge (dotted where each is extended past the corner) and
+  the corner, which is the knee.}
+  \label{fig:ladder-plain}
+\end{figure}
+
+When a record is opened, the app states three things beside the curve,
+each worked out afresh from the stored rungs: the knee --- a loudness, or
+``at or below'' a loudness when the test could not see it; the
+\term{cleanup-reading} --- where, going up the ladder, the distortion
+first crosses the line the chart draws, or that it never does, or that it
+always is over it; and whether the note itself came through well enough
+for any of that to be quoted. Each has its own part of the section on
+reading a record back.
+
+\paragraph{What it cannot tell you.} Stated once.
+\begin{enumerate}
+  \item \textbf{Only one note.} The curve is one pitch. A pedal with a
+  tone control ahead of its clipper compresses differently at another
+  pitch, and the Gain Map (Section~\ref{sec:journey-plain}) is where
+  loudness meets pitch.
+  \item \textbf{Nothing between two rungs.} The corner is placed by a fit
+  through all the rungs and may land between two of them, but a feature
+  narrower than a rung --- a straight dead region against a very steep
+  soft onset --- looks the same when the whole of it falls between two
+  rungs. The fine window below exists for that.
+  \item \textbf{A knee the ladder did not reach.} A pedal already
+  compressing at the quietest rung has its knee somewhere below it, and
+  the honest answer is a bound --- ``at or below the quietest rung'' ---
+  never a number.
+  \item \textbf{A distortion reading near the hiss.} Toward the quiet end
+  the note shrinks and the rig's hiss does not, so a distortion figure
+  there can be the hiss. The hiss line described later says where, and
+  each rung is labelled.
+  \item \textbf{The second crossing.} The cleanup level is the first
+  crossing from the quiet end. A pedal whose distortion rises, falls and
+  rises again as it is driven harder --- some soft-knee overdrives do this
+  --- is quoted at its first crossing only.
+  \item \textbf{The last rung is read under the test's own fade.} The
+  note fades out inside the last rung's measured stretch, so that rung
+  reads a few thousandths of a decibel low; the limits section gives the
+  figure.
+  \item \textbf{The loudness axis is the signal, never a knob.} How loud
+  the note goes in is how hard the circuit is driven, as your pick and
+  your guitar's volume knob drive it. The pedal's own knobs are not
+  touched while a curve is measured; to see what a knob does, you measure
+  one curve per position.
+  \item \textbf{Nothing about listening.} The curve says how the output's
+  level and its distortion follow the input's level. It says nothing about what the distortion sounds like.
+\end{enumerate}
+
+\subsection{The test signal: a ladder of loudnesses}
+
+The ladder first. On a hardware rig the note is played at
+\cmpHardwareSteps{} rungs from \cmpHardwareFloorDBFS{} to
+\cmpHardwareCeilingDBFS{}~\term{dbfs}, a span of \cmpHardwareTravelDB{}~dB
+climbed in equal steps of \cmpHardwareStepDB{}~dB. Equal steps in decibels
+are equal \emph{ratios}: each rung is the same proportion louder than the
+one below, not the same amount. That is the \term{probe-grid}. Its top
+rung is held back from full scale on purpose: an interface's input is set
+so that the pedal's output cannot clip the converter at the loudest drive,
+and with the input staged that way the top rung is the loudest drive that
+cannot clip it. Its bottom rung sits far enough under the top that a
+high-gain pedal's knee is reached rather than bounded --- the pedal's own
+hiss, not the interface, is what limits it, and the gate below measures
+exactly that. A plugin has no converter to protect, so its ladder runs to
+the very top, from \cmpPluginFloorDBFS{} to \cmpPluginCeilingDBFS{}~dBFS
+in \cmpPluginSteps{} rungs of \cmpPluginStepDB{}~dB. The quietest rung, the
+loudest and the count are the user's to change for a run, and a record's
+ladder is read from its own rungs, never assumed.
+
+\paragraph{The fine window.} Where a feature is too narrow for rungs
+\cmpHardwareStepDB{}~dB apart to show, the measure sheet adds a
+\term{fine-window}: extra rungs \cmpFineStepDB{}~dB apart over a span you
+choose, capped at \cmpFineCap{} of them, so that a wide span spreads its
+extra rungs out rather than growing the run. The extra rungs are merged
+into the ladder and the whole list sorted, so they interleave the ordinary
+ones; a fine rung that lands on top of an ordinary one is dropped. Over a
+span from \cmpFineExampleLowDBFS{} to \cmpFineExampleHighDBFS{}~dBFS the
+hardware ladder delivers \cmpFineExampleDelivered{} rungs, the ordinary
+\cmpHardwareSteps{} plus \cmpFineExampleAdded{}.
+
+\paragraph{Within each rung.} The \term{stepped-tone} is one sine at the
+probe note --- \cmpNoteHz{}~Hz, the \cmpNoteName{} an octave above the
+open A string (the figures in this chapter are at \cmpSampleRateKHz{}~kHz;
+a run uses its calibration's rate) --- whose loudness climbs the ladder
+without a break in the wave: the same sine runs through the whole
+test, only its size changes. Each rung has two parts, the
+\term{settle-window}: first \cmpSettleMs{}~ms in which the tone ramps
+smoothly up from the rung below over its first \cmpRampMs{}~ms and the
+pedal is then left to settle at the new loudness, unread; then the
+\cmpMeasureMs{}~ms that is actually measured. That measured stretch is
+trimmed to a whole number of cycles of the note --- \cmpMeasureCycles{}
+cycles at the probe note, never fewer than \cmpMinimumCycles{} --- the
+\term{cycle-snap}, and the next section says what it buys. A rung is
+therefore \cmpStepS{}~s, the hardware ladder's tone \cmpToneS{}~s, and the
+middle panel of Figure~\ref{fig:ladder-plain} is one rung as it is
+played. The tone's final moments fade to nothing over one ramp, and that
+fade lies \emph{inside} the last rung's measured stretch --- the limits
+section returns to it.
+
+\paragraph{The silence before, and where the assembly lives.} A hardware
+or plugin run plays \cmpPrerollS{}~s of silence before the tone and
+\cmpTailS{}~s after it, \cmpStimulusS{}~s in all. The silence before is
+not padding: the app measures the loudness of whatever comes back during
+it --- the loop's hiss and the pedal's own, in the same recording --- and
+keeps that figure with the record as the \term{noise-stamp}. Everything
+below that says ``the hiss'' means that number. The technical reference
+notes that this arrangement --- the silence, the tone, the stamp, and the
+delay the recording is cut by --- is assembled by the app's measurement
+service rather than by a single shared function, and that Simulation Mode
+assembles it differently (no silence, no stamp, a shorter settle); the
+last section says what that costs.
+
+\subsection{How the curve is built}
+
+Five steps, each in words; the technical reference gives the exact rule
+for each.
+
+\paragraph{Cutting the recording to size.} Every signal through a rig
+comes back a little late --- the round trip through the converters and
+cables. The calibration measured that delay, and each rung's measured
+stretch is cut out of the recording that much later than it was played,
+after the silence before the tone. A plugin measures its own delay on
+every render and hands back a recording with none, so its cut is the
+silence alone. The delay is never guessed. A rung whose stretch would run
+past the end of the recording is left out.
+
+\paragraph{Asking for one exact pitch.} Each cut stretch is read for the
+note and for its overtones by the \term{one-bin-estimator}, which does one
+thing: it asks how much of exactly one pitch the stretch contains. The
+cycle snap is what makes that question clean. A stretch that holds a
+whole number of cycles of the note also holds a whole number of cycles of
+every one of its overtones, so each of them fits the stretch exactly, and
+a pitch that fits exactly is read at its full size while every other
+pitch that fits exactly adds up to nothing --- the note's own presence
+does not spill into the reading of its second overtone, or its third. The
+stretch's two ends are tapered smoothly to nothing before the reading is
+taken, which costs almost nothing on a pitch that fits and makes the
+reading forgiving of the two things the snap cannot promise: the tail of
+the ramp from the rung below, and a cut that lands a sample off. The
+check at the end of the chapter measures both. (The Chord IMD measurement
+reads a whole spectrum the same way, one slot per pitch, and
+Section~\ref{sec:slots-plain} explains slots in general; here only a
+handful of pitches are ever asked for.)
+
+\paragraph{The gate.} Before a rung is read, its measured stretch's
+overall level is compared with the hiss. A rung within
+\cmpGateDB{}~dB of the hiss --- about \cmpGateRatioWords{} its size --- is
+left out of the curve and counted: the \term{noise-gate}. Its ``output
+level'' would be the hiss and not the note, and a run of such rungs at
+the quiet end would draw as a flat line, which is what a compressed pedal
+looks like. The quietest rung that survives is then the bottom of the
+curve, and any bound reads from there. The record says how many rungs
+were dropped.
+
+\paragraph{The note and its overtones.} For each surviving rung the
+estimator reads the note itself --- the \term{fundamental}, whose size is
+the rung's output level --- and up to \cmpHarmonicsSummed{} overtones
+above it, each \term{harmonic-order} in turn, stopping at the first that
+would lie above the audible band (\cmpBandLowHz{} to
+\cmpBandHighHz{}~Hz) or too close to half the sample rate; at the probe
+note every rate the app offers reads all \cmpHarmonicsSummed{}, and only
+above about \cmpBandTopNoteHz{}~Hz (\cmpBandTopNoteName) does the band's
+top begin to take the highest away. The rung's \term{thd} is the size of
+those overtones together, compared with the note --- the same figure as
+chapter one's, THD and not THD+N: the hiss is deliberately not in the
+sum, which is why the hiss line described later is needed.
+
+\paragraph{What is stored, and what is not.} The rungs are sorted by
+input level (a fine window's rungs interleave the ordinary ones) and the
+record keeps the note, the sample rate, each rung's input level, output
+level and distortion, the noise stamp and the dropped count. Nothing
+described in the next section is stored: the knee, the cleanup reading
+and every label are worked out afresh each time the record is opened, so
+a better rule corrects every curve ever measured.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.95\linewidth]{compression-estimator.png}
+  \caption{The estimator on a pure tone with nothing else in it. Left:
+  how far its reading of the note sits from the truth at every rung, on
+  the stretch cut exactly and on a stretch cut one sample late --- both at
+  the arithmetic's own rounding --- and the last rung, which holds the
+  final fade. Right: how much of the note leaks into the reading of each
+  overtone, by overtone, on the cut stretch and under the fade.}
+  \label{fig:estimator-plain}
+\end{figure}
+
+\subsection{What the app decides when it reads a record back}
+
+Everything in this section is computed from the stored rungs every time a
+record is opened.
+
+\paragraph{The knee.} Between each pair of neighbouring rungs the app
+takes the \term{incremental-slope}: how many dB louder the output got for
+that step louder in. One dB out for a dB in is clean; no dB out for a dB
+in is a wall. Those slopes are
+the local picture; the knee comes from a fit through the whole curve. The
+\term{hinge-fit} draws the curve as two straight lines joined at a
+corner, and slides the corner along the input axis --- through
+\cmpCandidates{} candidate positions between the second rung and the
+third from the top, so that each line keeps at least two rungs --- solving
+for the best pair of lines at each position and keeping the corner where
+the two lines miss the rungs least. Against that stands the plainest
+alternative: one straight line through everything. The right-hand panel
+of Figure~\ref{fig:ladder-plain} shows the fit on the worked example.
+
+\emph{Two kinds of answer.} The corner is reported as a \emph{number}
+only when the quiet end of the curve is clean, in a stated sense, and
+otherwise as a \emph{bound}. The app decides in a fixed order.
+\begin{enumerate}
+  \item If bending the line does not cut the miss to \cmpNoBreakWords{} of
+  the single line's or less --- if the bend buys almost nothing --- the
+  curve is one line. A line at \cmpUnityGuardWords{} of one-for-one or
+  steeper is no knee at all: the pedal is clean throughout. A shallower line is a
+  pedal compressing mildly everywhere, and its knee is ``at or below the
+  quietest rung''.
+  \item If the corner's upper line still climbs at \cmpSlopeThresholdWords{}
+  of one-for-one or more, the pedal does not compress in this range: no
+  knee.
+  \item The \term{unity-guard}: if the lower line is shallower than
+  \cmpUnityGuardWords{} of one-for-one, no clean stretch anchors the
+  fit. The pedal was already compressing at the quietest rung, the corner
+  the fit found is an artifact of a curve bent everywhere, and the answer
+  is a bound at the quietest rung, with the fitted slope quoted beside it
+  as the evidence. The test is against one-for-one and not against the
+  compression threshold of the previous step, and the difference matters:
+  every slope between the two is a pedal that is compressing, gently, at
+  its quietest rung, and the guard used to let those through as confident
+  numbers.
+  \item The \term{bound-zone}: a corner within one rung of the bottom of
+  the ladder cannot be anchored from below --- it might lie lower still
+  --- and is a bound at that position.
+\end{enumerate}
+Otherwise the corner is a number, with a \term{resolution-band}: the
+range of corner positions that fit the rungs within
+\cmpResolutionBandPercent{}\,\% of the best. Half that range is the knee's
+resolution, never finer than the spacing between candidate positions, and
+it sets the decimals the level is shown with --- a tenth of a decibel when
+the resolution is \cmpDecimalsBarDB{}~dB or better, a whole decibel when it
+is not. A bound's resolution is the ladder's own step, because nothing
+finer is knowable there, and its label reads ``$\le$''.
+Figure~\ref{fig:knee-plain} shows the two cases as the fit sees them: for
+each candidate corner, how badly the two lines miss the rungs. A hard
+clipper whose threshold lies inside the ladder makes a sharp dip with a
+narrow band around it, and the corner is a number. The same clipper with
+its threshold below the quietest rung makes a curve that falls toward the
+bottom with no dip to trust, and the verdict is a bound at the quietest
+rung by the unity guard. And ``no knee'' is a real answer, not a failure:
+the soft clipper of the earlier chapters at its gentler setting bends so
+little inside the hardware ladder that no corner is found, which is why
+this chapter's worked example is the steeper one.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.95\linewidth]{compression-knee.png}
+  \caption{How badly the two lines miss the rungs, for every candidate
+  position of the corner. Left: a hard clipper whose threshold lies
+  inside the ladder --- a sharp dip, a narrow band of positions that fit
+  about as well, a number. Right: the same clipper with its threshold
+  under the quietest rung --- the curve falls toward the bottom with no
+  dip to trust, and the verdict is a bound at the quietest rung.}
+  \label{fig:knee-plain}
+\end{figure}
+
+\paragraph{The hiss line.} A distortion reading is a ratio: the overtones
+compared with the note. The hiss in the recording is a fixed amount,
+while the note shrinks as the ladder goes down, so at the quiet end the
+hiss is a larger and larger share of the note --- and some of it lands
+where the overtones are read. The \term{noise-bound} is how much
+distortion the hiss alone could fake at each rung, worked out as a
+deliberately generous worst case: as if every bit of the hiss had landed
+on the overtones. Anything under that line cannot be told from the rig,
+and the line rises toward the quiet end. The stamp it is built from is
+this capture's own, pedal included --- a calibration made with nothing in
+the loop cannot carry the pedal's hiss, so no calibration figure enters
+here, unlike the sweep measurements of the earlier chapters.
+
+The hiss line has two possible companions. If the library holds a
+\term{null-run-reference} --- the loop measured with nothing in it, by
+this same measurement, under exactly this record's calibration --- the app
+reads from it how much distortion the rig itself \emph{adds} at each
+loudness. That contribution is an absolute amount, so it is scaled to how
+loud this pedal's note actually came out: a pedal with gain stands
+further above the same rig floor, and one that pads the signal stands
+closer to it. It is read only between the null run's own quietest and
+loudest rungs, never guessed beyond them. And a plugin has no rig hiss
+at all --- its calibration is numerically silent --- so instead the app
+measured the plugin's own noise before the run, and that
+\term{operative-floor} stands in for the hiss. The line drawn on the
+chart is the \emph{largest} of the bounds that apply, since each one
+bounds something that is not this pedal's distortion and taking the
+largest can only be more careful; the \term{floor-source} label names a
+companion only where it actually sets the line somewhere, so that a null
+run sitting under this capture's own hiss everywhere is not what the
+reader is told they are looking at.
+
+With the line drawn, every rung gets a \term{floor-class}. At or under
+the line (within \cmpAtFloorEpsilonDB{}~dB), the reading \emph{is} the rig.
+Above it but within \cmpClearMarginDB{}~dB, the reading is a mix of the
+pedal and the hiss. Beyond that it is clear: the pedal. The trace is then
+drawn in \term{floor-runs}: solid where it is clear, dotted where it is a
+mix, faint where it is the hiss, each stretch between two rungs taking
+the more cautious of its two ends' classes; and where the trace would fall
+under the chart's own bottom edge it is left as a gap, never drawn as a
+line along the edge that would look like a reading.
+Figure~\ref{fig:floor-plain-cmp} shows all of it on a plain wire through a
+little noise and a loop with a little distortion of its own.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.95\linewidth]{compression-floor.png}
+  \caption{The hiss line on a plain wire through a little noise and a
+  loop that adds a little distortion of its own: the capture's own noise
+  bound rising toward the quiet end, the null run's bound (the loop's own
+  distortion, an absolute amount, defined only inside the rungs it
+  measured), the line drawn as the larger, the band above it where a
+  reading is a mix, and the trace in the chart's three styles --- here at
+  or under the line everywhere, since a wire adds nothing of its own.}
+  \label{fig:floor-plain-cmp}
+\end{figure}
+
+\paragraph{Does it clean up?} Read the distortion from the quietest rung
+to the loudest. The cleanup reading says where, going up, it first crosses
+the line of \cmpCleanupThresholdPercent{}\,\% --- a convention for reading
+the curve, drawn where the app's own code draws it; the value is read out
+of the app by probing the shipped rule rather than typed. The reading has
+three states, and the ends of the ladder are never dressed up as a
+crossing. If the quietest rung is already over the line, the pedal is
+\emph{never clean} --- within this ladder's range, the only range it can
+speak for. If some rung is the first over the line, the pedal
+\emph{cleans up}, and the level is placed between that rung and the one
+below in proportion to how far each sits from the line. If no rung
+reaches the line, the pedal is \emph{always clean}, as far as this ladder
+goes. Only a genuine crossing quotes a level or draws a marker.
+Figure~\ref{fig:cleanup-plain-cmp} shows the three. The Gain Map chapter
+that follows reads the same three states off each column of its map, by
+the same rule.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.85\linewidth]{compression-cleanup.png}
+  \caption{The three cleanup states: the steep soft clipper crossing the
+  line between two rungs (the triangle marks the crossing); a plain wire
+  through noise that never reaches it; and a hard clipper whose threshold
+  lies under the quietest rung, over the line at every rung.}
+  \label{fig:cleanup-plain-cmp}
+\end{figure}
+
+\paragraph{Did the note come through?} Every distortion reading is a
+ratio to the note, and a ratio to a note that is not there means
+nothing. A few devices --- an octave-up effect at full tilt, a rectifier
+--- remove so much of the note that what the estimator reads at the
+note's own pitch is leakage from the louder overtones. Chapter one
+measured how far below the loudest thing in a reading the note can sit
+before that happens (\hdSeparationDB{}~dB), and each rung is judged by
+that rule from the one distortion figure it stores: the
+\term{summed-presence}, which compares the note with all its
+overtones together rather than with the loudest one, and so is at most
+\cmpSummedEagernessDB{}~dB quicker to call the note absent --- careful in
+the direction of quoting less. If most rungs fail, no knee, no cleanup
+level and no percentage is quoted for the record; the curve's shape is
+still shown. The check at the end of the chapter runs a made-up device
+with no note through it.
+
+\paragraph{The summaries.} The generated summaries take four things from
+the curve --- the knee's level, with a confidence that stays low for a
+bound; how sharp the bend is, from how many dB of input the slope takes
+to fall between two levels; the average slope over the top of the
+ladder; and the cleanup reading, in the same three states --- and they are
+a later chapter's subject. One more app-level fact belongs here: a
+hardware record whose calibration carries the measured volts factor draws
+its input axis and quotes its knee and its cleanup level in volts at the
+pedal's input, and a plugin record's axis is digital full scale --- a
+different physical quantity --- so no gap between the two is ever a
+single number.
+
+\subsection{The settings}
+
+Every setting is in the technical reference's Compression chapter, in one
+table read from the manifest. This chapter repeats the handful a reader
+acts on. The hardware ladder runs from \cmpHardwareFloorDBFS{} to
+\cmpHardwareCeilingDBFS{}~dBFS in \cmpHardwareSteps{} rungs
+(\cmpHardwareStepDB{}~dB apart) and the plugin ladder from
+\cmpPluginFloorDBFS{} to \cmpPluginCeilingDBFS{}~dBFS in
+\cmpPluginSteps{} (\cmpPluginStepDB{}~dB apart); a fine window adds rungs
+\cmpFineStepDB{}~dB apart, at most \cmpFineCap{} of them; the note is
+\cmpNoteHz{}~Hz; each rung settles for \cmpSettleS{}~s (the first
+\cmpRampS{}~s of it the ramp) and is measured for \cmpMeasureS{}~s,
+trimmed to \cmpMeasureCycles{} cycles; the silence before the tone is
+\cmpPrerollS{}~s; a rung within \cmpGateDB{}~dB of the hiss is dropped;
+the corner's upper line must fall under \cmpSlopeThreshold{} of
+one-for-one to count as a knee and its lower line must reach
+\cmpUnityGuardSlope{} for the corner to be a number; the cleanup line is
+\cmpCleanupThresholdPercent{}\,\%; and a reading is clear of the hiss
+line at \cmpClearMarginDB{}~dB above it.
+
+\subsection{What the result looks like}
+
+The app's own chart, rendered from its chart code on its simulated pedal
+(never a screenshot), is Figure~\ref{fig:app-compression}. Across the top
+run three tiles: the probe note, with its frequency; the knee, as a level
+in dBFS with the app's short gloss under it; and the cleanup level, with
+its own gloss. Under them the Touch Response chart puts the input level
+along the bottom --- labelled as how hard you hit the strings --- and the
+output level up the side. The measured curve follows the dashed
+one-for-one reference at the quiet end and then flattens; a dashed
+vertical line marks where the pedal cleans up and another where the knee
+sits, each labelled; and a shaded band across the right of the plot is
+left unlabelled by the chart itself --- the user guide's Compression page
+says what it marks. Below is the companion chart, Distortion vs.\ Level:
+the distortion in percent against the same input axis, with the
+\cmpCleanupThresholdPercent{}\,\% line dashed across it and labelled. On this record the trace
+begins part-way across and the line under the chart says why: where the
+measured distortion falls under the chart's own lowest mark it is left as
+a gap, because the true values there are lower than anything the axis can
+draw. This particular pedal is a simulated one, so it carries no noise
+stamp and the chart draws no hiss line; on a hardware record the line,
+the band above it and the three trace styles of the previous section
+appear on this lower chart, and a legend names the floor's source.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.85\linewidth]{compression--sim-knee.png}
+  \caption{The Compression view as the app draws it, for its simulated
+  pedal: the three tiles, the Touch Response chart with its one-for-one
+  reference and its two markers, and the Distortion vs.\ Level chart with
+  its gap under the axis floor.}
+  \label{fig:app-compression}
+\end{figure}
+
+\subsection{How you can check that the app does what this says}
+
+As in the earlier chapters, a second program was written from the
+description --- in Python, independently, not by translating the app's
+code --- and the \term{parity} runs both on the same made-up devices and
+demands the same answer. It runs \cparityCaseCount{} cases, and two of
+the device cases a second time as their \term{phantom} twins
+(\cparityTwinCount{} twins). Every case is a known device through a known
+loop: a delay, a stream of noise added at the interface's input, a gain
+applied after them as an input knob would apply it, and, in some cases,
+a little distortion of the loop's own, the way a converter adds some.
+The Python borrows chapter one's devices and noise and the Transfer Curve
+chapter's tone filters, and owns everything else: this instrument has no
+sweep in it.
+
+The known answer is chapter one's again. For a device with no memory, the
+exact size of the note and of every overtone at any loudness can be
+computed from the device's formula, so beside every rung the second
+program prints the exact ladder of sizes at that rung's drive and the
+exact distortion it implies; and for the read-time half it applies the
+app's own rules --- the hinge fit, the cleanup reading, the hiss line ---
+to those exact rungs, so the knee, the cleanup and every label have exact
+answers too. A knee has no truth beyond that: it is a summary of a curve,
+not a property of the device, and the check asks whether the app's
+summary of the measured curve matches its summary of the exact one.
+
+One idea is new here and worth a paragraph: the \emph{leakage
+allowance}. The estimator's reading of one overtone picks up a trace of
+its neighbours --- a little of the note, a little of the overtone next
+door --- even on a stretch cut exactly, because the taper at the
+stretch's ends is not perfect. How much depends only on how far apart
+the two pitches are: \cparityLeakageOne{}~dB below the leaking pitch at
+one overtone's distance, \cparityLeakageTwo{} at two, \cparityLeakageEight{}
+at eight, the same at every loudness. That table is measured first, on a
+made-up recording containing the note and nothing else, and it is
+allowed for before any real case is judged: an overtone whose true size
+sits close to what its neighbours leak into it can read a little off for
+the estimator's own reasons, that much is subtracted from the
+disagreement, and what remains is held to the bar. Under the final fade
+the leakage rises to \cparityFadeLeakageOne{}~dB, which is why the last
+rung is left out of every comparison and stated as a limit instead.
+
+The demands, in numbers the pipeline writes into this document. The two
+programs must agree at every rung and every overtone to within
+\cparitySwiftToleranceWords{} of a decibel (\cparitySwiftTolerance{}~dB)
+with no filter in the loop --- on the run that built this document the
+worst disagreement was \cparityWorstSwiftWords{} of a decibel
+(\cparityWorstSwift{}) --- and to within
+\cparitySwiftFilteredToleranceWords{} (\cparitySwiftFilteredTolerance{})
+through a filter (measured \cparityWorstSwiftFilteredWords{},
+\cparityWorstSwiftFiltered{}); every yes-or-no reading --- each rung's
+gate verdict, every floor class, every run, the knee's kind and level and
+label, the cleanup state, the floor's label with and without a null run,
+the presence verdict --- must be identical. On every noiseless case, at
+every rung but the last, the app's reading of the note must sit within
+\cparityHOneWords{} of a decibel (\cparityHOne{}) of the exact size
+(measured \cparityWorstHOneWords{}, \cparityWorstHOne{}); the overtones,
+once the leakage is allowed for, within \cparityTruthSmoothWords{}
+(\cparityTruthSmooth{}) for the smooth devices (measured
+\cparityWorstResidueSmoothWords{}, \cparityWorstResidueSmooth{}) and for
+the hard clipper (\cparityWorstResidueKinkedWords{},
+\cparityWorstResidueKinked{} --- at the probe note and rate no folded
+overtone of a computed device lands on a pitch that is read, so the
+clipper with a kink reads like a smooth one here), and within
+\cparityTruthFilteredWords{} (\cparityTruthFiltered{}) through a filter
+(\cparityWorstResidueFilteredWords{}, \cparityWorstResidueFiltered{}); and
+the distortion figure, summed over exactly the overtones the app sums,
+within \cparityTHDWords{} (\cparityTHD{}; measured
+\cparityWorstTHDResidueWords{}, \cparityWorstTHDResidue{}). The knee must
+land within \cparityKneeWords{} of a decibel (\cparityKnee{}) of the exact
+curve's knee (measured \cparityWorstKneeWords{}, \cparityWorstKnee{} ---
+every knee that is a number lands on the same candidate position on both
+sides, and the two that differ do so by one candidate step), and the
+cleanup crossing within \cparityCleanupWords{} (\cparityCleanup{};
+measured \cparityWorstCleanupWords{}, \cparityWorstCleanup{}). The noise
+stamp must read the injected noise within \cparityStampWords{} of a
+decibel (\cparityStamp{}; measured \cparityStampErrorWords{},
+\cparityStampError{}, the estimate's own scatter over a short silence).
+
+Four checks are about the rig rather than the device. The same device and
+the same noise through a loop turned up by a stated amount must move
+every output level by exactly that amount --- the departure measured
+\cparityGainShiftWords{} of a decibel (\cparityGainShift{}) --- and move
+the knee's input level by \cparityGainKneeMoveWords{}
+(\cparityGainKneeMove{}; the bar is \cparityGainWords{}, \cparityGain{}),
+with every floor class unchanged: turning the interface up does not move
+the knee, which is the point of reading the knee on the input axis. A
+recording \cparityLatencyFound{} samples late, with the app told the
+silence plus that delay, must read every rung as the undelayed recording
+did, to \cparityLatencyMoveWords{} of a decibel (\cparityLatencyMove{};
+bar \cparityLatencyWords{}). A stretch cut \cparityMiscutSamples{} sample
+late must move the note's reading by no more than
+\cparityMiscutWords{} of a decibel (\cparityMiscut{}; measured
+\cparityMiscutMoveWords{}, \cparityMiscutMove{}) --- the taper makes a
+one-sample miss invisible, which is what it is there for. And a phantom
+with no note at all --- its note \cparityAbsentDepth{}~dB under its own
+second overtone --- must read absent on most of its rungs (measured
+\cparityAbsentFraction{} of them) and get no knee, no cleanup level and
+no floor label; the same made-up recording measures how well the
+estimator separates a note from its overtones on a cut stretch,
+\cparitySeparation{}~dB against the \cparitySeparationBar{}~dB chapter
+one's bound allows, which is why that borrowed bound is safe here by a
+wide margin. \cparityPartBStatus
+
+Two results are worth stating in words. The worked example, the steep
+soft clipper with no noise on the hardware ladder: its knee is a number
+at \cparityWorkedKnee{}~dBFS, resolution $\pm$\cparityWorkedKneeResolution{}~dB,
+displayed as ``\cparityWorkedKneeLabel'', with a lower line of slope
+\cparityWorkedPreSlope{} and an upper line of \cparityWorkedPostSlope{},
+against the exact curve's \cparityWorkedTruthKnee{} (a difference of
+\cparityWorkedKneeErrorWords{} of a decibel, \cparityWorkedKneeError{});
+its cleanup crossing is \cparityWorkedCleanup{}~dBFS against the exact
+curve's \cparityWorkedTruthCleanup{} (a difference of
+\cparityWorkedCleanupErrorWords{}, \cparityWorkedCleanupError{}). And the
+hard clipper: its flat top begins at \cparityClipOnset{}~dBFS, and the
+fitted corner sits at \cparityClipKnee{}~dBFS,
+\cparityClipKneeAboveOnsetWords{} of a decibel above where the clipping
+starts (\cparityClipKneeAboveOnset{}), with an upper slope of
+\cparityClipPostSlope{}. That gap is a measured relation between a fit's
+corner and a clipper's onset, not a claim about either: two straight
+lines through a curve that turns a corner gradually will place their
+join a little past the first departure from one-for-one. With a fine
+window laid over that knee the ladder delivers \cparityFineDelivered{}
+rungs, the knee reads \cparityFineKnee{}~dBFS and moves by
+\cparityFineKneeMoveWords{} of a decibel (\cparityFineKneeMove{}), its
+resolution unchanged, because on both ladders the band of corners that
+fit about as well is narrower than one candidate step, and the candidate
+spacing is then what the fit resolves.
+
+Three cases are constructed to be exactly what the reading rules are
+for. An exact line that compresses a little everywhere and then breaks
+reads ``\cparityBreakKnee'' with fitted slopes \cparityBreakPreSlope{} and
+\cparityBreakPostSlope{}: the unity guard, doing its job. Simulation
+Mode's own assembly on the worked example --- fewer rungs, shorter
+settles, no silence before the tone --- reads its knee at
+\cparitySimulationKnee{}~dBFS, resolution
+$\pm$\cparitySimulationKneeResolution{}, \cparitySimulationKneeGap{}~dB
+from the hardware assembly's knee on the same device: what interactive
+quality costs. And the exact line that compresses a little everywhere
+and never breaks is the finding the limits section states.
+
+The test runs automatically on every change to the app, and the tables
+and figures in both documents are regenerated on every change and
+compared with the committed copies; the scripts and the instructions for
+running them are in the repository named on the first page.
+
+\subsection{Where it stops being a measurement}
+
+\begin{itemize}
+  \item \textbf{The last rung is read under the test's own fade.} The
+  note fades out over one ramp, and the last rung's measured stretch ends
+  where the note ends, so it holds the fade: the last rung's note reads
+  \cparityWorstFade{} to \cparityLeastFade{}~dB relative to its exact size
+  on the check's devices --- a few thousandths low --- and the estimator's leakage there rises from
+  \cparityLeakageOne{} to \cparityFadeLeakageOne{}~dB. That is a fact about
+  the test signal, not about any pedal. Moving the fade past the stretch
+  would change the signal every existing record was measured with, and is
+  reported rather than made.
+  \item \textbf{The no-bend test can be decided by that fade.} The first
+  of the four decisions compares how badly two lines miss the rungs with
+  how badly one line does, as a ratio, and the ratio has no scale of its
+  own. On a curve that is one exact straight line, compressing a little
+  everywhere, the only rung off the line is the last one under the fade;
+  the two-line fit absorbs that one rung, the ratio reads ``a bend'', and
+  the second decision then reads ``no knee'' --- where the same exact line
+  with no fade reads ``at or below the quietest rung''. Measured on this
+  build: the exact line reads ``\cparityLineMeasuredKnee'' on both programs
+  while its exact curve reads ``\cparityLineTruthKnee'' with a slope of
+  \cparityLineTruthPreSlope{}. A measured pedal rarely draws an exact
+  line, and any real curvature outweighs one bent rung, so the case is
+  stated as one the fit decides on structure the test cannot see, and
+  left as a finding.
+  \item \textbf{A rung skipped because its stretch ran past the recording
+  is silent.} It leaves no point and no count, unlike a rung the gate
+  dropped; a short recording simply yields a shorter curve.
+  \item \textbf{Simulation Mode builds its test differently.} No silence
+  before the note, so no noise stamp and no hiss line; fewer rungs and
+  shorter settles at its quick quality (\cmpSimInteractiveSteps{} rungs,
+  \cmpSimInteractiveSettleS{}~s to settle and \cmpSimInteractiveMeasureS{}~s
+  measured, at \cmpSimInteractiveRateKHz{}~kHz, against the hardware
+  assembly's \cmpHardwareSteps{}, \cmpSettleS{}~s and \cmpMeasureS{}~s, at
+  \cmpSampleRateKHz{}~kHz in the check); its full quality uses the hardware assembly's
+  rungs and settles. On the worked example the quick quality's knee sits
+  \cparitySimulationKneeGap{}~dB from the hardware assembly's, so a
+  simulated record and a measured one agree on the shape of a curve and
+  not on the last decibel of its knee, and a comparison between the two is
+  read that way.
+  \item \textbf{A soft onset is not disclosed.} The unity guard tells a
+  clean anchor from a missing one; it does not tell a wide, gradual bend
+  from a sharp corner. A pedal whose bottom decade is clean and whose bend
+  then spreads over many dB gets a knee that is a number and is honest as
+  far as the fit goes; how wide the bend is would be a new reading, not a
+  tighter one.
+  \item \textbf{The quiet end is the rig's.} Under the hiss line a
+  reading is the rig, and the rungs say so one by one; a rise in
+  distortion toward the quiet end is the hiss's growing share of a
+  shrinking note, not the pedal, unless it stands clear of the band.
+  \item \textbf{The loudness axis is the signal, never a knob.} How loud
+  the note goes in is how hard the circuit is driven; the pedal's knobs
+  stay where you set them, and a knob is measured one curve per position.
+  \item \textbf{One note.} The curve is one pitch; a pedal with a tone
+  network ahead of its clipper compresses differently at another, and the
+  Gain Map (Section~\ref{sec:journey-plain}) is the cross-check across
+  notes.
+  \item \textbf{The simulated pedal folds its own overtones.} A device
+  computed sample by sample makes overtones above half the sample rate
+  that fold back into the band. At the probe note and rate none of them
+  lands on a pitch that is read, and the check's phantom twins are the
+  fold-free control; at another note or rate the highest overtones of a
+  computed device with a kink in it would not be the exact answer there.
+\end{itemize}
 
 \clearpage
 \section{Gain Map}

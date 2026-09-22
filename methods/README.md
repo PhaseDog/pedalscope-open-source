@@ -259,7 +259,13 @@ measurement kind X whose technical chapter exists:
    `make methods-figures`** — a title that fits in the code can run off
    the pane at 110 dpi. A bar chart of levels in decibels below a
    reference rises from the pane's FLOOR (`bottom=`), or a longer bar
-   reads as a quieter harmonic (`explained-column.png`, first render).
+   reads as a quieter harmonic (`explained-column.png`, first render). A
+   panel whose subject is a change of LEVEL is drawn on a decibel axis
+   with the range tight around the levels it shows: the rung close-up in
+   `explained-ladder.png` first plotted the tone's envelope in linear
+   amplitude, and a 1.7 dB step (a fifth of the amplitude) vanished under
+   the axis — the ramp the panel exists to show was invisible until the
+   axis was the left panel's own dBFS.
 5. **Terms.** `\term{key}` at first use; improve a `plain` definition the
    chapter shows to be too technical (that field exists for this
    document); a new term needs `technical` and `plain` and a chapter that
@@ -268,7 +274,15 @@ measurement kind X whose technical chapter exists:
    "the long middle stretch" and let the chapter quote the figure through
    its macro. A `\term{}` (a `\hyperlink`) cannot sit inside a `\caption`;
    the term goes in the body text at first use and the caption says the
-   plain word.
+   plain word. A term prints its glossary NAME, which can be more than one
+   word (`\term{summed-presence}` prints "summed presence reading",
+   `\term{parity}` prints "parity test"), so the word after a `\term{}`
+   is read in the built PDF, never assumed from the key. **Figure labels
+   carry the chapter's own suffix** (`fig:floor-plain-cmp` beside the Gain
+   Map's `fig:floor-plain`): both documents' chapters share one label
+   namespace, a duplicate is a LaTeX warning the build does not fail on,
+   and every `\ref` to it then points at whichever figure came last —
+   read the log for `multiply defined` before the chapter is committed.
 6. **Guards.** `test_terms.py` scans both documents: undefined or unused
    terms, a sentence that says what something sounds like (the exact-
    phrase disclaimer allowlist, every entry used), and a third-party

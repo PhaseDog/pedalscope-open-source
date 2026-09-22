@@ -1022,9 +1022,10 @@ terms:
       own read, the same three states by the same rule, the top of the
       probed range never dressed up as a crossing.
     plain: >-
-      Where, going up the ladder, the pedal starts to distort: a loudness if
-      there is one; ``never clean'' if it distorts even at the quietest rung;
-      ``always clean'' if it never reaches the line.
+      Where, going up the ladder, the pedal's distortion first crosses the
+      line the chart draws: a loudness if it does; ``never clean'' if it is
+      over the line even at the quietest rung; ``always clean'' if it never
+      reaches it.
 
   - key: audition-model
     term: audition model
@@ -1059,8 +1060,9 @@ terms:
       amplitude and the THD at the probe note — output level against input
       level, both in dB, with THD against level as its companion.
     plain: >-
-      One note played at many loudnesses in turn, from a whisper to a roar,
-      to find where playing harder stops making the pedal louder.
+      One note played at many loudnesses in turn, from very quiet to very
+      loud, to find where the pedal starts getting louder more slowly than
+      you play.
 
   - key: probe-grid
     term: probe grid
@@ -1070,9 +1072,9 @@ terms:
       fine window merged in at a denser spacing; the grid is the user's
       per run and is read from a record's own points, never assumed.
     plain: >-
-      The list of loudnesses the test plays, evenly spaced from quietest to
-      loudest, with an optional cluster of extra steps where the user wants
-      a closer look.
+      The list of loudnesses the test plays, from quietest to loudest with
+      each rung the same ratio louder than the one below, and an optional
+      cluster of closer steps where the user wants a closer look.
 
   - key: fine-window
     term: fine window
@@ -1185,9 +1187,9 @@ terms:
       resolution) when the curve is already compressing at the quietest
       probe or the breakpoint sits within one probe step of the floor.
     plain: >-
-      The loudness at which playing harder stops making the pedal louder —
-      given as a number when the test could see it, and as "at or below"
-      when the pedal was already squashing at the quietest step.
+      The loudness at which the pedal starts getting louder more slowly than
+      you play — given as a number when the test could see it, and as "at
+      or below" when the pedal was already compressing at the quietest rung.
 
   - key: bound-zone
     term: floor-bound zone

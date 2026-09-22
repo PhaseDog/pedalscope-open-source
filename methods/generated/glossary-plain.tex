@@ -10,14 +10,14 @@
 \item[{\hypertarget{term:floor-stamp}{calibration stamp}}] A note the app keeps with every measurement of how much distortion and noise the bare loop --- cable, interface and nothing else --- showed at each pitch when it was checked.
 \item[{\hypertarget{term:capture-floor}{capture floor}}] How deep this particular recording could see, stated under the table; it describes the recording and never changes a verdict.
 \item[{\hypertarget{term:map-cell}{cell}}] One square of the map: one loudness, one note, and the distortion the pedal made there.
-\item[{\hypertarget{term:cleanup-reading}{cleanup reading}}] Where, going up the ladder, the pedal starts to distort: a loudness if there is one; ``never clean'' if it distorts even at the quietest rung; ``always clean'' if it never reaches the line.
+\item[{\hypertarget{term:cleanup-reading}{cleanup reading}}] Where, going up the ladder, the pedal's distortion first crosses the line the chart draws: a loudness if it does; ``never clean'' if it is over the line even at the quietest rung; ``always clean'' if it never reaches it.
 \item[{\hypertarget{term:clipping}{clipping}}] What a distortion circuit does to a note that is too big for it: the peaks of the wave are flattened or rounded off. A wave whose shape has changed is, by the same token, a wave with new harmonics in it.
 \item[{\hypertarget{term:coherence}{coherence} ($\Gamma$)}] A score for how orderly a harmonic's measurement is across neighbouring frequencies; real circuit behaviour is orderly, noise is not.
 \item[{\hypertarget{term:coherence-check}{coherence check}}] A check that neither note drifted while the recording ran; if one did, the whole record is smeared and the app says so rather than quoting numbers.
 \item[{\hypertarget{term:coherence-detector}{coherence detector}}] The nine slots either side of each note, kept with the record so that a note which drifted during the capture can be caught where its spill lands first.
 \item[{\hypertarget{term:coherent-sampling}{coherent sampling}}] Both notes are tuned so they fit the analysis window exactly, which is what lets each invented tone be read cleanly in its own slot.
 \item[{\hypertarget{term:composed-margin}{composed margin}}] How far a square's distortion stands above the biggest of the things that could fake it: the loop's noise, the plugin's noise, or the analysis's own residue.
-\item[{\hypertarget{term:compression-curve}{compression curve}}] One note played at many loudnesses in turn, from a whisper to a roar, to find where playing harder stops making the pedal louder.
+\item[{\hypertarget{term:compression-curve}{compression curve}}] One note played at many loudnesses in turn, from very quiet to very loud, to find where the pedal starts getting louder more slowly than you play.
 \item[{\hypertarget{term:corroborated-peak}{corroborated peak}}] A square that is clearly above the noise and whose neighbouring note is too. Real distortion spills onto the next note; a noise blip happens to one square alone.
 \item[{\hypertarget{term:coupling-capacitor}{coupling capacitor}}] The capacitor every pedal has on its output. It removes the wave's average level, so a clipper that clips the top and bottom at different heights shows equal heights after it --- but the even harmonics that asymmetry makes are still there.
 \item[{\hypertarget{term:cycle-snap}{cycle snap}}] The measured stretch is trimmed to a whole number of cycles of the note, so the note fits it exactly and does not smear.
@@ -57,7 +57,7 @@
 \item[{\hypertarget{term:intermodulation-product}{intermodulation product} ($m f_1 + n f_2$)}] An extra tone the pedal makes from the two notes together --- a sum, a difference, or a combination of multiples of the two --- and the recipe that names which combination it is.
 \item[{\hypertarget{term:inverse-filter}{inverse filter} ($\tilde X^{-1}(f)$)}] The exact mathematical undo of the test tone, written down from its formula rather than measured, so it keeps working above the highest note the tone reached.
 \item[{\hypertarget{term:just-ratio}{just ratio}}] The whole-number version of the interval you asked for --- three to two for a fifth --- which decides where each invented tone falls musically.
-\item[{\hypertarget{term:knee}{knee}}] The loudness at which playing harder stops making the pedal louder — given as a number when the test could see it, and as "at or below" when the pedal was already squashing at the quietest step.
+\item[{\hypertarget{term:knee}{knee}}] The loudness at which the pedal starts getting louder more slowly than you play — given as a number when the test could see it, and as "at or below" when the pedal was already compressing at the quietest rung.
 \item[{\hypertarget{term:lattice-snap}{lattice snap}}] The small, disclosed adjustment of the two notes --- a few cents --- that lets the analysis read every invented tone cleanly.
 \item[{\hypertarget{term:lattice-spacing}{lattice spacing} ($g$)}] How many slots apart any two invented tones must be; the probe is chosen so this is more than a dozen.
 \item[{\hypertarget{term:leakage-map}{leakage map}}] A test with a perfectly clean signal, whose only distortion is what the analysis itself invents --- measured so that it can be allowed for when checking the real cases.
@@ -83,7 +83,7 @@
 \item[{\hypertarget{term:phase-removal}{phase removal}}] Using the pedal's own measured harmonic timing to undo what its tone filters did to the picture, so that what is left open is memory and not filtering.
 \item[{\hypertarget{term:polarity}{polarity}}] Whether the pedal turns the wave upside down. Stated only when the measurement is sure; otherwise nothing is claimed.
 \item[{\hypertarget{term:gate}{presence gate}}] The fixed bar --- four times the noise beside it --- an invented tone must clear to count as measured.
-\item[{\hypertarget{term:probe-grid}{probe grid}}] The list of loudnesses the test plays, evenly spaced from quietest to loudest, with an optional cluster of extra steps where the user wants a closer look.
+\item[{\hypertarget{term:probe-grid}{probe grid}}] The list of loudnesses the test plays, from quietest to loudest with each rung the same ratio louder than the one below, and an optional cluster of closer steps where the user wants a closer look.
 \item[{\hypertarget{term:product-order}{product order} ($|m| + |n|$)}] How many multiples of the two notes go into an invented tone; the app lists every combination up to seven.
 \item[{\hypertarget{term:product-reading}{product reading}}] What the app says about each invented tone: measured, nothing found down to a stated level, or could not be read --- and why.
 \item[{\hypertarget{term:rate-constant}{rate constant} ($L$)}] How quickly the test tone climbs; a larger value means a slower, longer sweep.

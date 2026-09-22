@@ -1555,6 +1555,111 @@ def fig_compression_estimator(runs, m, out):
                   [xs, e_exact, e_miscut] + [leak[:, k - 2] for k in orders])
 
 
+def fig_explained_ladder(runs, m, out):
+    """The lay companion's concept figure for Compression: one note, a
+    ladder of loudnesses, the curve and its corner. Left: the stepped
+    tone's level over time — the pre-roll silence where the hiss is
+    measured, then the rungs climbing, one rung's settle and measured
+    stretch marked. Middle: that one rung close up — the ramp from the
+    rung below, the rest of the settle, the measured stretch. Right:
+    output level against input level at the rungs for the worked example,
+    the one-for-one line, the hinge fit's two straight lines each drawn
+    over its own side of the corner and faintly beyond it, and the corner.
+    Everything is the reimplementation's own tone, device and hinge fit
+    (tanh(8x) at the probe note on the hardware grid, the `tanh8` run);
+    nothing is drawn by hand. The device, the note and the fitted knee are
+    printed in the panel titles."""
+    r = runs["tanh8"]
+    cm = m["compression"]
+    tone = r.tone
+    fs = tone.fs
+    preroll_s = float(cm["assembly"]["prerollS"])
+    levels = list(r.plan.levels_db)
+    n = len(levels)
+    marked = n // 2                       # the rung the middle panel opens
+    env = tone.envelope()
+    fig, (a, b, c) = plt.subplots(1, 3, figsize=(7.6, 3.3), gridspec_kw={"width_ratios": [1.25, 1.0, 1.15]})
+    # Left: the ladder in time. Each rung is drawn as its held level from the
+    # end of its ramp to its end; the ramps are too short to see at this
+    # scale and the middle panel shows one.
+    rung_rows = []
+    for i, level in enumerate(levels):
+        start = preroll_s + i * tone.step_samples / fs
+        ramp_end = start + tone.ramp_samples / fs
+        measure_start = start + tone.settle_samples / fs
+        end = start + tone.step_samples / fs
+        a.plot([ramp_end, end], [level, level], "-", color=BLUE, linewidth=1.4)
+        if i > 0:
+            a.plot([start, ramp_end], [levels[i - 1], level], "-", color=BLUE, linewidth=0.6)
+        rung_rows.append((i + 1, level, start, ramp_end, measure_start, end))
+    ms = rung_rows[marked]
+    a.axvspan(0, preroll_s, color=GREY, alpha=0.3, hatch="////", label="silence: the hiss is measured here")
+    a.axvspan(ms[2], ms[4], color=ORANGE, alpha=0.35, label="one rung's settle (not read)")
+    a.axvspan(ms[4], ms[5], color=GREEN, alpha=0.35, label="its measured stretch")
+    a.set_xlim(0, preroll_s + tone.sample_count / fs)
+    a.set_ylim(levels[0] - 4, levels[-1] + 4)
+    a.set_xlabel("time (s)")
+    a.set_ylabel("input level (dBFS)")
+    a.set_title("the ladder: %d rungs, %g to %g dBFS\nat %g Hz, %.1f s in all" % (n, levels[0], levels[-1], tone.frequency, tone.sample_count / fs), fontsize=8)
+    a.legend(fontsize=5.5, loc="lower right")
+    # Middle: one rung close up, the envelope in linear amplitude, with a
+    # little of the rung below in front of it.
+    lead = tone.ramp_samples
+    base = marked * tone.step_samples
+    seg = slice(base - lead, base + tone.step_samples)
+    decimate = 8
+    t_ms = (np.arange(base - lead, base + tone.step_samples)[::decimate] - base) / fs * 1000
+    e = env[seg][::decimate]
+    e_db = 20 * np.log10(e)               # the rung's level in dBFS, the left panel's own axis
+    ramp_ms = tone.ramp_samples / fs * 1000
+    settle_ms = tone.settle_samples / fs * 1000
+    step_ms = tone.step_samples / fs * 1000
+    b.axvspan(0, ramp_ms, color=RED, alpha=0.25, label="the ramp up from the rung below (%g ms)" % ramp_ms)
+    b.axvspan(ramp_ms, settle_ms, color=ORANGE, alpha=0.35, label="the rest of the settle (not read)")
+    b.axvspan(settle_ms, step_ms, color=GREEN, alpha=0.35, label="the measured stretch (%g ms, %d cycles)" % (step_ms - settle_ms, tone.measure_samples * tone.frequency / fs + 0.5))
+    b.plot(t_ms, e_db, "-", color=BLUE, linewidth=1.4, label="the tone's level")
+    b.set_xlim(t_ms[0], t_ms[-1])
+    b.set_ylim(levels[marked - 1] - 1.0, levels[marked] + 1.6)
+    b.set_xlabel("time within the rung (ms)")
+    b.set_ylabel("input level (dBFS)")
+    b.set_title("rung %d of %d: %.1f dBFS\nramp, settle, then the stretch that is read" % (marked + 1, n, levels[marked]), fontsize=8)
+    b.legend(fontsize=5.5, loc="upper left")
+    # Right: the curve and its corner — the hinge fit's two lines.
+    xs = np.array([p.input_db for p in r.curve.points])
+    ys = np.array([p.output_db for p in r.curve.points])
+    knee = r.reading.knee
+    assert knee is not None and not knee.is_bound, "the concept figure's worked example must read a point knee"
+    k = knee.input_db
+    fit = cmp._hinge_fit(list(xs), list(ys), k)
+    c0, c1, c2 = fit[0], fit[1], fit[2]
+    xx = np.linspace(xs[0], xs[-1], 200)
+    lower = c0 + c1 * xx
+    upper = c0 + c1 * xx + c2 * (xx - k)
+    hinge = c0 + c1 * xx + c2 * np.maximum(0, xx - k)
+    c.plot(xx, xx + (ys[0] - xs[0]), "--", color=GREY, linewidth=0.9, label="one-for-one")
+    c.plot(xx, lower, ":", color=ORANGE, linewidth=0.8)
+    c.plot(xx, upper, ":", color=ORANGE, linewidth=0.8)
+    c.plot(xx, hinge, "-", color=ORANGE, linewidth=1.4, label="hinge fit: slopes %.2f, %.2f" % (knee.pre_slope, knee.post_slope))
+    c.plot(xs, ys, "o", color=BLUE, markersize=2.6, label="the rungs, measured")
+    c.axvline(k, color=ORANGE, linewidth=0.6)
+    c.plot([k], [c0 + c1 * k], "o", color=RED, markersize=6, label="the knee, %.2f dBFS" % k)
+    c.set_xlabel("input level (dBFS)")
+    c.set_ylabel("output level (dBFS)")
+    c.set_title("the curve: y = tanh(8x) at %g Hz\nknee %.2f dBFS (±%.2f dB)" % (tone.frequency, k, knee.resolution_db), fontsize=8)
+    c.legend(fontsize=5.5, loc="lower right")
+    fig.suptitle("One note, a ladder of loudnesses: the curve of output against input, and its corner", fontsize=8)
+    fig.savefig(os.path.join(out, "explained-ladder.png"), **SAVE)
+    plt.close(fig)
+    write_sidecar(os.path.join(out, "explained-ladder-rungs.tsv"),
+                  ["rung", "level_dbfs", "start_s", "ramp_end_s", "measure_start_s", "end_s"],
+                  list(zip(*rung_rows)))
+    write_sidecar(os.path.join(out, "explained-ladder-rung.tsv"), ["t_ms", "level_dbfs"], [t_ms, e_db])
+    write_sidecar(os.path.join(out, "explained-ladder-curve.tsv"),
+                  ["input_dbfs", "output_dbfs"], [xs, ys])
+    write_sidecar(os.path.join(out, "explained-ladder-fit.tsv"),
+                  ["input_dbfs", "lower_line_dbfs", "upper_line_dbfs", "hinge_dbfs"], [xx, lower, upper, hinge])
+
+
 def compression_figures(manifest_path, out):
     m = cmp.load_manifest(manifest_path)
     runs = _compression_runs(m)
@@ -1563,6 +1668,7 @@ def compression_figures(manifest_path, out):
     fig_compression_floor(runs, m, out)
     fig_compression_cleanup(runs, m, out)
     fig_compression_estimator(runs, m, out)
+    fig_explained_ladder(runs, m, out)
 
 
 def main(argv=None):
