@@ -46,6 +46,13 @@ precisely so you could select.
       its H2-at-the-floor prediction is a symmetry claim and depends on
       matching. Note the spread; same-batch parts usually land within
       10–20 mV.
+      *[Retracted 2026-09-23, in place: the "H2-at-the-floor" prediction
+      this item names did not survive the first sweep. The card: "H2 is
+      **not** at the floor: it is real, ~20 dB below H3, and ~11 dB above
+      the rig's even-order floor. The earlier 'H2 at the floor, exactly'
+      claim is retired." Matching the pair still matters: it is what
+      keeps P3's even orders small (−85 dB re H1 on the card's
+      even-order ladder), not what makes them zero.]*
 - [ ] **Measure the five 10 nF caps.** Use the closest to nominal for
       P2, and record the *measured* value — the f_c prediction becomes
       1/(2πRC) with your number, not the nominal 1.592 kHz.
@@ -177,6 +184,12 @@ As P3, but one diode up, two in series down (≈0.6 V vs ≈1.2 V).
 > *weaker* than P3 at the same drive. Expect **no knee** alongside a
 > valid cleanup point: asymmetric clipping compresses far less than
 > symmetric clipping at matched THD.
+> *[Retracted 2026-09-23, in place, on "not yet testable … hard-coded
+> to E2 below the knee": a code fact that stopped being true.
+> The card struck its own copy of this sentence: "STRUCK 2026-08-23 —
+> expired when #34/#59 shipped (transfer note and amplitude are
+> selectable)." The clip-ratio test (a run crossing both thresholds) is
+> now possible; the card records it as not yet run.]*
 > **Validates:** the asymmetry features, H2 bloom, the lexicon's
 > asymmetric vocabulary, the even-harmonic audio illustrations.
 
@@ -241,6 +254,13 @@ than 4 dB of the drive range lies above it. 1 k moves the handover to
 > **Validates:** the distortion-vs-level machinery on a non-monotonic
 > case, and pre-validates Addendum C's amp-mode crossover signature
 > years before an amp exists.
+> *[Retracted 2026-09-23, in place, on "with odd-dominant residue": that
+> was the prediction and is not what was measured. The card:
+> "'Odd-dominant' was carried here until 2026-09-04 and is not what the
+> −26 dBFS sweep measures on any date: H2 = H3 within 0.3 dB at every
+> note on 2026-08-10, 2026-09-02 and 2026-09-04 … the LM358's sink-side flat spot is one-sided, so its
+> notch is even and odd alike." The diagram was corrected by #308; this
+> line was not, until now.]*
 
 P6 is also a live test of the **knee bound-guard issue** just filed: a
 device that gets *cleaner* as you dig in has no conventional knee at
@@ -270,10 +290,19 @@ all, and the app should say so rather than fitting one.
       passive positions, ~2 dB for diode/op-amp ones (temperature moves
       junctions). Structural invariants — P3's H2 zero, P5's ratios,
       P6's inverse slope — must hold exactly regardless of drift.
+      *[Retracted 2026-09-23, in place, for P3 only: "P3's H2 zero" is
+      the retired claim (card: "The earlier 'H2 at the floor, exactly'
+      claim is retired"; P3's H2 is real, −85 dB re H1). P5's ratios
+      and P6's inverse slope stand as written.]*
 
 Temperature note: diode thresholds move ≈ −2 mV/°C. Measure at
 consistent room temperature (±5 °C) and don't chase fractional-dB drift
 in P3–P5 absolute levels. **The ratios and zeros are the contract.**
+*[Retracted 2026-09-23, in place, for the zero this section names: the
+Stage G invariants above list one, P3's H2, and the card retired it. For
+even orders the contract is the card's even-order sensitivity ladder:
+"three points, one session, all at H1 = −2.6 dB. This is the yardstick
+for any even-order claim" (P2 ≤ −96, P3 −85, P4 −65.5 dB re H1).]*
 
 ---
 

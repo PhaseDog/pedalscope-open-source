@@ -145,21 +145,33 @@ stated as found:
   (`build-plan.md`, read it first), two bills of materials, the schematics
   as generated SVGs with the Python scripts they are generated from
   (`python3 <name>.gen.py` rewrites the SVG beside it — the schematics are
-  never hand-edited), and `LICENSE`, `README.md` and `NOTICE`. The plans
-  describe the box as built, and the schematics carry its as-built
+  never hand-edited), photographs of the box and two oscilloscope
+  captures in `photos/`, and `LICENSE`, `README.md` and `NOTICE`. The
+  plans describe the box as built, and the schematics carry its as-built
   predictions. Not the bench records, which are the libraries' provenance
   and stay with them.
-- The **Breakout Box** — the fixture the published library was measured
-  through — will join it under the same licence. No date is promised.
+- **`hardware/breakout-box/`** — the **Breakout Box**: a small passive box
+  for the measurement loop, with three tip–sleeve jacks, three 4 mm posts
+  and one 10 kΩ resistor. It gives a probe point on the loop, a 10 kΩ
+  series source on demand, and a straight pass-through for null runs. The
+  build plan with its meter check (`build-plan.md`, read it first), the
+  bill of materials, the schematic as a generated SVG with the script it is
+  generated from, two photographs in `photos/`, and `LICENSE`, `README.md`
+  and `NOTICE`.
 
-The plans are also presented, with the schematics embedded and a
-revision-stamped zip, at https://pedalscope.com/open-source.html.
+Both fixtures are licensed under CERN-OHL-P-2.0, and their photographs are
+covered as documentation.
+
+The plans are also presented, with the schematics and photos embedded and
+a revision-stamped zip for each fixture, at
+https://pedalscope.com/open-source.html.
 
 ### Where it comes from
 
-`hardware/reference-box/` is a snapshot of the private repository's
-`Bench/ReferenceBox` at one commit, named in the commit message
-(`hardware: Bench/ReferenceBox at <sha> (<date>)`), by allowlist: exactly
+`hardware/reference-box/` and `hardware/breakout-box/` are snapshots of the
+private repository's `Bench/ReferenceBox` and `Bench/BreakoutBox` at one
+commit, named in the commit message (`hardware: Bench/ReferenceBox,
+Bench/BreakoutBox at <sha> (<date>)`), each by its own allowlist: exactly
 the files listed above travel, and the bench records never do. Nothing
 here is edited by hand: a correction is made at the source and republished.
 
@@ -170,7 +182,7 @@ here is edited by hand: a correction is made at the source and republished.
 | the measurement libraries (release assets) | [CC BY 4.0](LICENSE) | Richard Hoge |
 | `methods/` — the code (`py/`, the `latexmkrc`) | [MIT](methods/LICENSE) | Richard Hoge |
 | `methods/` — the documents (`tex/`, `terms.yaml`, `figures/`, `generated/`, `pdf/`) | [CC BY 4.0](methods/LICENSE-DOCS) | Richard Hoge |
-| `hardware/` — the plans, bills of materials, schematics and their generators | [CERN-OHL-P-2.0](hardware/reference-box/LICENSE) | Richard Hoge |
+| `hardware/` — the plans, bills of materials, schematics and their generators, and the photographs | [CERN-OHL-P-2.0](hardware/reference-box/LICENSE) (the same text in each fixture's directory) | Richard Hoge |
 
 Use them, share them, build on them, with attribution to PedalScope. The
 PedalScope name and mark are not part of the grant.

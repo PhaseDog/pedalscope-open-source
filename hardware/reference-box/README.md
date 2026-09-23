@@ -42,6 +42,35 @@ the other five at both ends.
   table and the meter pre-checks.
 - `power-wiring.svg` — the split-rail battery supply.
 - `*.gen.py` — the four scripts the schematics are generated from.
+- `photos/` — the box and two oscilloscope captures (below).
+
+## Photos
+
+- `photos/box-top.jpg` — the finished box from above: the
+  ON/OFF toggle, the power LED, and the P1–P6 rotary knob.
+- `photos/box-inside.jpg` — the box opened: two 9 V lithium
+  batteries for the split supply, the switch and jack harness, and the
+  perfboard on the lid.
+- `photos/p5-full-wave-rectification-scope-2026-08-10.png` — an
+  oscilloscope capture of P5: a sine in (top trace), and its
+  full-wave-rectified output (bottom trace), which repeats at twice the
+  input's frequency.
+- `photos/p6-crossover-scope-2026-08-10.png` — an oscilloscope capture of
+  P6: a sine in (top trace), and an output (bottom trace) with a short
+  flat step where it crosses zero. The cursors mark the step's width,
+  2.80 µs. The input is at 10 kHz, and that is deliberate. The step lasts
+  a fixed time, so it is a visible part of the cycle only at high
+  frequencies: at 10 kHz the cycle is 100 µs long, while at a guitar
+  note's frequency it is thousands of microseconds and a 2.8 µs step is
+  far too small a part of it to see. PedalScope still measures the
+  harmonic distortion the step produces at those frequencies.
+
+Both captures are dated 10 August 2026 on their face, the day of the
+box's first measured baseline, and both were taken with the box as
+built: the P6 capture's 2.80 µs step is the transition time the bench
+records quote for the 1 kΩ load, and its step sits at the zero crossing,
+where the 1 kΩ load puts it (with the 10 kΩ first specified it sat at
+−1.2 V).
 
 ## Regenerating the schematics
 
@@ -70,7 +99,9 @@ the measurement library and travel with it.
 ## Licence
 
 Everything in this directory — the plan, the bills of materials, the
-schematics and the scripts that generate them — is licensed under the
+schematics, the scripts that generate them, and the photographs and
+oscilloscope captures in `photos/`, which are covered as documentation —
+is licensed under the
 [CERN Open Hardware Licence Version 2 - Permissive](LICENSE)
 (CERN-OHL-P-2.0). Use it, share it, build on it, sell what you build,
 with attribution. See `NOTICE` for the copyright line.

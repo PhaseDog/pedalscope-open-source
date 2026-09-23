@@ -1,18 +1,16 @@
-PedalScope Reference Box — hardware plans
+PedalScope Breakout Box — hardware plans
 Copyright © 2026 Richard Hoge
 
 Licensed under the CERN Open Hardware Licence Version 2 - Permissive
 (CERN-OHL-P-2.0). The full text is in the file LICENSE beside this one.
 Source location (CERN-OHL-P-2.0 §3.3(b)):
-https://github.com/PhaseDog/pedalscope-open-source/tree/main/hardware/reference-box
+https://github.com/PhaseDog/pedalscope-open-source/tree/main/hardware/breakout-box
 
 Everything in this directory is covered by that licence: the build plan,
-the two bills of materials, the four schematics and the Python scripts
-that generate them, and the photographs and oscilloscope captures in
-photos/ (box-top.jpg, box-inside.jpg,
-p5-full-wave-rectification-scope-2026-08-10.png and
-p6-crossover-scope-2026-08-10.png), which are covered as documentation of
-the design.
+the bill of materials, the schematic and the Python script that generates
+it, and the two photographs in photos/ (breakout-box-top.jpg and
+breakout-box-inside.jpg), which are covered as documentation of the
+design.
 
 The PedalScope name and mark are not part of the grant. This licence
 conveys no right to use them, and a box built from these plans is not a
