@@ -3201,6 +3201,34 @@ running them are in the repository named on the first page.
 
 \clearpage
 
+\clearpage
+\section{Waveform Matrix}
+\label{sec:matrix-plain}
+
+This chapter is not yet written; the technical reference's Waveform
+Matrix chapter is, and this page names what its plain-language
+counterpart will explain, in the words the glossary already defines. The
+\term{waveform-matrix} is the scope view: a grid of \term{tile}s, each
+the actual wave that went into the pedal and the actual wave that came
+out over a couple of cycles, at one note and one loudness --- nothing
+modelled, nothing cleaned up. The notes are a \term{note-lattice} and the
+loudnesses an \term{amplitude-lattice}, both built by \term{refinement}
+so that a smaller grid's points are always among a larger grid's; the
+loudness ladder hangs from the \term{voltage-anchor} (the standard
+loudness as a voltage at the pedal, not a number on the computer) with
+its quietest rung a fixed \term{floor-span} below, and the standard note
+is the \term{note-anchor}, so every grid has a \term{cross-check-point}
+where it can be compared with the transfer curve and a \term{centre-tile}
+that is the standard loudness at the middle note whatever the grid's
+size. Each row is one \term{stepped-tone} climbing the ladder, each tile
+cut at a \term{zero-crossing-start} and written as a \term{sample-array};
+the silence before each row is its \term{row-noise-stamp}, and a quiet
+tile that does not stand clearly above it wears the \term{noise-badge}.
+The lay chapter will explain why a coupling capacitor's tail is not
+noise (the \term{carried-state} experiment) and how two grids are
+compared by the notes and loudnesses they actually recorded
+(\term{value-alignment}), with the technical chapter's figures.
+
 \section{Glossary, in plain language}
 \input{../generated/glossary-plain.tex}
 \end{document}

@@ -1297,3 +1297,199 @@ terms:
       distortion number each rung stores; if it fails on most rungs, no
       knee, cleanup level or percentage is quoted.
 
+
+  # --- Waveform Matrix (#306 chapter six) -----------------------------------
+
+  - key: waveform-matrix
+    term: waveform matrix
+    technical: >-
+      The measured waveform matrix: raw captured input and output tiles over
+      a note × level grid, stored as the capture itself (Float32 at the
+      capture rate, a fixed number of periods each, no resampling). It has no
+      estimator; the method is the choice of which samples are kept and how
+      they are labelled.
+    plain: >-
+      The scope view: the actual wave that went into the pedal and the actual
+      wave that came out, recorded at several notes and several loudnesses
+      and shown side by side. Nothing is modelled or cleaned up.
+
+  - key: tile
+    term: tile
+    technical: >-
+      One cell of the matrix: two sample arrays, the stimulus and the capture
+      over the same time span --- a whole number of periods of the row's note
+      --- starting at an upward zero crossing of the stimulus, the output at
+      the loop's latency so the device's phase shift is preserved.
+    plain: >-
+      One small picture in the grid: the input wave and the output wave over
+      the same couple of cycles, at one note and one loudness.
+
+  - key: note-lattice
+    term: note lattice
+    technical: >-
+      The matrix's frequency rows: 12-TET-snapped notes over a span, seeded
+      by the endpoints, the standard note where the span holds it and the
+      span's middle note, then refined per side around the middle note so
+      that smaller lattices are subsets of larger ones.
+    plain: >-
+      The list of notes the grid is measured at, chosen so that a smaller
+      grid's notes are always among a larger grid's.
+
+  - key: amplitude-lattice
+    term: amplitude lattice
+    technical: >-
+      The matrix's level columns in dBFS: the floor and the ceiling seed,
+      the rig's anchor joins when it lies inside the span, then anchor-centred
+      per-side refinement splits the widest gap on the emptier side so the
+      anchor sits at the centre index at every odd dimension and the lattices
+      nest.
+    plain: >-
+      The list of loudnesses the grid is measured at: the quietest, the
+      loudest, the standard one in the middle, and the gaps between them
+      filled in so that a smaller grid's loudnesses are among a larger grid's.
+
+  - key: refinement
+    term: refinement (nesting)
+    technical: >-
+      Building a lattice by inserting points into the widest gap of an
+      existing lattice rather than dividing the span evenly, so that every
+      smaller lattice is a subset of every larger one ($3 \subset 5 \subset 7$) and
+      matrices of different dimensions compare point for point; an even
+      divider misses itself across dimensions.
+    plain: >-
+      Adding points to a grid by splitting its biggest gap, so a bigger grid
+      always contains a smaller one exactly and the two can be compared.
+
+  - key: voltage-anchor
+    term: voltage anchor
+    technical: >-
+      The standard drive as a VOLTAGE at the pedal's input (168 mV peak),
+      expressed in a rig's own dBFS through its measured volts factor
+      ($20\log_{10}(0.168/V_{\mathrm{FS}})$) or as $-26$ dBFS by convention
+      where no factor is known; the level lattice's middle point and the
+      reference its default floor hangs from.
+    plain: >-
+      The standard loudness, fixed as a voltage at the pedal rather than as a
+      number on the computer, so that two rigs with different gain deliver
+      the same signal at the pedal.
+
+  - key: note-anchor
+    term: note anchor
+    technical: >-
+      The standard drive note (E2 at the app's 82.4 Hz), guaranteed on every
+      note lattice whose span holds it --- the cross-check guarantee --- so a
+      matrix always shares a point with the transfer curve's measured cycle at
+      the standard condition; a single canonical note, never per record.
+    plain: >-
+      The standard test note, always one of the grid's notes when the grid's
+      range includes it, so the matrix and the transfer curve can be checked
+      against each other at the same note and loudness.
+
+  - key: cross-check-point
+    term: cross-check point
+    technical: >-
+      The tile at the note anchor and the amplitude anchor --- the operating
+      point at which the transfer curve's measured cycle was captured by
+      construction, whenever the transfer record uses its default note; on the
+      default span a corner row, never the centre.
+    plain: >-
+      The one cell of the grid that was measured at the same note and the same
+      loudness as the transfer curve, so the two pictures can be compared.
+
+  - key: centre-tile
+    term: centre tile
+    technical: >-
+      The middle cell of every matrix: the standard drive (the amplitude
+      anchor at the centre index) at the span's middle note (E4 on the
+      default span) --- the centre guarantee, distinct from the cross-check
+      guarantee and never conflated with it.
+    plain: >-
+      The cell in the very middle of the grid, which is the standard loudness
+      at the middle note of the range whatever size the grid is.
+
+  - key: floor-span
+    term: floor span
+    technical: >-
+      The default quietest level, defined as a fixed span (22 dB) below the
+      voltage anchor rather than as a dBFS constant --- a constant voltage at
+      the device on every calibrated rig (13.3 mV peak, 12 dB below the
+      Reference Box P6's measured dead-zone handover), $-48$ dBFS only as its
+      no-volts expression; the ceiling stays an absolute rig-side dBFS.
+    plain: >-
+      How far below the standard loudness the grid's quietest column sits: a
+      fixed distance, so the quiet tiles land at the same small signal at the
+      pedal on any rig.
+
+  - key: zero-crossing-start
+    term: zero-crossing start
+    technical: >-
+      The tile's first sample: the first stimulus sample at or after the
+      step's measurement window whose phase is a whole number of cycles (the
+      input rising through zero), so every tile begins on the same phase of
+      the input; a start-index choice, never a resample, and the output tile
+      is the same span at the loop's latency.
+    plain: >-
+      Every tile starts where the input wave crosses zero on the way up, so
+      all the tiles line up and the pedal's own delay shows as a shift of the
+      output.
+
+  - key: sample-array
+    term: sample array (encoding)
+    technical: >-
+      A tile's stored channel: Float32 little-endian bytes (base64 in the
+      payload JSON) with the encoding name, the channel and the sample count
+      stated explicitly; a reader refuses an unknown encoding or a byte count
+      that disagrees with the stated count rather than guessing a layout.
+    plain: >-
+      The exact way each tile's numbers are written into the record, labelled
+      so that a program reading them later never has to guess.
+
+  - key: row-noise-stamp
+    term: row noise stamp
+    technical: >-
+      Per frequency row, the rms of the row capture's silent pre-roll (the
+      loop plus the device's own hiss), stored beside the tiles as the row's
+      noise bound; computed inline at both capture sites by one expression
+      (a mirror the manifest states) and never used to gate the stored
+      samples.
+    plain: >-
+      How much hiss the loop and the pedal make on their own just before each
+      row's note starts, kept with the row so quiet tiles can be judged
+      against it.
+
+  - key: noise-badge
+    term: noise margin and badge
+    technical: >-
+      A tile's output rms against its row's noise stamp in dB; below the 6 dB
+      clear margin the tile wears the ``≈ noise'' badge, whose sentence says
+      most of the drawn wave is the rig's and device's own noise --- never
+      that the tile is below a floor, since the wave is drawn.
+    plain: >-
+      A note on a quiet tile saying that most of what it shows is hiss rather
+      than the pedal shaping the note.
+
+  - key: carried-state
+    term: carried state
+    technical: >-
+      In the oracle, rendering every row of a matrix through one continuous
+      device state in capture order --- a physical pedal's coupling capacitor
+      does not reset between rows --- so a previous row's tail can reach the
+      next row's pre-roll; the alternative, each row from zero state, is
+      Simulation Mode's shape.
+    plain: >-
+      Treating the rows of the grid as one continuous performance, the way a
+      real pedal experiences them, rather than as separate fresh starts.
+
+  - key: value-alignment
+    term: value alignment (app level)
+    technical: >-
+      The Compare view's rule for two or more matrices: tiles are matched on
+      the STORED delivered notes and levels (1.7 cents, 0.05 dB), never on row
+      or column position, the level basis decided by the same predicate that
+      draws the axes --- dBFS on a shared axis, delivered voltage across
+      calibrated rigs, no level join across domains --- and the alignment
+      always stated.
+    plain: >-
+      When two grids are compared, cells are paired by the note and loudness
+      they actually recorded, not by where they sit in the grid, and the view
+      says how many pairs it found.

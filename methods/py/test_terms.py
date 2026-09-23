@@ -78,6 +78,9 @@ HEARING_ALLOWLIST = [
     "distortion sounds like.",
     "measurement sounds like: the instrument measures, and listening is yours.",
     "nothing in this document says what a measurement sounds like.",
+    # The app's own disclaimer, quoted as such (the Waveform Matrix chapter;
+    # #200's third class — a disclaimer that the measured is not the heard).
+    "a visibly different wave is not automatically an audibly different one",
 ]
 
 

@@ -1,6 +1,6 @@
 #!/usr/bin/env python3
 """The Harmonic Distortion chapter's figures (hd-*.png), the later chapters'
-(transfer-*, imd-*, journey-*, compression-*) and the lay companion's
+(transfer-*, imd-*, journey-*, compression-*, matrix-*) and the lay companion's
 concept figures (explained-*.png) — generated from the Python
 reimplementation (never screenshotted), seeded, fixed DPI, no timestamps
 or version strings in the images, so the committed PNGs are a drift-check
@@ -31,6 +31,7 @@ import matplotlib.colors  # noqa: E402
 import harmonic_distortion as hd  # noqa: E402
 import transfer_curve as tc  # noqa: E402
 import chord_imd as ci  # noqa: E402
+import waveform_matrix as wmx  # noqa: E402
 import machine_floor as mf  # noqa: E402
 
 HERE = os.path.dirname(os.path.abspath(__file__))
@@ -1671,6 +1672,257 @@ def compression_figures(manifest_path, out):
     fig_explained_ladder(runs, m, out)
 
 
+# --- The Waveform Matrix chapter's figures (#306 chapter six) -------------
+# Every figure is the Python reimplementation's own run through its lattices,
+# stimulus and cut; no app rendering exists for this kind (#320).
+
+MATRIX_NOISE_DB = -100.0
+
+
+def _matrix_plan(m, kind, params=None, pre=None, post=None, dimension=None, volts=None, noise_db=None, carried=True):
+    wm = m["waveformMatrix"]
+    lat = wm["lattice"]
+    d = int(lat["defaultDimension"]) if dimension is None else dimension
+    plan, anchor = wmx.make_plan(d, lat["defaultLowFrequencyHz"], lat["defaultHighFrequencyHz"], None,
+                                 lat["defaultCeilingDBFS"], volts, 96_000.0, int(wm["stimulus"]["defaultPeriodCount"]), m)
+    default_q = float(m["transferCurve"]["biquad"]["defaultQ"])
+    device = wmx.MatrixDevice(kind, params or {},
+                              None if pre is None else tc.Filter("highPass" if pre[0] == "highpass" else "lowPass", pre[1], default_q),
+                              None if post is None else tc.Filter("highPass" if post[0] == "highpass" else "lowPass", post[1], default_q))
+    noise = None if noise_db is None else 10 ** (noise_db / 20)
+    return wmx.Plan(device, plan, volts, anchor, carried, 0, 0, 0.0, noise, 1)
+
+
+def fig_matrix_lattice(m, out):
+    """The two lattices at 3/5/7 with the anchor at the centre index and
+    the nesting drawn: the amplitude lattice on the reference rig's factor
+    and on the no-volts convention (both anchor at −26 dBFS by
+    construction), and the note ladder with E2 marked as the cross-check
+    row and E4 as the centre."""
+    wm = m["waveformMatrix"]
+    lat = wm["lattice"]
+    delivered = lat["delivered"]
+
+    def entry(dimension, volts):
+        return next(e for e in delivered if e["dimension"] == dimension and e.get("voltsAtFullScale") == volts)
+
+    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.6), width_ratios=[1.15, 1])
+    ax = axes[0]
+    cols = {}
+    ticks, labels = [], []
+    for i, (label, volts) in enumerate((("no volts", None), ("3.35 V pk", 3.35))):
+        for j, d in enumerate(lat["dimensionChoices"]):
+            e = entry(d, volts)
+            y = i * 4 + j
+            amps = e["amplitudesDBFS"]
+            ax.plot(amps, [y] * len(amps), "o", color=BLUE if i == 0 else GREEN, markersize=4,
+                    label=("no volts factor (the −26 dBFS convention)" if i == 0 else "reference rig, 0 dBFS = 3.35 V pk") if j == 0 else None)
+            ax.plot([e["anchorDBFS"]], [y], "s", color=ORANGE, markersize=7, markerfacecolor="none",
+                    label="the anchor (the standard drive)" if i == 0 and j == 0 else None)
+            ticks.append(y)
+            labels.append("N = %d, %s" % (d, label))
+            cols["%s_N%d" % ("novolts" if volts is None else "ref", d)] = amps
+    ax.axvline(lat["noVoltsAnchorDBFS"], color=ORANGE, linewidth=0.6, linestyle=":")
+    ax.set_yticks(ticks)
+    ax.set_yticklabels(labels, fontsize=6)
+    ax.set_xlabel("delivered level (dBFS)")
+    ax.set_title("Amplitude lattices: 3 ⊂ 5 ⊂ 7, the anchor at the centre index", fontsize=8)
+    ax.legend(fontsize=6, loc="upper left", bbox_to_anchor=(0.0, -0.18), ncol=1, frameon=False)
+    ax = axes[1]
+    for j, d in enumerate(lat["dimensionChoices"]):
+        e = entry(d, None)
+        hz = e["notesHz"]
+        ax.semilogx(hz, [j] * len(hz), "o", color=BLUE, markersize=4)
+        for x, name in zip(hz, e["noteNames"]):
+            ax.text(x, j + 0.18, name, fontsize=6, ha="center")
+        cols["notes_N%d" % d] = hz
+    ax.axvline(lat["noteAnchorHz"], color=RED, linewidth=0.6, linestyle=":", label="note anchor E2 (the cross-check row)")
+    centre = entry(5, None)["notesHz"][2]
+    ax.axvline(centre, color=ORANGE, linewidth=0.6, linestyle="--", label="the span's middle note E4 (the centre)")
+    ax.set_yticks([0, 1, 2])
+    ax.set_yticklabels(["N = %d" % d for d in lat["dimensionChoices"]], fontsize=7)
+    ax.set_xlabel("delivered note (Hz)")
+    ax.set_title("Note lattices on E2–E6: A♯ joins at 7", fontsize=8)
+    ax.legend(fontsize=6, loc="upper left")
+    ax.set_ylim(-0.6, 2.9)
+    fig.savefig(os.path.join(out, "matrix-lattice.png"), **SAVE)
+    plt.close(fig)
+    width = max(len(v) for v in cols.values())
+    header = list(cols)
+    write_sidecar(os.path.join(out, "matrix-lattice.tsv"), ["index"] + header,
+                  [list(range(width))] + [[cols[h][i] if i < len(cols[h]) else float("nan") for i in range(width)] for h in header])
+
+
+def fig_matrix_row(m, out):
+    """One row's timeline (E2, the default 5 levels): the pre-roll, the
+    stepped tone's ramps, each step's settle and measurement window, the
+    tile's zero-crossing start inside its window, and the output window at
+    a loop latency — drawn on the Python's own stimulus."""
+    plan = _matrix_plan(m, "identity")
+    plan.latency = 400
+    mp = plan.plan
+    row = 0
+    signal = mp.row_signal(row)
+    stim = mp.row_stimulus(row)
+    fs = mp.fs
+    t = np.arange(len(stim)) / fs
+    fig, axes = plt.subplots(2, 1, figsize=(7.4, 4.6), height_ratios=[2, 1.2])
+    ax = axes[0]
+    ax.plot(t, stim, color=GREY, linewidth=0.4, label="the row stimulus (pre-roll, the stepped tone, the tail)")
+    pre = mp.preroll_samples
+    ax.axvspan(0, pre / fs, color=BLUE, alpha=0.08, label="pre-roll (the noise stamp's window)")
+    starts = []
+    for step in range(len(mp.amplitudes_dbfs)):
+        lo, hi = signal.measure_range(step)
+        base = step * signal.step_samples
+        ax.axvspan((pre + base) / fs, (pre + base + signal.ramp_samples) / fs, color=ORANGE, alpha=0.25, label="ramp" if step == 0 else None)
+        ax.axvspan((pre + base + signal.ramp_samples) / fs, (pre + lo) / fs, color=ORANGE, alpha=0.08, label="settle remainder" if step == 0 else None)
+        ax.axvspan((pre + lo) / fs, (pre + hi) / fs, color=GREEN, alpha=0.12, label="measurement window" if step == 0 else None)
+        start = mp.tile_start(row, step)
+        count = mp.tile_sample_count(row)
+        starts.append(start)
+        ax.axvspan((pre + start) / fs, (pre + start + count) / fs, color=RED, alpha=0.35, label="the tile (two periods from the zero crossing)" if step == 0 else None)
+    ax.set_ylabel("stimulus")
+    ax.set_title("One row of the matrix at E2: %d levels, %.2f s settle, %.2f s measure, %d-sample tiles" % (
+        len(mp.amplitudes_dbfs), mp.settle_s, mp.measure_s, mp.tile_sample_count(row)), fontsize=8)
+    ax.legend(fontsize=6, loc="upper left", ncol=2)
+    ax = axes[1]
+    step = 2
+    lo, hi = signal.measure_range(step)
+    start = starts[step]
+    count = mp.tile_sample_count(row)
+    a, b = pre + lo - 200, pre + start + count + 200
+    tt = np.arange(a, b) / fs
+    ax.plot(tt, stim[a:b], color=GREY, linewidth=0.8, label="input")
+    captured = np.zeros_like(stim)
+    captured[plan.latency:] = stim[:len(stim) - plan.latency]
+    ax.plot(tt, captured[a:b], color=BLUE, linewidth=0.8, label="capture (the loop's %d-sample latency)" % plan.latency)
+    ax.axvline((pre + lo) / fs, color=GREEN, linewidth=0.8, label="window start")
+    ax.axvline((pre + start) / fs, color=RED, linewidth=0.8, label="tile start: the first upward zero crossing at or after it")
+    ax.axvspan((pre + start) / fs, (pre + start + count) / fs, color=RED, alpha=0.12)
+    ax.axvspan((pre + start + plan.latency) / fs, (pre + start + count + plan.latency) / fs, color=BLUE, alpha=0.12, label="the output window, the same span at the latency")
+    ax.set_xlabel("time (s)")
+    ax.set_title("The middle step's cut: window start, zero-crossing start, output window at the latency", fontsize=8)
+    ax.legend(fontsize=6, loc="upper right")
+    fig.savefig(os.path.join(out, "matrix-row.png"), **SAVE)
+    plt.close(fig)
+    write_sidecar(os.path.join(out, "matrix-row.tsv"), ["step", "window_start", "window_end", "tile_start", "tile_end"],
+                  [list(range(len(starts))), [signal.measure_range(s)[0] for s in range(len(starts))],
+                   [signal.measure_range(s)[1] for s in range(len(starts))], starts, [x + count for x in starts]])
+
+
+def fig_matrix_grid(m, out):
+    """The crossover device's default 5×5 as the app draws a tile: input
+    dashed, output solid, each tile scaled to its own peak (the caption
+    carries the app's sentence), the dead zone visible at the quiet end."""
+    plan = _matrix_plan(m, "crossover", {"dead_zone": float(m["waveformMatrix"]["synthesis"]["crossoverDeadZone"])})
+    r = wmx.run(plan, m)
+    mp = plan.plan
+    nf, na = len(mp.frequencies_hz), len(mp.amplitudes_dbfs)
+    fig, axes = plt.subplots(nf, na, figsize=(7.4, 5.4), sharex=False, sharey=False)
+    cols = {}
+    for t in r.tiles:
+        ax = axes[nf - 1 - t.frequency_index][t.amplitude_index]
+        inp, o = t.input.samples().astype(np.float64), t.output.samples().astype(np.float64)
+        pk = max(np.max(np.abs(inp)), 1e-30)
+        opk = max(np.max(np.abs(o)), 1e-30)
+        x = np.arange(len(inp)) / len(inp)
+        ax.plot(x, inp / pk, "--", color=GREY, linewidth=0.6)
+        ax.plot(x, o / opk, "-", color=BLUE, linewidth=0.8)
+        ax.set_ylim(-1.15, 1.15)
+        ax.set_xticks([])
+        ax.set_yticks([])
+        row = next(rr for rr in r.rows if rr.frequency_index == t.frequency_index and rr.amplitude_index == t.amplitude_index)
+        ax.set_title("%s · %s dBFS · dead %.0f %%" % (row.note, hd.fmt(row.amplitude_dbfs), 100 * row.dead_fraction), fontsize=6)
+        if t.frequency_index == 4:
+            cols["in_%s_%s" % (row.note, hd.fmt(row.amplitude_dbfs))] = (inp / pk)[::8]
+            cols["out_%s_%s" % (row.note, hd.fmt(row.amplitude_dbfs))] = (o / opk)[::8]
+    fig.suptitle("The crossover device (dead zone %.1f dBFS) on the default 5×5 — each tile scaled to its own peak; input dashed, output solid"
+                 % (20 * math.log10(plan.device.params["dead_zone"])), fontsize=8)
+    fig.savefig(os.path.join(out, "matrix-grid.png"), **SAVE)
+    plt.close(fig)
+    width = max(len(v) for v in cols.values())
+    header = list(cols)
+    write_sidecar(os.path.join(out, "matrix-grid.tsv"), ["index"] + header,
+                  [list(range(width))] + [[cols[h][i] if i < len(cols[h]) else float("nan") for i in range(width)] for h in header])
+
+
+def fig_matrix_settle(m, out):
+    """Case (d): the residual transient the settle window leaves, tile by
+    tile, for tanh(8) behind a 1 kHz low-pass (absorbed), a 2 Hz and a
+    0.5 Hz output coupling capacitor — max |stored − steady state| re the
+    truth peak per tile at E2."""
+    cases = (("post low-pass 1 kHz", ("lowpass", 1000.0)), ("post high-pass 2 Hz", ("highpass", 2.0)), ("post high-pass 0.5 Hz", ("highpass", 0.5)))
+    fig, ax = plt.subplots(figsize=(7.2, 3.6))
+    cols = {}
+    colors = (GREEN, ORANGE, RED)
+    for (label, post), color in zip(cases, colors):
+        plan = _matrix_plan(m, "tanh", {"gain": 8.0}, post=post)
+        r = wmx.run(plan, m)
+        levels = plan.plan.amplitudes_dbfs
+        residue = [next(rr.truth_max_error / max(rr.truth.peak, 1e-30) for rr in r.rows if rr.frequency_index == 0 and rr.amplitude_index == a) for a in range(len(levels))]
+        quant = [next(rr.float32_error / max(rr.truth.peak, 1e-30) for rr in r.rows if rr.frequency_index == 0 and rr.amplitude_index == a) for a in range(len(levels))]
+        ax.semilogy(levels, residue, "o-", color=color, label="tanh(8) behind a %s: max |tile − steady state| / peak" % label)
+        cols[label.replace(" ", "_").replace("-", "") + "_residue"] = residue
+        cols[label.replace(" ", "_").replace("-", "") + "_quantization"] = quant
+    ax.semilogy(levels, quant, "x:", color=GREY, label="the tile's own Float32 quantization / peak (the floor of this figure)")
+    ax.set_xlabel("delivered level (dBFS), the E2 row")
+    ax.set_ylabel("residue re the truth peak")
+    ax.set_title("What the %.2f s settle window leaves of the step's transient" % plan.plan.settle_s, fontsize=8)
+    ax.legend(fontsize=6, loc="center left")
+    fig.savefig(os.path.join(out, "matrix-settle.png"), **SAVE)
+    plt.close(fig)
+    header = list(cols)
+    write_sidecar(os.path.join(out, "matrix-settle.tsv"), ["level_dbfs"] + header, [levels] + [cols[h] for h in header])
+
+
+def fig_matrix_stamp(m, out):
+    """Case (i), #267: per-row stamps for a rectifier behind a 0.5 Hz output
+    coupling capacitor with −100 dBFS noise injected — carried state (the
+    previous row's tail reaches the next row's pre-roll) against
+    independent rows (Simulation Mode's shape) — with the injected noise
+    and the 6 dB clear margin drawn."""
+    wm = m["waveformMatrix"]
+    margin = float(wm["noise"]["noiseClearMarginDB"])
+    fig, axes = plt.subplots(1, 2, figsize=(7.4, 3.6))
+    cols = {}
+    for ax, corner in zip(axes, (0.5, 2.0)):
+        for carried, color, label in ((True, RED, "device state carried across rows"), (False, BLUE, "independent rows (each from zero state)")):
+            plan = _matrix_plan(m, "asymmetric", {"gain": 3.0, "negative_scale": 0.5, "threshold": 0.1, "a2": 0.0, "a3": 0.0},
+                                post=("highpass", corner), noise_db=MATRIX_NOISE_DB, carried=carried)
+            r = wmx.run(plan, m)
+            rows = np.arange(1, len(r.row_noise_rms) + 1)
+            db = 20 * np.log10(np.array(r.row_noise_rms))
+            ax.plot(rows, db, "o-", color=color, label=label)
+            cols["stamp_dbfs_%gHz_%s" % (corner, "carried" if carried else "independent")] = db
+            if carried:
+                quiet = [next(rr.output.rms for rr in r.rows if rr.frequency_index == f and rr.amplitude_index == 0) for f in range(len(rows))]
+                ax.plot(rows, 20 * np.log10(np.array(quiet)), "s:", color=GREY, label="the quietest tile's output rms (carried)")
+                cols["quiet_tile_rms_dbfs_%gHz" % corner] = 20 * np.log10(np.array(quiet))
+        injected = 20 * math.log10(r.truth_stamp)
+        ax.axhline(injected, color=GREEN, linewidth=0.8, linestyle="--", label="the injected noise (%g dBFS)" % MATRIX_NOISE_DB)
+        ax.axhline(injected + margin, color=GREEN, linewidth=0.6, linestyle=":", label="%g dB over it — the badge's clear margin" % margin)
+        ax.set_xlabel("frequency row (capture order)")
+        ax.set_ylabel("row noise stamp (dBFS)")
+        ax.set_xticks(rows)
+        ax.set_title("rectifier behind a %g Hz output coupling capacitor" % corner, fontsize=8)
+        ax.legend(fontsize=6, loc="center right")
+    fig.suptitle("#267: the previous row's tail in the next row's pre-roll — rows 2…N carry it, row 1 and independent rows read the noise", fontsize=8)
+    fig.savefig(os.path.join(out, "matrix-stamp.png"), **SAVE)
+    plt.close(fig)
+    header = list(cols)
+    write_sidecar(os.path.join(out, "matrix-stamp.tsv"), ["row"] + header, [list(rows)] + [cols[h] for h in header])
+
+
+def matrix_figures(manifest_path, out):
+    m = wmx.load_manifest(manifest_path)
+    fig_matrix_lattice(m, out)
+    fig_matrix_row(m, out)
+    fig_matrix_grid(m, out)
+    fig_matrix_settle(m, out)
+    fig_matrix_stamp(m, out)
+
+
 def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--out", default=DEFAULT_OUT)
@@ -1682,6 +1934,7 @@ def main(argv=None):
     imd_figures(args.manifest, args.out)
     journey_figures(args.manifest, args.out)
     compression_figures(args.manifest, args.out)
+    matrix_figures(args.manifest, args.out)
     m = hd.load_manifest(args.manifest)
     sweep = hd.Sweep.from_manifest(m)
     sweep.check_against(m)

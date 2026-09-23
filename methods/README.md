@@ -107,7 +107,7 @@ private, so they cannot run there; the public README says what can.
 ```
 generated/   manifest.json + the .tex fragments (plain-<kind>.tex holds the lay
              chapter's macros and the parity words forms) — COMMITTED, drift-checked
-figures/     hd-*.png, transfer-*.png, imd-*.png, journey-*.png, compression-*.png, explained-*.png + .tsv sidecars — COMMITTED, drift-checked
+figures/     hd-*.png, transfer-*.png, imd-*.png, journey-*.png, compression-*.png, matrix-*.png, explained-*.png + .tsv sidecars — COMMITTED, drift-checked
 py/          harmonic_distortion.py  the reimplementation
              parity_hd.py           the comparison + tolerances (shared by test and generator)
              test_parity_hd.py      the CI parity test
@@ -124,6 +124,11 @@ py/          harmonic_distortion.py  the reimplementation
                                     harmonic_distortion.py's devices and noise, transfer_curve.py's filters)
              parity_compression.py  its comparison + tolerances
              test_parity_compression.py  its CI parity test
+             waveform_matrix.py     the Waveform Matrix reimplementation (#306 chapter six; imports
+                                    harmonic_distortion.py's devices and noise, transfer_curve.py's
+                                    filters and series truth, compression_curve.py's stepped tone)
+             parity_matrix.py       its comparison + tolerances (EQUALITY where the method is exact)
+             test_parity_matrix.py  its CI parity test
              make_figures.py        the figures
              gen_docs.py            the fragments (both registers)
              test_terms.py          the terms guard

@@ -2230,5 +2230,498 @@
       "truthKindRule" : "memoryless when the device has no filter and the displayed advance is 0 (y(x) exact at the delivered x); series otherwise",
       "truthOrders" : 200
     }
+  },
+  "waveformMatrix" : {
+    "appLevel" : {
+      "anchorDisclosureRule" : "APP LEVEL (WaveformMatrixView.anchorDisclosure, anchorToleranceDB 0.05): the pane states the anchor sentence only when the record's own lattice carries the rig's anchor within 0.05 dB (evidence-gated on the stored values — a user-moved span or a pre-anchor lattice gets nothing), and the ceiling clause only when the loudest stored level is the default ceiling within 0.05 dB; on a calibrated rig the sentence quotes the volts (168 mV pk) and the rig's dBFS, without volts the convention (−26 dBFS)",
+      "anchorToleranceDB" : 0.05,
+      "columnLabelRule" : "APP LEVEL (WaveformMatrixView.columnLevelText): a delivered level prints in the record's input domain (#117: volts peak at the pedal input on a calibrated hardware record, dBFS otherwise) with one decimal when fractional and none when whole — the 7×7 per-side fill introduced the app's first half-dB rungs (−42.5, −22.5), which a zero-decimal label printed as −42/−22",
+      "compareAlignmentRule" : "APP LEVEL (WaveformMatrixCompareAlignment.align): two records' tiles are matched on the STORED delivered values, never on row or column index — notes by |hzB/hzA − 1| ≤ noteToleranceRatio (0.001 ≈ 1.7 cents, inside any 12-TET lattice) and levels by |levelB − levelA| ≤ levelToleranceDB (0.05 dB, InputLevelDomain.rendersSameAxis's own display tolerance) over two-pointer merges of the ascending grids, each value pairing at most once; the shared tiles are the matched notes × the matched levels",
+      "compareBasisRule" : "APP LEVEL: the level basis is decided by the SAME predicate that renders the axes (InputLevelDomain.rendersSameAxis, #184) — same axis ⇒ matched on delivered dBFS; two calibrated rigs with different volts factors ⇒ matched on the DELIVERED VOLTAGE (levels offset by 20·log10(volts) per side before matching — the floor and anchor are voltages and pair, the rig-side −12 dBFS ceiling generally does not); a cross-domain or no-volts pair ⇒ NO level join (#117), stated, and the pane falls back to the two solo grids",
+      "expandedCaptionRule" : "APP LEVEL (WaveformMatrixView.expandedCaption): 'measured tile — <note> (<Hz>) at <level in its domain> · <periodCount> periods, <sampleCount> samples at <fs> Hz · true relative scale in this chart' — every fact a reader of a picture needs (#147)",
+      "gridLineRule" : "APP LEVEL (WaveformMatrixCompareWording.gridLine): the alignment statement is ALWAYS shown — the two shapes, and 'every tile lines up' / 'N tiles line up … the remaining tiles have no counterpart and are not compared' / 'no tile lines up' — a silent alignment is the failure; the sentence lives in the pane so exports carry it",
+      "inputDomainRule" : "APP LEVEL (#117): a hardware record with a stamped volts factor labels its levels in volts peak at the pedal input (V = fullScale·10^(dBFS/20)), a plugin record's are digital full scale — different physical quantities whose lattices are never compared as single numbers; amp_mv_pk in the reader is that arithmetic",
+      "levelToleranceDB" : 0.05,
+      "nWayRule" : "APP LEVEL (WaveformMatrixNWayAlignment.align, #196): three or more matrix records open a symmetric overlay with no anchor and no pairwise metric; the shared grid is the INTERSECTION across ALL records on the stored delivered values, record 1's values the match reference (every other record advances its own pointer; a point survives only when every record matched it — chained near-tolerance matches cannot manufacture a pairing); the level basis: every pair shares an axis ⇒ dBFS, every record calibrated ⇒ delivered volts, else incomparable ⇒ no level join and per-record solo grids, stated",
+      "noRenderingRule" : "the guide page for this kind carries NO rendered figure (#320: five Part 2 pages lack one), so the chapter includes no app rendering — every figure is the reimplementation's own",
+      "noteToleranceRatio" : 0.001,
+      "scaleDisclosureRule" : "APP LEVEL (WaveformMatrixView.scaleDisclosure): 'each tile is drawn scaled to its own loudest sample — read SHAPES in the tiles and LEVELS on the axis labels; a visibly different wave is not automatically an audibly different one' — a normalized grid without this line would let a compressor read as doing nothing; the expanded tile is drawn at true relative scale with a time axis"
+    },
+    "encoding" : {
+      "arrayRule" : "SampleArray(channel, samples): encoding = 'float32le-base64', channel 'input' or 'output', sampleCount = samples.count, data = each sample's Float32 bit pattern little-endian, 4 bytes per sample (base64 in the payload JSON — JSONEncoder encodes Data as base64); each array carries its encoding, count and channel explicitly so a reader never infers the layout (ballot decision 4)",
+      "encoding" : "float32le-base64",
+      "payloadRule" : "the payload is the WaveformMatrixResult encoded as JSON (sorted keys); rowNoiseRMS is ADDITIVE and nil-omitted (a legacy payload decodes nil and wears no badge); the worst case the ballot accepted is ≈ 466 KB of samples at 5×5 (every row at E2, 96 kHz), landing ≈ 640 KB encoded — the kernel pins the encoded size under 800 KB",
+      "periodCountRule" : "periodCount is DATA, not format (the ballot fixes 'a fixed small number of periods'; 2 is the default, 3 permitted if the pane reads better; the arrays carry their own counts)",
+      "refusalRule" : "samples() returns nil — a refusal the caller states, never an empty array — when the encoding is not the one the app writes OR data.count ≠ sampleCount·4; otherwise the samples decoded from little-endian bit patterns"
+    },
+    "extraction" : {
+      "latencyRule" : "latencySamples is the embedded calibration's roundTripLatencySamples on the hardware path (the LoopbackCalibrator's cross-correlation estimate); the plugin path measures its latency per capture inside PluginRig and hands a zero-latency capture; Simulation Mode passes 0",
+      "outputWindowRule" : "the output tile is the SAME time span at the calibrated latency: capturedStart = prerollSamples + latencySamples + start, the capture's samples capturedStart…capturedStart+count−1 as Float32 — so the device's phase shift between input and output is PRESERVED in the picture, never aligned away",
+      "resultRule" : "result(tiles, rowNoiseRMS) = WaveformMatrixResult(sampleRate, periodCount, frequenciesHz, amplitudesDBFS, tiles, rowNoiseRMS) — the ACTUAL delivered frequencies and levels, never the requested ranges (ballot decision 3: capture, never transcribe)",
+      "shortCaptureThrowRule" : "if capturedStart < 0 or capturedStart + count > captured.count the plan THROWS ExtractionFailure('Capture too short for the tile at … (need … samples at offset …, have …)') — a silently short tile would be a fabricated measurement (the #140 truncation law); the app wraps it as 'The capture came back too short to cut waveform tiles from — … Check the calibration's latency and run again.'",
+      "startRule" : "for each step: window = measureRange(step) (the stepped tone's own); cycle = ceil(window.lowerBound·f0/fs); start = max(round(cycle·fs/f0), window.lowerBound) — the first sample at or after the window's start whose stimulus phase is a whole number of cycles, i.e. an UPWARD ZERO CROSSING of the input (a start-index choice, not a resample); the input tile is Float32 of the tone's samples start…start+count−1",
+      "tileSampleRule" : "tileSampleCount(frequencyIndex) = round(periodCount·fs / f0) — a whole number of periods ROUNDED to the capture rate, never resampled; the stored count is explicit in the payload",
+      "windowThrowRule" : "if start + count > window.upperBound − rampSamples the plan THROWS ExtractionFailure('Tile at … does not fit its measurement window (… samples needed, … available)') — a tile is never cut across the next step's ramp; with the default period count this cannot fire at any note (the measurement window holds at least four cycles and the tile two), it fires when periodCount exceeds the window's cycles"
+    },
+    "lattice" : {
+      "amplitudeRefinementRule" : "ANCHOR-CENTRED PER-SIDE REFINEMENT: while points remain, the anchor's index is found by |x − anchor| < 1e−12 (a literal), the side with fewer interior points is chosen (below: indices 0…anchor; above: anchor…last; ties to the QUIET side), and that side's widest gap (the FIRST widest, by strict > over increasing index — the #372 tie) is split at its arithmetic midpoint in dB; so at every odd dimension the anchor sits at the CENTRE INDEX and smaller lattices are subsets of larger ones; the steps are UNEVEN by ruling (reference rig 3×3: −48/−26/−12, steps 22 and 14 dB)",
+      "amplitudeSeedRule" : "amplitudesDBFS(count, floorDBFS, ceilingDBFS, anchorDBFS): [floor, ceiling] seed the lattice; count 1 returns the ceiling alone; the anchor joins only when count ≥ 3 AND floor + 0.5 < anchor < ceiling − 0.5 (the 0.5 dB margin is a literal) — then the anchor is ON the lattice at every dimension",
+      "anchorRule" : "anchorDBFS(voltsAtFullScale) = 20·log10(PSC1.anchorVoltsPeak / volts) when a positive volts factor is known — the dBFS that delivers the standard drive's 168 mV pk at the pedal on THAT rig — and LevelMatchProbe.defaultDriveDBFS (−26) where no volts exist (the plugin render path, an uncalibrated rig); on the reference rig (0 dBFS = 3.35 V pk) the two agree by construction; the anchor is a VOLTAGE, dBFS is rig-relative",
+      "anchorVoltsPeak" : 0.168,
+      "canonicalDimensionRule" : "canonicalDimension(stored): a persisted dimension outside dimensionChoices (the retired 4, garbage) resolves to defaultDimension rather than fabricating a non-canonical lattice; 5×5 is the one default (3×3's only sub-anchor sample IS the floor — no point in the 22 dB floor-to-anchor gap where dead zones and clipping onset live)",
+      "ceilingRule" : "the ceiling is ABSOLUTE: defaultCeilingDBFS (−12) is a RIG-side constraint (the loudest standard probe rung, converter-protection staging), so it does not move with the volts factor; the plugin path's ceiling is pluginCeilingDBFS (0 — float renders cannot clip)",
+      "centreRule" : "the CENTRE guarantee: the middle TILE is the standard DRIVE (the amplitude anchor at the centre index) at the span's MIDDLE NOTE (the snapped log-midpoint — E4 on the default span), deliberately NOT the standard note; the CROSS-CHECK guarantee is a different row (E2, a corner row on the default span) and the two are never conflated; on a span where the anchor is interior, membership wins over side symmetry",
+      "defaultCeilingDBFS" : -12,
+      "defaultDimension" : 5,
+      "defaultFloorDBFS" : -48,
+      "defaultFloorSpanBelowAnchorDB" : 22,
+      "defaultHighFrequencyHz" : 1318.5102276514797,
+      "defaultLowFrequencyHz" : 82.4,
+      "delivered" : [
+        {
+          "amplitudesDBFS" : [
+            -48,
+            -26,
+            -12
+          ],
+          "anchorDBFS" : -26,
+          "dimension" : 3,
+          "floorDBFS" : -48,
+          "noteNames" : [
+            "E2",
+            "E4",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            329.6275569128699,
+            1318.5102276514797
+          ]
+        },
+        {
+          "amplitudesDBFS" : [
+            -47.99471050621965,
+            -25.994710506219647,
+            -12
+          ],
+          "anchorDBFS" : -25.994710506219647,
+          "dimension" : 3,
+          "floorDBFS" : -47.99471050621965,
+          "noteNames" : [
+            "E2",
+            "E4",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            329.6275569128699,
+            1318.5102276514797
+          ],
+          "voltsAtFullScale" : 3.35
+        },
+        {
+          "amplitudesDBFS" : [
+            -51.16736034185658,
+            -29.16736034185658,
+            -12
+          ],
+          "anchorDBFS" : -29.16736034185658,
+          "dimension" : 3,
+          "floorDBFS" : -51.16736034185658,
+          "noteNames" : [
+            "E2",
+            "E4",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            329.6275569128699,
+            1318.5102276514797
+          ],
+          "voltsAtFullScale" : 4.827
+        },
+        {
+          "amplitudesDBFS" : [
+            -51.16915959398898,
+            -29.169159593988976,
+            -12
+          ],
+          "anchorDBFS" : -29.169159593988976,
+          "dimension" : 3,
+          "floorDBFS" : -51.16915959398898,
+          "noteNames" : [
+            "E2",
+            "E4",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            329.6275569128699,
+            1318.5102276514797
+          ],
+          "voltsAtFullScale" : 4.828
+        },
+        {
+          "amplitudesDBFS" : [
+            -48,
+            -37,
+            -26,
+            -19,
+            -12
+          ],
+          "anchorDBFS" : -26,
+          "dimension" : 5,
+          "floorDBFS" : -48,
+          "noteNames" : [
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            164.81377845643496,
+            329.6275569128699,
+            659.2551138257398,
+            1318.5102276514797
+          ]
+        },
+        {
+          "amplitudesDBFS" : [
+            -47.99471050621965,
+            -36.99471050621965,
+            -25.994710506219647,
+            -18.997355253109824,
+            -12
+          ],
+          "anchorDBFS" : -25.994710506219647,
+          "dimension" : 5,
+          "floorDBFS" : -47.99471050621965,
+          "noteNames" : [
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            164.81377845643496,
+            329.6275569128699,
+            659.2551138257398,
+            1318.5102276514797
+          ],
+          "voltsAtFullScale" : 3.35
+        },
+        {
+          "amplitudesDBFS" : [
+            -51.16736034185658,
+            -40.16736034185658,
+            -29.16736034185658,
+            -20.58368017092829,
+            -12
+          ],
+          "anchorDBFS" : -29.16736034185658,
+          "dimension" : 5,
+          "floorDBFS" : -51.16736034185658,
+          "noteNames" : [
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            164.81377845643496,
+            329.6275569128699,
+            659.2551138257398,
+            1318.5102276514797
+          ],
+          "voltsAtFullScale" : 4.827
+        },
+        {
+          "amplitudesDBFS" : [
+            -51.16915959398898,
+            -40.16915959398898,
+            -29.169159593988976,
+            -20.58457979699449,
+            -12
+          ],
+          "anchorDBFS" : -29.169159593988976,
+          "dimension" : 5,
+          "floorDBFS" : -51.16915959398898,
+          "noteNames" : [
+            "E2",
+            "E3",
+            "E4",
+            "E5",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            164.81377845643496,
+            329.6275569128699,
+            659.2551138257398,
+            1318.5102276514797
+          ],
+          "voltsAtFullScale" : 4.828
+        },
+        {
+          "amplitudesDBFS" : [
+            -48,
+            -42.5,
+            -37,
+            -26,
+            -22.5,
+            -19,
+            -12
+          ],
+          "anchorDBFS" : -26,
+          "dimension" : 7,
+          "floorDBFS" : -48,
+          "noteNames" : [
+            "E2",
+            "A♯2",
+            "E3",
+            "E4",
+            "A♯4",
+            "E5",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            116.54094037952248,
+            164.81377845643496,
+            329.6275569128699,
+            466.1637615180899,
+            659.2551138257398,
+            1318.5102276514797
+          ]
+        },
+        {
+          "amplitudesDBFS" : [
+            -47.99471050621965,
+            -42.49471050621965,
+            -36.99471050621965,
+            -25.994710506219647,
+            -22.496032879664735,
+            -18.997355253109824,
+            -12
+          ],
+          "anchorDBFS" : -25.994710506219647,
+          "dimension" : 7,
+          "floorDBFS" : -47.99471050621965,
+          "noteNames" : [
+            "E2",
+            "A♯2",
+            "E3",
+            "E4",
+            "A♯4",
+            "E5",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            116.54094037952248,
+            164.81377845643496,
+            329.6275569128699,
+            466.1637615180899,
+            659.2551138257398,
+            1318.5102276514797
+          ],
+          "voltsAtFullScale" : 3.35
+        },
+        {
+          "amplitudesDBFS" : [
+            -51.16736034185658,
+            -45.66736034185658,
+            -40.16736034185658,
+            -29.16736034185658,
+            -24.875520256392434,
+            -20.58368017092829,
+            -12
+          ],
+          "anchorDBFS" : -29.16736034185658,
+          "dimension" : 7,
+          "floorDBFS" : -51.16736034185658,
+          "noteNames" : [
+            "E2",
+            "A♯2",
+            "E3",
+            "E4",
+            "A♯4",
+            "E5",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            116.54094037952248,
+            164.81377845643496,
+            329.6275569128699,
+            466.1637615180899,
+            659.2551138257398,
+            1318.5102276514797
+          ],
+          "voltsAtFullScale" : 4.827
+        },
+        {
+          "amplitudesDBFS" : [
+            -51.16915959398898,
+            -40.16915959398898,
+            -34.66915959398898,
+            -29.169159593988976,
+            -20.58457979699449,
+            -16.292289898497245,
+            -12
+          ],
+          "anchorDBFS" : -29.169159593988976,
+          "dimension" : 7,
+          "floorDBFS" : -51.16915959398898,
+          "noteNames" : [
+            "E2",
+            "A♯2",
+            "E3",
+            "E4",
+            "A♯4",
+            "E5",
+            "E6"
+          ],
+          "notesHz" : [
+            82.4,
+            116.54094037952248,
+            164.81377845643496,
+            329.6275569128699,
+            466.1637615180899,
+            659.2551138257398,
+            1318.5102276514797
+          ],
+          "voltsAtFullScale" : 4.828
+        }
+      ],
+      "dimensionChoices" : [
+        3,
+        5,
+        7
+      ],
+      "floorRule" : "the default floor is a SPAN below the anchor, never a dBFS constant: defaultFloorDBFS(anchorDBFS) = anchor − defaultFloorSpanBelowAnchorDB (22 dB) — a constant voltage at the device (13.3 mV pk on every calibrated rig, 12 dB below the Reference Box P6's measured 55 mV dead-zone handover), −48 dBFS only as its no-volts expression; an explicit user floor is honoured as set (the sheet passes nil for an untouched slider)",
+      "nestingRule" : "both axes REFINE, so lattices NEST across dimensions: 3 ⊂ 5 ⊂ 7 by construction on every path (an even divider misses itself across dimensions; measured: its N = 4 lost E4, its N = 5 lost G♯3 and C5) — one library holds matrices at different dimensions and the value-matched Compare pairs them point for point; the 3- and 5-point lattices are UNCHANGED from the pre-ruling generator (a load-bearing invariant pinned by the kernel, not a coincidence)",
+      "noAnchorRule" : "with no usable anchor (nil, or outside the span by the margin) the lattice refines from the endpoints alone — the widest gap split at its midpoint, ties to the quieter gap — so nesting still holds and no centre claim is made; a point outside the span is never fabricated",
+      "noVoltsAnchorDBFS" : -26,
+      "noteAnchorHz" : 82.4,
+      "noteAnchorIsTheTransferDefault" : true,
+      "noteRefinementRule" : "per-side refinement around the CENTRE while points remain: the side with fewer interior points is filled first (ties to the LOW side); within a side the gaps are ordered by log width descending (ties by lower index), and the first gap whose snapped log-midpoint lies strictly inside it receives that point; a gap whose snapped midpoint collides with an endpoint is skipped; when no gap on any side accepts a point the lattice returns fewer points HONESTLY (a narrow span never stores the same delivered note twice); without a centre the whole span is one side",
+      "noteSeedRule" : "noteFrequencies(count, lowHz, highHz, anchorHz): the snapped endpoints seed the lattice; TWO DISTINCT GUARANTEES, seeded in precedence order — (1) CROSS-CHECK: when count ≥ 3 and the snapped anchor lies strictly inside the span it is inserted (so the standard note is on every lattice whose span holds it; on the default span it is the low endpoint); (2) CENTRE: the snapped log-midpoint √(low·high) is the centre when it lies strictly inside the span — kept if already present, inserted while room remains; on the default E2–E6 span the centre is E4",
+      "noteSnapRule" : "every candidate frequency is SNAPPED to a note: MusicalPitch.describe(frequency:) names the nearest 12-TET pitch (A4 = 440 Hz, midi = 69 + 12·log2(f/440), rounded; nil outside midi 0…127), and TransferCurvePlan.frequency(note:) returns E2 as the app's standard 82.4 Hz (never 12-TET's 82.407) and every other name as exact 12-TET; a span whose ends do not snap returns no lattice; count 1 returns the low end alone",
+      "pluginCeilingDBFS" : 0,
+      "tieRule" : "#372, REPRODUCED never fixed: at 7×7 the quiet side's second insertion must split one of two EXACTLY equal gaps (the 22 dB floor-to-anchor span halved), and strict > on floating-point widths decides it by the rounding residue of anchor − 22 and (floor + anchor)/2 — so adjacent volts factors on one rig (4.827 and 4.828 on a Babyface Pro) deliver different quiet-side lattices; the delivered block records what each factor delivers; a deterministic tie-break is a corpus event under the nesting law",
+      "voltsFactors" : [
+        3.35,
+        4.827,
+        4.828
+      ]
+    },
+    "noise" : {
+      "appSiteRule" : "App/PedalScope/Services/MeasurementService.swift measureWaveformMatrix(transport:calibration:dimension:lowFrequencyHz:highFrequencyHz:floorDBFS:ceilingDBFS:progress:rowDone:): the anchor from calibration.voltsAtFullScale, the default floor as the span below it, one capture per row through the transport with the pre-roll as its noise region, the stamp inline, tiles at calibration.roundTripLatencySamples, a too-short capture rethrown with the calibration named",
+      "badgeRule" : "a tile wears the '≈ noise' badge when its margin is < noiseClearMarginDB (6 dB — the #118 thdNoiseClearMarginDB convention); the badge's register is #197's: 'this tile's output sits N dB above/below the row's measured noise floor — most of what you see is the rig's and device's own noise, not shaping of the tone' — never 'below a floor' (the wave IS drawn) and never a device claim",
+      "dcTailRule" : "#267, a limit the stamp carries: the pre-roll rms reads whatever the capture holds there, and on a rectifying device the PREVIOUS row's loudest step decaying through the output coupling capacitor is still present 0.2 s later — a DC tail, not noise; measured on the Reference Box P4/P5 on two dates (rows 2…7 at 8–16× the first row's stamp on a ≈ 30 kΩ load, 100–230× on a 1 MΩ load); the badge then reads against a floor too high; whether the stamp should be mean-removed, the pre-roll lengthened, or the DC stated beside the rms is undecided (#267, with #389)",
+      "marginRule" : "noiseMarginDB(output, rowNoiseRMS) = 20·log10(rms(output) / rowNoiseRMS) — nil when the record carries no stamp or the stamp is ≤ 0 or the tile is empty (absence honest: no badge either way), −∞ for a silent tile; the record-level form reads the tile and its row's stamp",
+      "noiseClearMarginDB" : 6,
+      "noiseStampRule" : "A MIRROR, stated: the row noise stamp is NOT in the plan. Both call sites compute it inline by the same expression — rowNoiseRMS[row] = √(Σ x² / N) over the capture's first min(prerollSamples, captured.count) samples, 0 when that window is empty — App/PedalScope/Services/MeasurementService.swift (measureWaveformMatrix, the noiseWindow block) and Packages/MeasureKit/Sources/MeasureKit/Analysis/ModelMeasurer.swift (waveformMatrix(of:quality:), the noise block); the oracle reproduces it once in MatrixSynthDump.noiseStamp; a plan-owned stamp (the #389 CompressionPlan's noiseWindow, shared by both kinds) retires the mirror",
+      "simulationSiteRule" : "Packages/MeasureKit/Sources/MeasureKit/Analysis/ModelMeasurer.swift waveformMatrix(of:quality:): the no-volts anchor, quality.matrixDimension (3 at interactive — the reference lattice −48/−26/−12 × E2/E4/E6, nested in the 5×5 by the refinement law; defaultDimension at full), rows rendered CONCURRENTLY through model.render as INDEPENDENT captures (each row from zero state — device state is not carried between rows, so no previous-row tail can reach a pre-roll), the same stamp expression (a deterministic model renders numerical silence there, ≈ 4e−12 rms measured), latency 0",
+      "statisticsRule" : "SampleStatistics(samples) over Float32 samples accumulated in Double: rms = √(Σ x²/N), peak = max |x|, mean = Σ x/N (the #267 DC-tail evidence); all linear re full scale; zeros for an empty array"
+    },
+    "shippedConstants" : {
+      "MatrixDevice.crossoverDeadZoneDefault" : 0.016405897731995387,
+      "WaveformMatrixPlan.defaultCeilingDBFS" : -12,
+      "WaveformMatrixPlan.defaultDimension" : 5,
+      "WaveformMatrixPlan.defaultFloorDBFS" : -48,
+      "WaveformMatrixPlan.defaultFloorSpanBelowAnchorDB" : 22,
+      "WaveformMatrixPlan.defaultHighFrequencyHz" : 1318.5102276514797,
+      "WaveformMatrixPlan.defaultLowFrequencyHz" : 82.4,
+      "WaveformMatrixPlan.defaultPeriodCount" : 2,
+      "WaveformMatrixPlan.dimensionChoices" : [
+        3,
+        5,
+        7
+      ],
+      "WaveformMatrixPlan.noteAnchorHz" : 82.4,
+      "WaveformMatrixPlan.pluginCeilingDBFS" : 0,
+      "WaveformMatrixResult.SampleArray.float32LittleEndianBase64" : "float32le-base64",
+      "WaveformMatrixResult.noiseClearMarginDB" : 6
+    },
+    "stimulus" : {
+      "defaultPeriodCount" : 2,
+      "defaultRows" : [
+        [
+          82.4,
+          14400,
+          24466,
+          1920,
+          232730,
+          2330
+        ],
+        [
+          164.81377845643496,
+          14400,
+          23881,
+          1920,
+          229805,
+          1165
+        ],
+        [
+          329.6275569128699,
+          14400,
+          23881,
+          1920,
+          229805,
+          582
+        ],
+        [
+          659.2551138257398,
+          14400,
+          24027,
+          1920,
+          230535,
+          291
+        ],
+        [
+          1318.5102276514797,
+          14400,
+          24027,
+          1920,
+          230535,
+          146
+        ]
+      ],
+      "measureS" : 0.25,
+      "orderRule" : "rows are captured in ascending frequency order; within a row the steps ascend in amplitude; the payload's tiles are row-major (every amplitude of frequenciesHz[0], then the next row)",
+      "prerollS" : 0.2,
+      "prerollSamples" : 19200,
+      "rampRule" : "the ramp is SteppedToneSignal.init's default rampDuration (0.02 s — chapter five's stimulus block); the plan passes settle and measure explicitly and no ramp",
+      "rowRule" : "ONE capture per frequency ROW: rowStimulus(frequencyIndex) = Int(prerollDuration·fs) samples of silence, the row's stepped tone, Int(tailDuration·fs) samples of silence — the pre-roll is the row's own noise window (#47's discipline), the tail lets the device's response end inside the capture",
+      "sampleRateHz" : 96000,
+      "settleS" : 0.15,
+      "sharedToneRule" : "SteppedToneSignal is shared with Compression (settle 0.15 s, measure 0.25 s, ramp 0.02 s — the same values Compression's default arguments deliver, here passed explicitly by the plan) and with LevelMatchProbe; a change to the tone moves both instruments",
+      "tailS" : 0.2,
+      "tailSamples" : 19200,
+      "toneRule" : "rowSignal(frequencyIndex) = SteppedToneSignal(frequency: frequenciesHz[row], sampleRate, amplitudes: 10^(amplitudesDBFS/20) quiet to loud, settleDuration, measureDuration) — the compression chapter's stimulus (its cycle snap, ramp, phase continuity and final fade all apply), walked over the AMPLITUDE lattice with the first sound of every row its quietest step (#151)"
+    },
+    "synthesis" : {
+      "carriedStateRule" : "DEFAULT: device state is CARRIED across rows — the rows' stimuli are concatenated in capture order, rendered ONCE through the device (the filters from zero state at the start of the first row only), and each row's capture is its slice of that stream; under the loop's latency the first latency samples of row r are the stream just before row r's stimulus (the previous row's tail, as a real capture holds it) — a physical pedal's coupling capacitor does not reset between rows",
+      "crossCheckRule" : "--cross-check: TransferCurvePlan.analyze on the same device at the note anchor and the transfer amplitude (0.05 by default, the app's TransferCurvePlan.defaultAmplitude; the anchor tile's is 10^(−26/20), a ratio of 0.02 dB, stated) against the anchor tile read at the analyzer's bin-centre phases by linear interpolation between its samples in every period and averaged — bin for bin in the cycle's own units; the transfer analyzer averages every cycle after its skipped start cycles, the tone's END fade included, so its cycle sits under the tone by the fade's share (input_deficit_db), which is the frame's own difference the identity control measures",
+      "crossoverDeadZone" : 0.016405897731995387,
+      "crossoverRule" : "the crossover (dead-zone) device is the kernel requirement test's closure restated — y = x − d above d, x + d below −d, exactly 0 between — with d defaulting to the test's own 10^(−35.7/20) (the Reference Box P6's measured handover); it lives in the oracle, never in MeasureKit; its truth is memoryless only (a filtered crossover is refused)",
+      "deviceRule" : "pre-filter → a ReferenceNonlinearity (per sample at fs) or the crossover kind → post-filter → optional sign flip (MatrixDevice; the filters are the transfer oracle's shipped biquads)",
+      "independentRowsRule" : "--independent-rows: each row rendered from zero state, Simulation Mode's shape (ModelMeasurer renders rows independently and concurrently) — under which no previous-row tail can exist in a pre-roll",
+      "loopRule" : "each row's capture is the rendered output delayed by latencySamples (the capture keeps the row's length; silence, or the carried stream, fills the first latencySamples), plus the row's OWN seeded white Gaussian noise stream at the interface's input over the WHOLE capture (the pre-roll included, so the stamp reads it), then scaled by 10^(chainGainDB/20) — signal and noise alike; the tiles are cut at latencySamples + latencyErrorSamples (a nonzero error is a stated mis-cut); every lattice value, every start index and every badge is invariant to the gain while the stamp and the output statistics move by exactly it",
+      "noiseSeedRule" : "row r's stream is SynthDump.repeatSeed(base, r) — the seed-sequence discipline (never seed + r·γ with SplitMix64's own increment, which shifts rather than reseeds)",
+      "refusalsRule" : "--refusals runs the four refusals on the real code and prints each outcome: an unknown encoding and a count mismatch (SampleArray.samples() nil, through a JSON round trip with one field tampered), a capture ONE sample short of the last tile (tiles throws), and a period count no measurement window can hold (tiles throws)",
+      "rowRule" : "one row per tile in row-major order: the delivered note (index, Hz, name, cents) and level (index, dBFS, mV pk when a factor is known), the tile's start in the stimulus and in the capture, its sample count, the input's and output's rms / peak / mean, the row stamp, the margin and the badge, the Float32 quantization (max |stored − float64 capture|), the stored dead fraction, then the truth's kind, max and rms error, statistics, stamp, margin, badge and dead fraction",
+      "stampMirrorRule" : "the row noise stamp (noise.noiseStampRule) reproduced once in MatrixSynthDump.noiseStamp — √(Σ x²/N) over the capture's first prerollSamples — the ONE mirror; the grid, the stimulus, the cut and the payload are the shipped plan's own calls",
+      "truthRule" : "per tile: a memoryless unfiltered device's truth is its function of the float64 TONE at the tile's own samples (exact — the stored tile is that to Float32 rounding, ≈ 6e−8 relative); a device behind filters is the steady-state series through the filters' analytic responses (TransferTruth's 200-order Fourier series of the clipper's output at the pre-filter's delivered drive, each order scaled and rotated by the post-filter's response, evaluated at each sample's stimulus phase reduced mod 2π), so the stored tile's departure from it is what the settle window left of the step's transient plus Float32; the chain gain scales both; truth statistics are taken on the Float32-rounded truth, like for like",
+      "truthStampRule" : "the truth stamp is the injected noise rms times the chain gain (nil without noise); the measured stamp's excess over it (# stamps excess_db) is the pre-roll estimate's own scatter — or, on a carried-state rectifier behind a coupling capacitor, the #267 tail; the truth margin and badge are the shipped read-time calls on the truth tile against the truth stamp"
+    }
   }
 }

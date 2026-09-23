@@ -29,6 +29,9 @@ Writes into Docs/Methods/generated/:
   parity-journey.tex    the Gain Map parity run's numbers (same rule)
   parameters-compression.tex  the Compression parameter table (#306 chapter five)
   parity-compression.tex  the Compression parity run's numbers (same rule)
+  parameters-matrix.tex  the Waveform Matrix parameter table (#306 chapter six)
+  lattice-matrix.tex  the delivered lattices and the premise macros (same rule)
+  parity-matrix.tex  the Waveform Matrix parity run's numbers (same rule)
 """
 from __future__ import annotations
 
@@ -272,6 +275,18 @@ def bars_compression():
             ("cparityKnee", P.T_KNEE_DB), ("cparityCleanup", P.T_CLEANUP_DB), ("cparityStamp", P.T_STAMP_DB),
             ("cparityGain", P.T_GAIN_DB), ("cparityLatency", P.T_LATENCY_DB), ("cparityMiscut", P.T_MISCUT_DB),
             ("cparitySeparationOverBar", P.T_SEPARATION_OVER_BAR_DB)]
+
+
+def bars_matrix():
+    import parity_matrix as P
+    return [("mparityPayloadBytes", P.T_PAYLOAD_BYTES), ("mparitySwiftRelative", P.T_SWIFT_RELATIVE),
+            ("mparitySwiftRelativeFiltered", P.T_SWIFT_RELATIVE_FILTERED), ("mparitySwiftMean", P.T_SWIFT_MEAN_ABSOLUTE),
+            ("mparitySwiftError", P.T_SWIFT_ERROR_ABSOLUTE), ("mparitySwiftMargin", P.T_SWIFT_MARGIN_DB),
+            ("mparitySwiftStamp", P.T_SWIFT_STAMP_RELATIVE), ("mparitySwiftStampAbsolute", P.T_SWIFT_STAMP_ABSOLUTE),
+            ("mparitySwiftCross", P.T_SWIFT_CROSS), ("mparityFastFilter", P.T_FAST_FILTER_RELATIVE),
+            ("mparityFastBeyondQuantization", P.T_FAST_FILTER_BEYOND_QUANTIZATION),
+            ("mparitySlowCeiling", P.T_SLOW_FILTER_CEILING_RELATIVE), ("mparityTailExcess", P.T_DC_TAIL_EXCESS_DB),
+            ("mparityStamp", P.T_STAMP_DB), ("mparityGain", P.T_GAIN_DB), ("mparityCrossControlBar", P.T_CROSS_CHECK_CONTROL_RE_PEAK)]
 
 
 def bar_lines(bars):
@@ -1208,6 +1223,224 @@ def gen_parity_compression(m):
     write(os.path.join(GENERATED, "parity-compression.tex"), "".join(out))
 
 
+# --- The Waveform Matrix chapter's fragments (#306 chapter six) -----------
+
+
+def _note_and_hz(hz: float) -> str:
+    return "%s (%s Hz)" % (nearest_note(hz), num(hz, 5))
+
+
+def gen_parameters_matrix(wm):
+    lat, st, ex, en, no, ap, sy = (wm[k] for k in ("lattice", "stimulus", "extraction", "encoding", "noise", "appLevel", "synthesis"))
+    anchor_margin = _rule_number(lat["amplitudeSeedRule"], r"floor \+ ([0-9.]+) < anchor")
+    anchor_match = _rule_number(lat["amplitudeRefinementRule"], r"\|x − anchor\| < ([0-9e−-]+)")
+    ramp = _rule_number(st["rampRule"], r"rampDuration \(([0-9.]+) s")
+    rows = [
+        ("Lattices", None),
+        (r"dimensions offered / the default", ", ".join(num(d) for d in lat["dimensionChoices"]) + " / " + num(lat["defaultDimension"])),
+        (r"default note span (low / high)", _note_and_hz(lat["defaultLowFrequencyHz"]) + " / " + _note_and_hz(lat["defaultHighFrequencyHz"])),
+        (r"note anchor (the transfer curve's standard note)", _note_and_hz(lat["noteAnchorHz"]) + (" --- equal to the transfer default" if lat["noteAnchorIsTheTransferDefault"] else " --- NOT the transfer default")),
+        (r"voltage anchor / its no-volts expression", num(1000 * lat["anchorVoltsPeak"]) + " mV pk / " + num(lat["noVoltsAnchorDBFS"]) + " dBFS"),
+        (r"default floor: span below the anchor / no-volts expression", num(lat["defaultFloorSpanBelowAnchorDB"]) + " dB / " + num(lat["defaultFloorDBFS"]) + " dBFS"),
+        (r"ceiling (absolute) / plugin ceiling", num(lat["defaultCeilingDBFS"]) + " / " + num(lat["pluginCeilingDBFS"]) + " dBFS"),
+        (r"anchor admission margin / anchor match (literals)", anchor_margin + " dB / " + anchor_match),
+        ("Stimulus", None),
+        (r"pre-roll / tail silence", num(st["prerollS"]) + " s / " + num(st["tailS"]) + " s"),
+        (r"settle / measure (passed by the plan) / ramp (the tone's default)", num(st["settleS"]) + " s / " + num(st["measureS"]) + " s / " + ramp + " s"),
+        (r"periods per tile (the default)", num(st["defaultPeriodCount"])),
+        (r"pre-roll / tail samples at " + num(st["sampleRateHz"]) + " Hz", num(st["prerollSamples"]) + " / " + num(st["tailSamples"])),
+        ("Encoding", None),
+        (r"sample array encoding", r"\texttt{" + tex_escape(en["encoding"]) + "}"),
+        ("Noise", None),
+        (r"clear margin (the badge fires below it)", num(no["noiseClearMarginDB"]) + " dB over the row stamp"),
+        ("App level (stated, not paritied)", None),
+        (r"anchor disclosure tolerance", num(ap["anchorToleranceDB"]) + " dB"),
+        (r"compare: level tolerance / note tolerance", num(ap["levelToleranceDB"]) + " dB / " + num(ap["noteToleranceRatio"]) + r" ($\approx$ 1.7 cents)"),
+        (r"Oracle (\texttt{analysisdump matrix-synth})", None),
+        (r"crossover dead zone (the kernel test's)", num(sy["crossoverDeadZone"], 5) + " (" + num(20 * math.log10(sy["crossoverDeadZone"]), 4) + " dBFS)"),
+    ]
+    out = ["% GENERATED by gen_docs.py from generated/manifest.json — do not edit\n",
+           r"\begin{longtable}{@{}p{0.55\linewidth}p{0.4\linewidth}@{}}" + "\n",
+           r"\toprule Parameter & Value \\ \midrule \endhead" + "\n"]
+    for label, value in rows:
+        if value is None:
+            out.append(r"\multicolumn{2}{@{}l}{\textbf{%s}} \\" % label + "\n")
+        else:
+            out.append(f"{label} & {value} \\\\\n")
+    out.append(r"\bottomrule" + "\n" + r"\end{longtable}" + "\n")
+    write(os.path.join(GENERATED, "parameters-matrix.tex"), "".join(out))
+
+
+def gen_lattice_matrix(wm):
+    """The delivered lattices at 3/5/7 and the four factors, and the macros
+    the chapter's sentences assert their premises with."""
+    lat = wm["lattice"]
+    delivered = lat["delivered"]
+
+    def entry(dimension, volts):
+        return next(e for e in delivered if e["dimension"] == dimension and e.get("voltsAtFullScale") == volts)
+
+    out = ["% GENERATED by gen_docs.py from generated/manifest.json — do not edit\n"]
+    # The per-row table of the default 5×5 at the manifest's rate (the
+    # stimulus section quotes it before the parameter table is input).
+    st = wm["stimulus"]
+    out.append(r"\newcommand{\mlatRowTable}{" + "\n")
+    out.append(r"\begin{tabular}{@{}lrrrrrr@{}}" + "\n")
+    out.append(r"\toprule note & $f_0$ (Hz) & settle & measure & ramp & row & tile \\ \midrule" + "\n")
+    for f0, settle, measure, ramp_n, row_n, tile_n in st["defaultRows"]:
+        out.append("%s & %s & %s & %s & %s & %s & %s \\\\\n" % (nearest_note(f0), num(f0, 5), num(int(settle)), num(int(measure)), num(int(ramp_n)), num(int(row_n)), num(int(tile_n))))
+    out.append(r"\bottomrule" + "\n" + r"\end{tabular}" + "\n}\n")
+    # The note ladder at each dimension (no factor: the note lattice does not depend on it).
+    out.append(r"\newcommand{\mlatNoteTable}{" + "\n")
+    out.append(r"\begin{tabular}{@{}rl@{}}" + "\n" + r"\toprule $N$ & notes \\ \midrule" + "\n")
+    for d in lat["dimensionChoices"]:
+        e = entry(d, None)
+        out.append("%d & %s \\\\\n" % (d, " $\\cdot$ ".join(tex_escape(n) for n in e["noteNames"])))
+    out.append(r"\bottomrule" + "\n" + r"\end{tabular}" + "\n}\n")
+    # The amplitude lattices: rows = (dimension, factor), columns = the levels.
+    out.append(r"\newcommand{\mlatAmplitudeTable}{" + "\n")
+    out.append(r"\begin{tabular}{@{}rlrl@{}}" + "\n" + r"\toprule $N$ & factor (V pk at 0 dBFS) & anchor (dBFS) & levels (dBFS) \\ \midrule" + "\n")
+    for d in lat["dimensionChoices"]:
+        for v in [None] + list(lat["voltsFactors"]):
+            e = entry(d, v)
+            out.append("%d & %s & %s & %s \\\\\n" % (d, "none" if v is None else num(v), num(e["anchorDBFS"], 5),
+                                                   ", ".join(num(a, 5) for a in e["amplitudesDBFS"])))
+    out.append(r"\bottomrule" + "\n" + r"\end{tabular}" + "\n}\n")
+    # Premises the sentences state — asserted here, never typed.
+    default5 = entry(5, None)
+    assert default5["noteNames"][0] == nearest_note(lat["noteAnchorHz"]), "E2 is not the first row of the default lattice"
+    assert abs(default5["amplitudesDBFS"][2] - lat["noVoltsAnchorDBFS"]) < 1e-12, "the anchor is not at the centre of the default 5"
+    assert abs(default5["floorDBFS"] - (lat["noVoltsAnchorDBFS"] - lat["defaultFloorSpanBelowAnchorDB"])) < 1e-12
+    for d in lat["dimensionChoices"]:
+        for v in [None] + list(lat["voltsFactors"]):
+            e = entry(d, v)
+            assert abs(e["amplitudesDBFS"][d // 2] - e["anchorDBFS"]) < 1e-12, "the anchor is off the centre index"
+            assert e["amplitudesDBFS"][-1] == lat["defaultCeilingDBFS"], "the ceiling moved"
+            assert e["noteNames"][d // 2] == "E4", "the centre note is not E4"
+            assert lat["noteAnchorHz"] in e["notesHz"], "the note anchor is off the lattice"
+    for v in [None] + list(lat["voltsFactors"]):
+        for a, b in zip(lat["dimensionChoices"], lat["dimensionChoices"][1:]):
+            assert set(entry(a, v)["amplitudesDBFS"]) <= set(entry(b, v)["amplitudesDBFS"]), "the amplitude lattices do not nest"
+            assert set(entry(a, v)["notesHz"]) <= set(entry(b, v)["notesHz"]), "the note lattices do not nest"
+    tie_a, tie_b = entry(7, 4.827)["amplitudesDBFS"], entry(7, 4.828)["amplitudesDBFS"]
+    differing = sum(abs(x - y) > 0.5 for x, y in zip(tie_a, tie_b))
+    assert differing == 4, differing
+    out.append(r"\newcommand{\mlatTieDiffering}{%d}" % differing + "\n")
+    out.append(r"\newcommand{\mlatTieA}{%s}" % ", ".join(num(a, 5) for a in tie_a) + "\n")
+    out.append(r"\newcommand{\mlatTieB}{%s}" % ", ".join(num(a, 5) for a in tie_b) + "\n")
+    out.append(r"\newcommand{\mlatTieFive}{%s}" % ", ".join(num(a, 5) for a in entry(5, 4.828)["amplitudesDBFS"]) + "\n")
+    out.append(r"\newcommand{\mlatFloorSpan}{%s}" % num(lat["defaultFloorSpanBelowAnchorDB"]) + "\n")
+    out.append(r"\newcommand{\mlatFloorMillivolts}{%s}" % num(1000 * lat["anchorVoltsPeak"] * 10 ** (-lat["defaultFloorSpanBelowAnchorDB"] / 20), 3) + "\n")
+    out.append(r"\newcommand{\mlatAnchorMillivolts}{%s}" % num(1000 * lat["anchorVoltsPeak"]) + "\n")
+    out.append(r"\newcommand{\mlatNoVoltsAnchor}{%s}" % num(lat["noVoltsAnchorDBFS"]) + "\n")
+    out.append(r"\newcommand{\mlatDefaultFloor}{%s}" % num(lat["defaultFloorDBFS"]) + "\n")
+    out.append(r"\newcommand{\mlatCeiling}{%s}" % num(lat["defaultCeilingDBFS"]) + "\n")
+    out.append(r"\newcommand{\mlatDefaultFive}{%s}" % ", ".join(num(a) for a in default5["amplitudesDBFS"]) + "\n")
+    out.append(r"\newcommand{\mlatDefaultThree}{%s}" % ", ".join(num(a) for a in entry(3, None)["amplitudesDBFS"]) + "\n")
+    out.append(r"\newcommand{\mlatDefaultSeven}{%s}" % ", ".join(num(a) for a in entry(7, None)["amplitudesDBFS"]) + "\n")
+    out.append(r"\newcommand{\mlatReferenceAnchor}{%s}" % num(entry(5, 3.35)["anchorDBFS"], 4) + "\n")
+    out.append(r"\newcommand{\mlatNoteAnchor}{%s}" % tex_escape(_note_and_hz(lat["noteAnchorHz"])) + "\n")
+    out.append(r"\newcommand{\mlatCentreNote}{%s}" % tex_escape(default5["noteNames"][2]) + "\n")
+    write(os.path.join(GENERATED, "lattice-matrix.tex"), "".join(out))
+
+
+def gen_parity_matrix(m):
+    import parity_matrix as P
+    tool = P.build_tool()
+    results = P.run_all(tool)
+    reports = {name: P.compare(case, swift, python) for name, (case, swift, python) in results.items() if case.kind != "refusals"}
+    out = ["% GENERATED by gen_docs.py from a parity run (Swift vs Python vs the exact truth) — do not edit\n"]
+    out.extend(bar_lines(bars_matrix()))
+    out.append(r"\newcommand{\mparityCaseCount}{%d}" % len(P.CASES) + "\n")
+    out.append(r"\newcommand{\mparityMiscutSamples}{%d}" % P.MISCUT_SAMPLES + "\n")
+    filtered = [r for r in reports.values() if r.case.kind in ("fast", "slow", "rectifier")]
+    plain = [r for r in reports.values() if r.case.kind not in ("fast", "slow", "rectifier")]
+    out.append(r"\newcommand{\mparityWorstExact}{%d}" % max(len(r.exact_mismatches) for r in reports.values()) + "\n")
+    # The measured payload-byte difference is NOT printed: it is the length
+    # of a stamp's shortest-round-trip spelling, i.e. the machine's last
+    # bit (5 on the Studio, 4 on the macos-26 runner, 2026-09-23 — the
+    # drift ruling's class); the bar is what the fragment carries.
+    out.append(r"\newcommand{\mparityWorstSwift}{%s}" % dev(max(r.worst_relative for r in plain), 2) + "\n")
+    out.append(r"\newcommand{\mparityWorstSwiftFiltered}{%s}" % dev(max(r.worst_relative for r in filtered), 2) + "\n")
+    out.append(r"\newcommand{\mparityWorstMean}{%s}" % dev(max(r.worst_mean_absolute for r in reports.values()), 2) + "\n")
+    out.append(r"\newcommand{\mparityWorstError}{%s}" % dev(max(r.worst_error_absolute for r in reports.values()), 2) + "\n")
+    out.append(r"\newcommand{\mparityWorstMargin}{%s}" % dev(max(r.worst_margin_db for r in reports.values()), 2) + "\n")
+    out.append(r"\newcommand{\mparityWorstStamp}{%s}" % dev(max(r.worst_stamp for r in reports.values() if "--noise-db" in r.case.args), 2) + "\n")
+    out.append(r"\newcommand{\mparityWorstCross}{%s}" % dev(max(r.worst_cross for r in reports.values()), 2) + "\n")
+    memoryless = [r for r in reports.values() if r.case.compares_truth_exactly and "--noise-db" not in r.case.args and r.case.kind != "miscut"]
+    out.append(r"\newcommand{\mparityMemorylessCount}{%d}" % len(memoryless) + "\n")
+    out.append(r"\newcommand{\mparityMemorylessBeyond}{%s}" % dev(max(r.truth_minus_quantization for r in memoryless), 2) + "\n")
+    out.append(r"\newcommand{\mparityQuantization}{%s}" % dev(max(r.truth_relative_max for r in memoryless), 2) + "\n")
+    out.append(r"\newcommand{\mparityQuantizationBar}{%s}" % num(2.0 ** -24, 3) + "\n")
+    fast = [reports[n] for n in ("d-tanh8-prehp", "d-tanh8-postlp")]
+    out.append(r"\newcommand{\mparityFastResidue}{%s}" % dev(max(r.truth_relative_max for r in fast), 2) + "\n")
+    out.append(r"\newcommand{\mparityFastBeyond}{%s}" % dev(max(r.truth_minus_quantization for r in fast), 2) + "\n")
+    out.append(r"\newcommand{\mparitySlowTwo}{%s}" % dev(reports["d-tanh8-posthp2"].truth_relative_max, 2) + "\n")
+    out.append(r"\newcommand{\mparitySlowHalf}{%s}" % dev(reports["d-tanh8-posthp05"].truth_relative_max, 2) + "\n")
+    out.append(r"\newcommand{\mparitySlowTwoDB}{%s}" % num(20 * math.log10(reports["d-tanh8-posthp2"].truth_relative_max), 3) + "\n")
+    out.append(r"\newcommand{\mparitySlowHalfDB}{%s}" % num(20 * math.log10(reports["d-tanh8-posthp05"].truth_relative_max), 3) + "\n")
+    # #267.
+    for corner, tag in (("hp05", "Half"), ("hp2", "Two")):
+        carried, fresh = reports["i-asym-" + corner], reports["i-asym-" + corner + "-indep"]
+        later = carried.stamp_excess_db[1:]
+        out.append(r"\newcommand{\mparityTail%sCarriedExcess}{%s}" % (tag, num(min(later), 3)) + "\n")
+        out.append(r"\newcommand{\mparityTail%sCarriedExcessMax}{%s}" % (tag, num(max(later), 3)) + "\n")
+        out.append(r"\newcommand{\mparityTail%sCarriedRatio}{%s}" % (tag, num(round(10 ** (min(later) / 20)))) + "\n")
+        out.append(r"\newcommand{\mparityTail%sFirstRow}{%s}" % (tag, dev(carried.stamp_excess_db[0], 2)) + "\n")
+        out.append(r"\newcommand{\mparityTail%sIndependentExcess}{%s}" % (tag, dev(max(abs(x) for x in fresh.stamp_excess_db), 2)) + "\n")
+        out.append(r"\newcommand{\mparityTail%sCarriedResidue}{%s}" % (tag, dev(max(carried.truth_relative_per_row[1:]), 3)) + "\n")
+        out.append(r"\newcommand{\mparityTail%sIndependentResidue}{%s}" % (tag, dev(max(fresh.truth_relative_per_row), 3)) + "\n")
+    stamp = reports["h-identity-noise"].stamp_excess_db
+    out.append(r"\newcommand{\mparityStampScatterLow}{%s}" % dev(min(stamp), 3) + "\n")
+    out.append(r"\newcommand{\mparityStampScatterHigh}{%s}" % dev(max(stamp), 3) + "\n")
+    out.append(r"\newcommand{\mparityStampSamples}{%s}" % num(int(reports["h-identity-noise"].swift.header["plan"]["preroll_samples"])) + "\n")
+    g0, g12 = reports["f-hardclip-noise"].swift, reports["f-hardclip-gain12"].swift
+    out.append(r"\newcommand{\mparityGainShift}{%s}" % dev(max(abs(20 * math.log10(b["output_rms"] / a["output_rms"]) - 12) for a, b in zip(g0.rows, g12.rows)), 2) + "\n")
+    zero, late = reports["b-tanh8"].swift, reports["g-latency100"].swift
+    out.append(r"\newcommand{\mparityLatencyMove}{%s}" % dev(max(P._diff(a["output_rms"], b["output_rms"]) for a, b in zip(zero.rows, late.rows)), 2) + "\n")
+    mis = reports["g-miscut1"].truth_relative_per_row
+    notes = reports["g-miscut1"].swift.lists["grid"]["note_names"]
+    out.append(r"\newcommand{\mparityMiscutTable}{" + "\n" + r"\begin{tabular}{@{}l" + "r" * len(mis) + "@{}}" + "\n")
+    out.append(r"\toprule note & " + " & ".join(tex_escape(n) for n in notes) + r" \\ \midrule" + "\n")
+    out.append("residue (\\% of peak) & " + " & ".join(num(100 * x, 3) for x in mis) + " \\\\\n")
+    out.append(r"\bottomrule" + "\n" + r"\end{tabular}" + "\n}\n")
+    out.append(r"\newcommand{\mparityMiscutLow}{%s}" % num(100 * mis[0], 3) + "\n")
+    out.append(r"\newcommand{\mparityMiscutHigh}{%s}" % num(100 * mis[-1], 3) + "\n")
+    c = reports["a-identity"].swift.header["cross-check"]
+    out.append(r"\newcommand{\mparityCrossControl}{%s}" % num(100 * float(c["max_difference"]) / float(c["cycle_peak"]), 3) + "\n")
+    out.append(r"\newcommand{\mparityCrossControlDB}{%s}" % num(float(c["max_difference_re_peak_db"]), 3) + "\n")
+    out.append(r"\newcommand{\mparityCrossDeficit}{%s}" % num(float(c["input_deficit_db"]), 3) + "\n")
+    out.append(r"\newcommand{\mparityCrossRatio}{%s}" % num(float(c["amplitude_ratio_db"]), 3) + "\n")
+    out.append(r"\newcommand{\mparityCrossBins}{%s}" % c["bins"] + "\n")
+    ct = reports["b-tanh8"].swift.header["cross-check"]
+    out.append(r"\newcommand{\mparityCrossDevice}{%s}" % num(100 * float(ct["max_difference"]) / float(ct["cycle_peak"]), 3) + "\n")
+    out.append(r"\newcommand{\mparityCrossDeviceDB}{%s}" % num(float(ct["max_difference_re_peak_db"]), 3) + "\n")
+    cr = reports["c-crossover"].dead_fraction_rows[0]
+    out.append(r"\newcommand{\mparityDeadQuiet}{%s}" % num(cr[0], 3) + "\n")
+    out.append(r"\newcommand{\mparityDeadLoud}{%s}" % num(cr[-1], 3) + "\n")
+    out.append(r"\newcommand{\mparityDeadRow}{%s}" % ", ".join(num(x, 3) for x in cr) + "\n")
+    out.append(r"\newcommand{\mparityPayloadSeven}{%s}" % num(int(reports["e-7-none"].swift.header["stamps"]["payload_bytes"])) + "\n")
+    out.append(r"\newcommand{\mparityPayloadFive}{%s}" % num(int(reports["a-identity"].swift.header["stamps"]["payload_bytes"])) + "\n")
+    # The case table.
+    out.append(r"\newcommand{\mparityCaseTable}{" + "\n")
+    out.append(r"\begin{tabular}{@{}llrrrrrr@{}}" + "\n")
+    out.append(r"\toprule case & kind & exact & S$-$P stat & S$-$P error & quantization & truth residue & re peak \\ \midrule" + "\n")
+    for name, r in reports.items():
+        out.append(f"{tex_escape(name)} & {r.case.kind} & {len(r.exact_mismatches)} & {dev(r.worst_relative, 2)} & {dev(r.worst_error_absolute, 2)} & {dev(r.quantization_max, 2)} & {dev(r.truth_minus_quantization, 2)} & {dev(r.truth_relative_max, 2)} \\\\\n")
+    out.append(r"\bottomrule" + "\n" + r"\end{tabular}" + "\n}\n")
+    # Part B's status is GENERATED from the run, never typed.
+    d, p = P.parse(results["l-refusals"][1]), P.parse(results["l-refusals"][2])
+    refusals_ok = all(d.header[k] == p.header[k] for k in d.header) and d.header["refusal short_capture"]["threw"] == "1"
+    lattices_ok = all(not r.exact_mismatches for r in reports.values() if r.case.kind == "lattice")
+    stamp_ok = all(abs(x) <= P.T_STAMP_DB for x in stamp) and all(r.worst_margin_db <= P.T_SWIFT_MARGIN_DB for r in reports.values())
+    ok = refusals_ok and lattices_ok and stamp_ok and max(len(r.exact_mismatches) for r in reports.values()) == 0
+    sentence = ("Part B's parity is established: the delivered lattices at every dimension and factor (the tie included), every start index, the two decoder refusals and the two extraction refusals with their messages, the stamp, every margin and every badge agree between the two implementations on every case."
+                if ok else
+                "Part B's parity is NOT yet established: at least one lattice, refusal, stamp or badge reads differently on the two sides on this run; the cases are marked expected-failure in the test and the follow-up issue is named in the handoff.")
+    out.append(r"\newcommand{\mparityPartBStatus}{%s}" % sentence + "\n")
+    write(os.path.join(GENERATED, "parity-matrix.tex"), "".join(out))
+
+
 # --- Numbers in words (#307) --------------------------------------------------
 # A tolerance such as 1e-10 prints as "1e-10" in lay prose because the parity
 # macros are shared with the technical chapter. Beside each scalar macro the
@@ -1984,12 +2217,15 @@ def main(argv=None):
     gen_parameters_journey(whole["gainMap"])
     gen_residue_journey(whole["gainMap"])
     gen_parameters_compression(whole["compression"])
+    gen_parameters_matrix(whole["waveformMatrix"])
+    gen_lattice_matrix(whole["waveformMatrix"])
     if not args.no_parity:
         gen_parity(m)
         gen_parity_transfer(transfer)
         gen_parity_imd(whole)
         gen_parity_journey(whole)
         gen_parity_compression(whole)
+        gen_parity_matrix(whole)
     # The plain writers run last: their words-form macros read the parity
     # fragments as this run left them (the committed ones under --no-parity).
     gen_plain(m)

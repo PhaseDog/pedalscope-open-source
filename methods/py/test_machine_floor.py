@@ -85,7 +85,7 @@ def test_a_stated_bar_is_never_bounded():
     bar lists the writers emit are run here, and none prints a bound."""
     emitted = 0
     for bars in (gen_docs.bars_hd(), gen_docs.bars_transfer(), gen_docs.bars_imd(),
-                 gen_docs.bars_journey(), gen_docs.bars_compression()):
+                 gen_docs.bars_journey(), gen_docs.bars_compression(), gen_docs.bars_matrix()):
         for macro, value in bars:
             text = gen_docs.num(value, 3)
             assert r"\le" not in text, (macro, text)
@@ -94,7 +94,8 @@ def test_a_stated_bar_is_never_bounded():
     # And the committed fragments hold every one of them as digits.
     for fragment, bars in (("parity-hd.tex", gen_docs.bars_hd()), ("parity-transfer.tex", gen_docs.bars_transfer()),
                            ("parity-imd.tex", gen_docs.bars_imd()), ("parity-journey.tex", gen_docs.bars_journey()),
-                           ("parity-compression.tex", gen_docs.bars_compression())):
+                           ("parity-compression.tex", gen_docs.bars_compression()),
+                           ("parity-matrix.tex", gen_docs.bars_matrix())):
         with open(os.path.join(GENERATED, fragment), encoding="utf-8") as f:
             text = f.read()
         for macro, value in bars:
@@ -110,7 +111,7 @@ def test_the_committed_fragments_carry_no_digit_under_the_floor():
     1e−13…1e−12 — can no longer be printed: every numeral in a parity
     fragment is zero, or at least the floor in magnitude."""
     fragments = sorted(glob.glob(os.path.join(GENERATED, "parity-*.tex")))
-    assert len(fragments) == 5, fragments
+    assert len(fragments) == 6, fragments
     offenders = []
     for path in fragments:
         with open(path, encoding="utf-8") as f:
@@ -126,11 +127,11 @@ def test_the_committed_fragments_carry_no_digit_under_the_floor():
 
 
 def test_the_bound_prints_in_every_fragment_that_measured_under_the_floor():
-    """The rule is one rule across the five fragments: on the run that
+    """The rule is one rule across the six fragments: on the run that
     built the committed fragments every chapter measured at least one
     Swift−Python deviation under the floor, so every fragment prints the
     bound at least once (a fragment with none would mean the rule was
-    applied to four writers and not the fifth)."""
+    applied to five writers and not the sixth)."""
     for path in sorted(glob.glob(os.path.join(GENERATED, "parity-*.tex"))):
         with open(path, encoding="utf-8") as f:
             text = f.read()
