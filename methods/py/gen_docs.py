@@ -2198,6 +2198,213 @@ def gen_plain_compression(m):
     write(os.path.join(GENERATED, "plain-compression.tex"), "".join(out))
 
 
+_CYCLE_WORDS = {"two": 2, "three": 3, "four": 4, "five": 5, "six": 6, "seven": 7, "eight": 8}
+
+
+def gen_plain_matrix(m):
+    """The lay Waveform Matrix chapter's numbers (#307): one macro per value
+    the prose quotes, read from the manifest's waveformMatrix object — the
+    grid sizes and the default, the note span and its centre, the anchor as
+    a voltage and its no-volts convention, the floor span and the voltage it
+    delivers, the two ceilings, the points a grid puts between the floor and
+    the anchor, the tie's two factors, the durations and the per-row counts,
+    the tile sizes, the clear margin and its ratio, the compare tolerances,
+    the encoding's bytes, the crossover handover the floor was set from, the
+    library's tail factors read from the rule string — every derived figure
+    asserted on its premise (the floor IS the anchor taken the span down, in
+    dBFS on the convention and in millivolts on every metered rig; the
+    centre IS the span's middle note; a row IS pre-roll + tone + tail; a
+    tile IS the period count rounded to the rate) — plus the words form of
+    every scalar parity-matrix.tex carries. The lattice fragment's
+    \\mlat... macros and the parity fragment's \\mparity... macros are
+    quoted by the chapter directly and never re-minted here."""
+    wm = m["waveformMatrix"]
+    lat, st, ex, en, no, ap, sy = (wm[k] for k in ("lattice", "stimulus", "extraction", "encoding", "noise", "appLevel", "synthesis"))
+    cm = m["compression"]
+    parity_file = os.path.join(GENERATED, "parity-matrix.tex")
+    fs = float(st["sampleRateHz"])
+    delivered = lat["delivered"]
+
+    def entry(dimension, volts):
+        return next(e for e in delivered if e["dimension"] == dimension and e.get("voltsAtFullScale") == volts)
+
+    choices = list(lat["dimensionChoices"])
+    default_dim = int(lat["defaultDimension"])
+    assert default_dim in choices and all(d % 2 == 1 for d in choices), "a grid without a centre tile"
+    default = entry(default_dim, None)
+    anchor = float(lat["noVoltsAnchorDBFS"])
+    span = float(lat["defaultFloorSpanBelowAnchorDB"])
+    low, high = float(lat["defaultLowFrequencyHz"]), float(lat["defaultHighFrequencyHz"])
+    # The floor is the anchor taken the span down — in dBFS on the
+    # convention, and in millivolts on every metered rig, whose dBFS differ.
+    assert abs(lat["defaultFloorDBFS"] - (anchor - span)) < 1e-12, "the default floor is not the anchor less the span"
+    anchor_mv = 1000 * float(lat["anchorVoltsPeak"])
+    floor_mv = anchor_mv * 10 ** (-span / 20)
+    factors = list(lat["voltsFactors"])
+
+    def mv(volts, dbfs):
+        return 1000 * volts * 10 ** (dbfs / 20)
+
+    for v in factors:
+        e = entry(default_dim, v)
+        assert abs(mv(v, e["anchorDBFS"]) - anchor_mv) < 1e-9, "the anchor does not deliver its voltage on a metered rig"
+        assert abs(mv(v, e["floorDBFS"]) - floor_mv) < 1e-9, "the floor does not deliver its voltage on a metered rig"
+    reference, other = entry(default_dim, factors[0]), entry(default_dim, factors[1])
+    assert abs(reference["anchorDBFS"] - anchor) < 0.01, "the reference rig's anchor is not the convention's"
+    assert abs(other["floorDBFS"] - reference["floorDBFS"]) > 1, "the two rigs' floors do not differ in dBFS"
+
+    # Points strictly between the floor and the anchor: none at the smallest
+    # size (the guide's reason for the default), exactly one at the default.
+    def gap_points(e):
+        return [a for a in e["amplitudesDBFS"] if e["floorDBFS"] + 1e-9 < a < e["anchorDBFS"] - 1e-9]
+
+    assert not gap_points(entry(choices[0], None)) and len(gap_points(default)) == 1, "the gap points moved"
+    for d in choices:
+        e = entry(d, None)
+        assert abs(e["amplitudesDBFS"][d // 2] - e["anchorDBFS"]) < 1e-12, "the anchor is off the centre index"
+        assert e["amplitudesDBFS"][-1] == lat["defaultCeilingDBFS"], "the ceiling moved"
+    centre = default["noteNames"][default_dim // 2]
+    assert centre == nearest_note(math.sqrt(low * high)), "the centre is not the span's middle note"
+    assert default["noteNames"][0] == nearest_note(lat["noteAnchorHz"]), "the standard note is not the first row"
+    # The tie (#372): the two adjacent factors differ at one size only.
+    tie_a, tie_b = factors[1], factors[2]
+    differing = {d: sum(abs(x - y) > 0.5 for x, y in zip(entry(d, tie_a)["amplitudesDBFS"], entry(d, tie_b)["amplitudesDBFS"]))
+                 for d in choices}
+    tie_dims = [d for d in choices if differing[d] > 0]
+    assert len(tie_dims) == 1 and tie_dims[0] == choices[-1], differing
+    twelve_tet_low = _rule_number(lat["noteSnapRule"], r"never 12-TET's ([0-9.]+)")
+    # The durations, checked against the delivered counts.
+    ramp = float(_rule_number(st["rampRule"], r"rampDuration \(([0-9.]+) s"))
+    assert abs(ramp - float(cm["stimulus"]["rampS"])) < 1e-12, "the two chapters disagree on the ramp"
+    assert int(st["prerollS"] * fs) == st["prerollSamples"] and int(st["tailS"] * fs) == st["tailSamples"]
+    rows = st["defaultRows"]
+    assert len(rows) == default_dim and rows[0][0] == lat["noteAnchorHz"]
+    for f0, settle, measure, ramp_n, row_n, tile_n in rows:
+        assert int(st["settleS"] * fs) == settle and int(ramp * fs) == ramp_n
+        assert row_n == st["prerollSamples"] + default_dim * (settle + measure) + st["tailSamples"], "a row is not pre-roll + tone + tail"
+        assert tile_n == round(st["defaultPeriodCount"] * fs / f0), "a tile is not the period count rounded to the rate"
+    stimulus_s = sum(r[4] for r in rows) / fs
+    measure_cycles = [r[2] * r[0] / fs for r in rows]
+    min_cycles = _CYCLE_WORDS[_rule_number(ex["windowThrowRule"], r"at least (\w+) cycles")]
+    assert min(measure_cycles) >= min_cycles and st["defaultPeriodCount"] < min_cycles, "a two-period tile no longer fits every window"
+    # Noise: the clear margin's ratio in words is asserted, never assumed.
+    margin = float(no["noiseClearMarginDB"])
+    ratio = 10 ** (margin / 20)
+    assert abs(ratio - 2) < 0.01, f"the clear margin's ratio is {ratio}, not about twice"
+    cents = 1200 * math.log2(1 + float(ap["noteToleranceRatio"]))
+    bytes_per = _rule_number(en["arrayRule"], r"(\d) bytes per sample")
+    # The crossover handover the floor was set from: the rule string names
+    # the handover and the span under it; the oracle's dead zone on the
+    # reference rig's factor must reproduce both.
+    dz = float(sy["crossoverDeadZone"])
+    handover_mv = 1000 * dz * factors[0]
+    rule_handover = int(_rule_number(lat["floorRule"], r"measured (\d+) mV dead-zone handover"))
+    rule_below = int(_rule_number(lat["floorRule"], r"(\d+) dB below the Reference Box"))
+    below = 20 * math.log10(handover_mv / floor_mv)
+    assert round(handover_mv) == rule_handover and round(below) == rule_below, (handover_mv, below)
+    # The library's own instance of the tail (#267), read from the rule string.
+    tail = re.search(r"rows 2…7 at (\d+)–(\d+)× the first row's stamp on a ≈ (\d+) kΩ load, (\d+)–(\d+)× on a (\d+) MΩ load",
+                     no["dcTailRule"])
+    assert tail, no["dcTailRule"][:120]
+    sim_dim = int(_rule_number(no["simulationSiteRule"], r"quality\.matrixDimension \((\d) at interactive"))
+    assert sim_dim in choices
+    # Two case parameters the chapter quotes that the parity fragment does
+    # not carry as macros, read from the parity's own case list.
+    import parity_matrix as P
+
+    def case_arg(name, flag):
+        args = next(c for c in P.CASES if c.name == name).args
+        return args[args.index(flag) + 1]
+
+    latency_case = int(case_arg("g-latency100", "--latency-samples"))
+    gain_case = float(case_arg("f-hardclip-gain12", "--chain-gain-db"))
+    # The even divider's measured losses (the nesting rule's own evidence).
+    even = re.search(r"its N = 4 lost ([A-G][♯♭]?\d), its N = 5 lost ([A-G][♯♭]?\d) and ([A-G][♯♭]?\d)", lat["nestingRule"])
+    assert even, lat["nestingRule"][:120]
+    macros = {
+        "wmEvenDividerFourLost": tex_escape(even.group(1)),
+        "wmEvenDividerFiveLost": tex_escape(even.group(2)) + " and " + tex_escape(even.group(3)),
+        "wmDimensions": ", ".join(num(d) for d in choices),
+        "wmDimensionCount": num(len(choices)),
+        "wmSmallestDimension": num(choices[0]),
+        "wmLargestDimension": num(choices[-1]),
+        "wmDefaultDimension": num(default_dim),
+        "wmDefaultTiles": num(default_dim * default_dim),
+        "wmLargestTiles": num(choices[-1] ** 2),
+        "wmLowNote": nearest_note(low),
+        "wmLowHz": num(low, 4),
+        "wmHighNote": nearest_note(high),
+        "wmHighHz": num(high, 5),
+        "wmTwelveTETLowHz": twelve_tet_low,
+        "wmCentreNote": tex_escape(centre),
+        "wmAnchorMillivolts": num(anchor_mv),
+        "wmNoVoltsAnchorDBFS": num(anchor),
+        "wmFloorSpanDB": num(span),
+        "wmFloorMillivolts": num(floor_mv, 3),
+        "wmDefaultFloorDBFS": num(lat["defaultFloorDBFS"]),
+        "wmCeilingDBFS": num(lat["defaultCeilingDBFS"]),
+        "wmPluginCeilingDBFS": num(lat["pluginCeilingDBFS"]),
+        "wmFiveGapLevelDBFS": num(gap_points(default)[0]),
+        "wmReferenceFactor": num(factors[0]),
+        "wmReferenceAnchorDBFS": num(reference["anchorDBFS"], 4),
+        "wmReferenceFloorDBFS": num(reference["floorDBFS"], 4),
+        "wmOtherFactor": num(factors[1]),
+        "wmOtherAnchorDBFS": num(other["anchorDBFS"], 4),
+        "wmOtherFloorDBFS": num(other["floorDBFS"], 4),
+        "wmTieFactorA": num(tie_a),
+        "wmTieFactorB": num(tie_b),
+        "wmTieDimension": num(tie_dims[0]),
+        "wmPrerollS": num(st["prerollS"]),
+        "wmPrerollMs": num(st["prerollS"] * 1000),
+        "wmTailS": num(st["tailS"]),
+        "wmSettleS": num(st["settleS"]),
+        "wmSettleMs": num(st["settleS"] * 1000),
+        "wmMeasureS": num(st["measureS"]),
+        "wmMeasureMs": num(st["measureS"] * 1000),
+        "wmRampMs": num(ramp * 1000),
+        "wmPeriodCount": num(st["defaultPeriodCount"]),
+        "wmSampleRateKHz": num(fs / 1000),
+        "wmRowLowS": num(rows[0][4] / fs, 3),
+        "wmDefaultStimulusS": num(stimulus_s, 3),
+        "wmTileSamplesLow": num(int(rows[0][5])),
+        "wmTileSamplesHigh": num(int(rows[-1][5])),
+        "wmMeasureCyclesLow": num(int(round(min(measure_cycles)))),
+        "wmClearMarginDB": num(margin),
+        "wmClearMarginRatioWords": "twice",
+        "wmNoteToleranceCents": num(cents, 2),
+        "wmLevelToleranceDB": num(ap["levelToleranceDB"]),
+        "wmAnchorToleranceDB": num(ap["anchorToleranceDB"]),
+        "wmEncoding": r"\texttt{" + tex_escape(en["encoding"]) + "}",
+        "wmBytesPerSample": bytes_per,
+        "wmCrossoverDeadZoneDBFS": num(20 * math.log10(dz), 3),
+        "wmHandoverMillivolts": num(handover_mv, 2),
+        "wmFloorBelowHandoverDB": num(below, 2),
+        "wmLibraryTailLowLoad": "%s--%s" % (tail.group(1), tail.group(2)),
+        "wmLibraryLowLoadKOhm": tail.group(3),
+        "wmLibraryTailHighLoad": "%s--%s" % (tail.group(4), tail.group(5)),
+        "wmLibraryHighLoadMOhm": tail.group(6),
+        "wmSimInteractiveDimension": num(sim_dim),
+        "wmParityLatencySamples": num(latency_case),
+        "wmParityGainDB": num(gain_case),
+    }
+    out = ["% GENERATED by gen_docs.py from generated/manifest.json and parity-matrix.tex — do not edit\n",
+           "% The lay Waveform Matrix chapter's numbers: one macro per quoted value,\n",
+           "% the derived figures (the floor as the anchor taken the span down, in\n",
+           "% dBFS and in millivolts on two metered rigs; the points between floor\n",
+           "% and anchor per size; the tie's size; the per-row counts; the tile\n",
+           "% sizes; the clear margin's ratio; the compare tolerance in cents; the\n",
+           "% crossover handover; the library's tail factors read from the rule\n",
+           "% string) computed from the manifest's own values with their premises\n",
+           "% asserted, and the words form of every scalar the parity fragment\n",
+           "% prints (\\<name>Words beside \\<name>). The lattice fragment's \\mlat...\n",
+           "% and the parity fragment's \\mparity... macros are quoted by the\n",
+           "% chapter, not re-minted.\n"]
+    for name, value in macros.items():
+        out.append(r"\newcommand{\%s}{%s}" % (name, value) + "\n")
+    out += parity_words_macros(parity_file)
+    write(os.path.join(GENERATED, "plain-matrix.tex"), "".join(out))
+
+
 def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--no-parity", action="store_true", help="skip the parity table (no Swift tool needed)")
@@ -2233,6 +2440,7 @@ def main(argv=None):
     gen_plain_imd(whole["chordIMD"])
     gen_plain_journey(whole)
     gen_plain_compression(whole)
+    gen_plain_matrix(whole)
     return 0
 
 

@@ -5,7 +5,8 @@
 % the prose is a macro from ../generated (plain-hd.tex, parity-hd.tex,
 % plain-transfer.tex, parity-transfer.tex, plain-compression.tex,
 % parity-compression.tex, plain-journey.tex, residue-journey.tex,
-% parity-journey.tex, lattice-imd.tex, plain-imd.tex, parity-imd.tex);
+% parity-journey.tex, lattice-imd.tex, plain-imd.tex, parity-imd.tex,
+% lattice-matrix.tex, plain-matrix.tex, parity-matrix.tex);
 % nothing numeric is typed here,
 % and each tolerance the prose quotes has a generated words form beside it
 % (\<name>Words). No third-party product is named, and
@@ -24,6 +25,11 @@
 \input{../generated/lattice-imd.tex}
 \input{../generated/plain-imd.tex}
 \input{../generated/parity-imd.tex}
+% The lattice fragment goes first: the matrix chapter quotes its macros
+% before anything the parity fragment defines.
+\input{../generated/lattice-matrix.tex}
+\input{../generated/plain-matrix.tex}
+\input{../generated/parity-matrix.tex}
 \title{PedalScope Methods, Explained\\\large A plain-language companion to the technical reference}
 \author{PedalScope}
 \date{}
@@ -3205,29 +3211,628 @@ running them are in the repository named on the first page.
 \section{Waveform Matrix}
 \label{sec:matrix-plain}
 
-This chapter is not yet written; the technical reference's Waveform
-Matrix chapter is, and this page names what its plain-language
-counterpart will explain, in the words the glossary already defines. The
-\term{waveform-matrix} is the scope view: a grid of \term{tile}s, each
-the actual wave that went into the pedal and the actual wave that came
-out over a couple of cycles, at one note and one loudness --- nothing
-modelled, nothing cleaned up. The notes are a \term{note-lattice} and the
-loudnesses an \term{amplitude-lattice}, both built by \term{refinement}
-so that a smaller grid's points are always among a larger grid's; the
-loudness ladder hangs from the \term{voltage-anchor} (the standard
-loudness as a voltage at the pedal, not a number on the computer) with
-its quietest rung a fixed \term{floor-span} below, and the standard note
-is the \term{note-anchor}, so every grid has a \term{cross-check-point}
-where it can be compared with the transfer curve and a \term{centre-tile}
-that is the standard loudness at the middle note whatever the grid's
-size. Each row is one \term{stepped-tone} climbing the ladder, each tile
-cut at a \term{zero-crossing-start} and written as a \term{sample-array};
-the silence before each row is its \term{row-noise-stamp}, and a quiet
-tile that does not stand clearly above it wears the \term{noise-badge}.
-The lay chapter will explain why a coupling capacitor's tail is not
-noise (the \term{carried-state} experiment) and how two grids are
-compared by the notes and loudnesses they actually recorded
-(\term{value-alignment}), with the technical chapter's figures.
+\subsection{What this measurement tells you, and what it cannot}
+
+Every earlier chapter turned a recording into an estimate: a ladder of
+harmonics, a curve with a corner, a map of squares. This one keeps the
+recording. The \term{waveform-matrix} --- the app's ``scope view'' --- is
+a grid of small pictures. Each picture, a \term{tile}, is the wave that
+went into the pedal and the wave that came out, over two cycles of one
+note at one loudness, drawn from the samples the interface delivered and
+from nothing else. Nothing is fitted, modelled, resampled or cleaned up.
+Across the grid one way are the notes, from the low E string to the E
+four octaves above it by default; across it the other way are the
+loudnesses, from a small signal to the loudest drive the rig allows. So
+the grid shows how the pedal changes the \emph{shape} of a note across
+the neck and across a range of playing loudness, as a set of recordings
+a reader can check any model-drawn wave against.
+
+Because there is no estimate, the method here is not arithmetic but a
+set of choices about samples: which notes and which loudnesses are
+measured (the \term{note-lattice} and the \term{amplitude-lattice}); what
+is played (one \term{stepped-tone} per note --- the climbing ladder of
+Section~\ref{sec:compression-plain}); where in each recording a tile is
+cut (the \term{zero-crossing-start}); how the samples are written down
+(the \term{sample-array}); and the one number kept beside each row, the
+level of the silence before it (the \term{row-noise-stamp}), so that a
+quiet tile can be judged against the row's own silence and badged when it
+does not stand clear of it (the \term{noise-badge}).
+
+\paragraph{What it cannot tell you.} Stated once.
+\begin{enumerate}
+  \item \textbf{Nothing between the grid's points.} A tile is one note
+  at one loudness, and the grid is deliberately sparse: the default grid
+  has \wmDefaultDimension{} notes by \wmDefaultDimension{} loudnesses and
+  takes about \wmDefaultStimulusS{}~s of test signal in
+  \wmDefaultDimension{} rows. What the pedal does a semitone away, or a
+  decibel louder, is not in the record.
+  \item \textbf{Nothing a picture cannot carry.} There is no harmonic
+  level here, no distortion percentage, no knee --- only the wave. The
+  chapters that estimate those quantities are where to read them.
+  \item \textbf{A picture's scale is its own.} Every tile is drawn scaled
+  to its own loudest sample, so that a small signal and a large one are
+  both readable. Shapes are compared across the grid; sizes are read from
+  the labels, never from the pictures.
+  \item \textbf{Whether two tiles that look different are different.} A
+  shift in time alone redraws a wave. As the app says beside every grid, a visibly different wave is not automatically an audibly different one.
+  \item \textbf{Whether a quiet tile's fuzz is the pedal's.} The stamp
+  says how far a tile's output stands above the silence measured before
+  its row, and the badge says when it does not. That is a statement about
+  this recording's silence, not about the pedal, and the section on
+  reading a record back says what else that silence can hold.
+  \item \textbf{That a louder tile should look more distorted.} Reading
+  along a row and expecting ever more shaping as the drive rises is
+  natural and often wrong. A soft-knee overdrive's distortion, as a share
+  of the note, peaks at a moderate drive and \emph{falls} toward the
+  loudest, because its gain compresses while its harmonics saturate; a
+  loud tile that looks cleaner than the one beside it can be telling the
+  truth, and the Gain Map (Section~\ref{sec:journey-plain}) is the
+  cross-check.
+  \item \textbf{Nothing about listening.} The grid shows what the circuit
+  did to the wave's shape. It says nothing about what the distortion sounds like.
+\end{enumerate}
+
+\subsection{The test signal: a grid of notes and loudnesses}
+
+\paragraph{The notes.} The grid's notes are chosen so that grids of
+different sizes share their points, and that takes a rule worth a
+paragraph. The obvious way to place five notes between a low one and a
+high one is to space them evenly. But five evenly spaced notes and three
+evenly spaced notes share only their two ends, so a small grid and a
+large grid of the same pedal could never be laid over each other point
+for point --- measured when the rule was chosen: an even divider's
+four-note grid lost \wmEvenDividerFourLost{}, and its five-note grid lost
+\wmEvenDividerFiveLost{}.
+The app instead builds every grid by \term{refinement}: start from the
+two ends, and add each further note by splitting the widest remaining
+gap in the middle, so that a bigger grid always contains the smaller one
+exactly --- three notes inside five inside seven. Every candidate is
+snapped to the nearest equal-tempered pitch, with one exception the
+guide's tuning page states: the standard note keeps the app's
+\mlatNoteAnchor{} rather than equal temperament's \wmTwelveTETLowHz{}~Hz.
+Two notes are placed before any gap is split. The standard note itself,
+the \term{note-anchor}, joins whenever the span holds it, so that every
+grid shares a note with the Transfer Curve measurement of
+Section~\ref{sec:transfer-plain} --- the next section says what that
+buys --- and the span's middle note, \wmCentreNote{} on the default span,
+is the centre the splitting works outward from, one side at a time. On
+the default \wmLowNote{}--\wmHighNote{} span the result is the octave
+ladder, with two more notes joining at seven:
+\begin{center}\small\mlatNoteTable\end{center}
+
+\paragraph{The loudnesses.} The loudness ladder needs the same guarantee
+and one more, because a loudness on the computer and a loudness at the
+pedal are not the same thing. The app's levels are in \term{dbfs},
+decibels below the interface's full scale --- a number on the computer
+--- and two interfaces set to the same dBFS put different voltages on the
+cable. The standard loudness that the app's other measurements share is
+therefore fixed as a \emph{voltage} at the pedal's input,
+\wmAnchorMillivolts{}~mV peak: the \term{voltage-anchor}. On a rig whose
+output was measured with a meter during calibration (the volts factor of
+the earlier chapters), the app works out which dBFS delivers that voltage
+on \emph{this} rig and puts the anchor there; where no such measurement
+exists --- a plugin, or a rig that was never metered --- the anchor sits
+at \wmNoVoltsAnchorDBFS{}~dBFS by convention. The quietest loudness is a
+fixed distance below the anchor, the \term{floor-span} of
+\wmFloorSpanDB{}~dB: \wmFloorMillivolts{}~mV peak at the pedal on any
+metered rig, and \wmDefaultFloorDBFS{}~dBFS only on the convention. It
+was set where it is because the quiet end is where a kind of distortion
+lives that a louder test cannot see --- a dead zone around zero, which
+takes a large bite out of a small wave and an invisible sliver out of a
+large one --- and the project's reference crossover stage hands over at
+about \wmHandoverMillivolts{}~mV; the floor sits
+\wmFloorBelowHandoverDB{}~dB under it. The loudest loudness is the
+reverse: \wmCeilingDBFS{}~dBFS on hardware whatever the rig, because it
+is the interface's own converters that set how loud a probe may be, while
+a plugin, with no converter to protect, runs to
+\wmPluginCeilingDBFS{}~dBFS. Between the floor and the ceiling the anchor
+joins, and the remaining loudnesses are added by the same splitting rule,
+one side of the anchor at a time --- the side with fewer points first,
+ties to the quiet side --- so that the anchor sits at the exact middle of
+every grid and the steps are uneven on purpose. The default five are
+\mlatDefaultFive{}~dBFS, the three \mlatDefaultThree{}, the seven
+\mlatDefaultSeven{}. That is also why the default is
+\wmDefaultDimension{} and not \wmSmallestDimension{}: the three-point
+ladder's only quiet point is the floor itself, with nothing in the
+\wmFloorSpanDB{}~dB between the floor and the anchor, where dead zones
+and the onset of clipping live; the five-point ladder puts a point at
+\wmFiveGapLevelDBFS{}~dBFS, in the middle of that gap.
+
+The evidence that the anchor and the floor are voltages is in the
+delivered ladders themselves, read from the manifest. On the reference
+rig, whose full scale is \wmReferenceFactor{}~V, the quietest column
+lands at \wmReferenceFloorDBFS{}~dBFS; on a rig whose full scale is
+\wmOtherFactor{}~V it lands at \wmOtherFloorDBFS{}~dBFS --- different
+numbers on the computer, the same \wmFloorMillivolts{}~mV at the pedal.
+Figure~\ref{fig:matrix-lattice-plain} draws both lattices at every size.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.98\linewidth]{matrix-lattice.png}
+  \caption{The two lattices at three, five and seven points. Left: the
+  loudness ladder on the no-volts convention and on the reference rig's
+  metered factor (the same ladder, by construction), the anchor squared
+  at the middle of every size, the quietest column a fixed span below it
+  and the loudest column fixed; every smaller ladder's points are among
+  the larger one's. Right: the notes on the default span --- the octave
+  ladder at five, two more joining at seven --- with E2, the cross-check
+  row (dotted), and E4, the centre (dashed): two different rows.}
+  \label{fig:matrix-lattice-plain}
+\end{figure}
+
+\paragraph{Each row is one climbing note.} The grid is recorded one note
+at a time. For each note the app plays \wmPrerollS{}~s of silence, then
+the \term{stepped-tone} of Section~\ref{sec:compression-plain} --- the same
+sine held steady and climbing the loudness ladder quiet to loud, each
+rung with its \term{settle-window} (\wmSettleMs{}~ms to settle, the first
+\wmRampMs{}~ms of it the ramp up from the rung below, then
+\wmMeasureMs{}~ms that may be read, trimmed to whole cycles by the
+\term{cycle-snap}) and a final fade --- and then \wmTailS{}~s more of
+silence, so that whatever the pedal is still doing ends inside the
+recording. The silence before is the row's own noise window. The
+\wmDefaultDimension{} rows of the default grid take about
+\wmDefaultStimulusS{}~s of signal in all, the lowest note first, and the
+first thing every row plays is its quietest step.
+Figure~\ref{fig:matrix-row-plain} shows one row.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.98\linewidth]{matrix-row.png}
+  \caption{One row of the grid at E2 on the default ladder (top): the
+  opening silence, each rung's ramp, the rest of its settle, its measured
+  stretch, and the two-cycle tile cut from each stretch. Below, the
+  middle rung's cut, close up: the start of the measured stretch, the
+  first upward zero crossing at or after it where the tile begins, and
+  the output's window --- the same span, later by the loop's delay
+  (400 samples in this rendering), so that the delay shows as a shift
+  rather than being lined up away.}
+  \label{fig:matrix-row-plain}
+\end{figure}
+
+\subsection{How the pictures are cut}
+
+Six steps, each in words; the technical reference gives each as a rule
+or an equation.
+
+\paragraph{The silence is measured first.} Before any tile is cut, the
+app reads the level of the row's opening silence --- everything that came
+back while nothing was being played: the loop's own hiss and the pedal's
+--- and keeps it as the \term{row-noise-stamp}. It is the one number
+stored beside the tiles that is not a sample, and the next section and
+the last both turn on it.
+
+\paragraph{A tile is a whole number of cycles.} Each tile holds
+\wmPeriodCount{} cycles of the row's note, counted at the recording's
+sample rate and rounded to the nearest sample --- \wmTileSamplesLow{}
+samples at \wmLowNote{} and \wmTileSamplesHigh{} at \wmHighNote{} at
+\wmSampleRateKHz{}~kHz --- never stretched to a fixed length. The count is
+written into the record beside the tile.
+
+\paragraph{It starts where the input rises through zero.} Inside each
+rung's measured stretch, the tile begins at the first moment, at or after
+the stretch's start, where the test tone crosses zero on its way up: the
+\term{zero-crossing-start}. So every tile in the grid begins on the same
+phase of the input, and the pictures line up with each other. It is a
+choice of where to start reading, not a change to the samples.
+
+\paragraph{The output is the same stretch of time, after the delay.}
+Every signal through a rig comes back a little late, and the calibration
+measured by how much. The output tile is the recording over exactly the
+input tile's span, that much later. A plugin measures its own delay on
+every render and hands back a recording with none. Nothing is lined up
+beyond that: if the pedal itself shifts the wave in time, as every tone
+filter does, the shift stays in the picture as the output sitting a
+little behind the input --- it is part of what the pedal did.
+
+\paragraph{A tile that would not fit is refused.} A tile can fail to fit
+in two ways, and in both the app stops with a message rather than cut a
+shorter one. If the tile would run into the next rung's ramp it does not
+fit its stretch --- which cannot happen with \wmPeriodCount{} cycles per
+tile, since the measured stretch holds at least \wmMeasureCyclesLow{}
+cycles even at the lowest note, but would with a cycle count no stretch
+can hold. And if the recording ends before the tile does, the recording
+was too short, and the message names the calibration's delay as the
+thing to check. A quietly shortened tile would be a fabricated
+measurement.
+
+\paragraph{What is stored.} The samples themselves. Each tile's two
+arrays --- input and output --- are written as \term{sample-array}s: the
+32-bit numbers the converter delivered, \wmBytesPerSample{} bytes each,
+with the encoding's name, the channel and the sample count stated beside
+the data, so that a program reading the record later never has to guess
+the layout, and refuses one it does not recognise rather than guess. The
+record also keeps the notes and loudnesses actually delivered --- never
+the ranges asked for --- the sample rate, the cycle count, and the row
+stamps.
+
+\subsection{What the app decides when it reads a record back}
+
+Everything here is worked out from the stored samples each time a record
+is opened; nothing below is stored.
+
+\paragraph{A tile's numbers, and the badge.} From each tile's output the
+app takes three figures: its loudest sample (the peak the tile is drawn
+to), its average size, and its average value --- the last of which is the
+evidence the final section reads. The \term{noise-badge} compares the
+output's average size with the row's stamp. A tile whose output stands
+less than \wmClearMarginDB{}~dB above the stamp --- less than about
+\wmClearMarginRatioWords{} the size of the silence --- wears the badge,
+and its caption says, in the app's own words, that most of what the tile
+shows is the rig's and the device's own noise, not shaping of the tone.
+It never says the tile is below a floor, because the wave is drawn: what
+is drawn is a real recording, and the badge says what most of it is. A
+record with no stamp --- one made before the stamp was kept --- gets no
+badge either way, rather than a guess.
+
+\paragraph{What the silence can hold.} The badge is only as good as its
+yardstick, and the yardstick is whatever came back during the row's
+opening silence. Usually that is hiss. It is not always, and the reason
+is a part every pedal has. Section~\ref{sec:transfer-plain} met the
+\term{coupling-capacitor} on a pedal's output, the part that removes a
+wave's average level. It does not remove it instantly: a capacitor holds
+a charge and lets it out over time, so when a wave that carried an
+average level stops, the capacitor is left holding that level and drains
+it away over a fraction of a second --- a slow, one-way slide back to
+zero, not a switch. Now recall that the rows are recorded one after
+another, and that each row ends with its loudest step. A pedal that
+clips one half of the wave harder than the other --- the lopsided clipper
+of Section~\ref{sec:hd-plain}, or a rectifier outright --- makes a wave
+with an average level, and its loudest step leaves the capacitor
+charged. The row's own closing silence and the next row's opening
+silence together last well under a second, and the capacitor is still
+draining when the next row's silence is measured. The stamp reads that
+drain, the \term{dc-tail}, as if it were noise --- and it can be tens of
+decibels louder than the hiss.
+
+Figure~\ref{fig:tail-plain} shows it, computed through the check
+described later on the same made-up rectifier the technical chapter
+uses: a lopsided clipper behind a slow output capacitor, with a little
+noise added at the interface. The left panel is the boundary between the
+first two rows in time. The first row's loudest step ends, its closing
+silence follows, then the second row's opening silence --- the stamp's
+window --- and the start of the second row's quietest step. Drawn twice:
+once with the device's state carried from one row into the next, the
+\term{carried-state}, which is how a real pedal through an interface is
+measured, because a real capacitor does not reset between rows; and once
+with every row started fresh, which is how Simulation Mode renders its
+rows. In the carried rendering the capacitor's drain runs right through
+both silences; in the fresh one the silences hold only the noise. The
+right panel is the same stretch as a level: the drain reads
+\mparityTailHalfCarriedExcess{}~dB above the injected noise in the second
+row's window, and the stamp reads it, while the fresh start reads the
+noise itself to within \mparityTailHalfIndependentExcess{}~dB. A quiet
+tile in that row is then judged against a yardstick tens of decibels too
+high, and a pedal with a longer drain or a smaller output would wear the
+badge on its quiet tiles for a slow slide that is not noise at all. The
+first row is never affected, because nothing came before it; the drain
+is a property of rows two onward, and the limits section returns to it
+with the numbers the library's own records show.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.98\linewidth]{explained-tail.png}
+  \caption{A capacitor forgets slowly. Left: the boundary between the
+  first two rows for the lopsided clipper behind the slow output
+  capacitor named in the title --- the first row's loudest step ending,
+  its closing silence (grey), then the second row's opening silence
+  (hatched), the window the stamp is read from. Red: the device's state
+  carried from row to row, as a real pedal experiences it --- the
+  capacitor is still draining through both silences. Blue: each row
+  started fresh, Simulation Mode's shape --- the silences hold only the
+  noise. The two coincide until the first row's tone ends, since nothing
+  came before the first row. Right: the same stretch as a level in short
+  windows, with the
+  injected noise (dashed), the badge's clear margin over it (dotted), and
+  the second row's stamp under each rendering drawn across the window it
+  is read from.}
+  \label{fig:tail-plain}
+\end{figure}
+
+\paragraph{The cross-check point.} Because the standard note is on every
+grid that spans it and the standard loudness is on every grid, one tile
+--- E2 at the standard drive, the \term{cross-check-point} --- was
+recorded at exactly the note and loudness the Transfer Curve measurement
+of Section~\ref{sec:transfer-plain} uses, whenever that record used its
+default note. So the two pictures can be laid over each other: the
+transfer curve's averaged cycle, and this tile's raw one. They differ a
+little, and the check described later measures by how much: the transfer
+curve folds every cycle of its tone into one average, the tone's closing
+fade included, so its cycle sits a fraction of a percent under the raw
+wave. That is a property of the earlier instrument, not of this one, and
+the difference is stated rather than lined up away. The
+\term{centre-tile} is a different tile: the standard loudness at the
+span's middle note, \wmCentreNote{} by default --- the most musically
+representative cell, which sits at the exact middle of every grid
+whatever its size.
+
+\paragraph{Comparing two grids.} When two matrices are compared, tiles
+are paired by the notes and loudnesses the records actually store, never
+by where they sit in the grid --- a note within \wmNoteToleranceCents{}
+cents and a loudness within \wmLevelToleranceDB{}~dB count as the same
+point --- so a three-point grid and a seven-point grid of the same pedal
+pair on the nine points they share, and ``the same column'' never
+passes for ``the same drive''. That is \term{value-alignment}. Two
+records from one rig pair on their stored dBFS; two metered rigs with
+different factors pair on the voltage actually delivered at the pedal,
+where the floor and the anchor line up by construction and the rig-side
+ceiling generally does not; a plugin record against a hardware record
+states two different physical quantities with no bridge between them,
+and no loudness is paired at all --- the view says so and shows each grid
+on its own. Three or more records pair on the points every one of them
+delivered. And the view always says how many tiles lined up: a silent
+alignment would be the failure. Those rules live in the app rather than
+in the measurement code, so the check described later states them and
+does not run them.
+
+\subsection{The settings}
+
+Every setting is in the technical reference's Waveform Matrix chapter,
+in one table read from the manifest. This chapter repeats the handful a
+reader acts on. The grid comes in \wmDimensionCount{} sizes,
+\wmDimensions{} points a side, and the default is \wmDefaultDimension{};
+the default notes run from \wmLowNote{} (\wmLowHz{}~Hz) to \wmHighNote{}
+(\wmHighHz{}~Hz); the standard loudness is \wmAnchorMillivolts{}~mV peak
+at the pedal, or \wmNoVoltsAnchorDBFS{}~dBFS where the rig was not
+metered, and the quietest loudness \wmFloorSpanDB{}~dB below it; the
+loudest is \wmCeilingDBFS{}~dBFS on hardware and
+\wmPluginCeilingDBFS{}~dBFS on a plugin; each row opens with
+\wmPrerollS{}~s of silence and closes with \wmTailS{}~s, and each rung
+settles for \wmSettleS{}~s and is measured for \wmMeasureS{}~s; a tile
+holds \wmPeriodCount{} cycles; and a tile wears the badge below
+\wmClearMarginDB{}~dB over its row's stamp.
+
+\subsection{What the result looks like}
+
+The user guide's page for this measurement carries no rendered chart, so
+this chapter shows no app rendering; Figure~\ref{fig:matrix-grid-plain}
+is the check's own drawing of a grid, laid out the way the app lays out
+a tile: the input dashed, the output solid, each tile scaled to its own
+loudest sample. The device is the made-up crossover stage of the checks
+--- a dead zone around zero of the size the project's reference stage
+was measured to have --- on the default five-by-five grid. Read it a
+column at a time. In the two quietest columns the whole wave lies inside
+the dead zone, and the output is a flat line: a tile whose title reads a
+dead fraction of a hundred percent. At the standard drive, in the middle
+column, about a fifth of each cycle is dead --- the output flattens
+across zero on every crossing, and the picture is a sine with its middle
+cut out. At the loudest column only a sliver of each cycle is dead. Down
+a column the pictures are the same at every note, because a dead zone
+does not care what the pitch is; that is the physics the default floor
+was set to reach, and the reason the quiet columns exist.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.98\linewidth]{matrix-grid.png}
+  \caption{The crossover device --- a dead zone around zero --- on the
+  default five-by-five grid, drawn the way the app draws a tile: input
+  dashed, output solid, each tile scaled to its own loudest sample. Each
+  tile's title gives its note, its loudness and how much of each cycle
+  fell inside the dead zone. The two quietest columns lie entirely inside
+  it; at the standard drive a fifth of each cycle does; at the loudest a
+  sliver.}
+  \label{fig:matrix-grid-plain}
+\end{figure}
+
+\subsection{How you can check that the app does what this says}
+
+As in the earlier chapters, a second program was written from the
+description --- in Python, independently, not by translating the app's
+code --- and the \term{parity} runs both on the same made-up devices
+through the same made-up loop and demands the same answer. It runs
+\mparityCaseCount{} cases. The second program borrows chapter one's
+devices and noise, the Transfer Curve chapter's tone filters and its
+exact steady-state answer, and the Compression chapter's climbing tone,
+and owns the rest: both lattices, the anchor, the row's signal, the cut,
+the rounding to 32 bits, the numbers read from a tile, the stamp, the
+badge, the crossover device, and the two ways of rendering the rows. The
+known answer is exact here in a way it could not be in the earlier
+chapters. For a device with no memory and no filter, the output tile
+\emph{should} be nothing more than the device's formula applied to the
+test tone at the tile's own samples, and that can be computed to the last
+digit; behind a filter the known answer is the settled, steady-state wave
+the Transfer Curve chapter computes from the device's formula and the
+filter's response.
+
+\paragraph{Equality, not a tolerance.} Where a step is exact the check
+does not ask for agreement within a tolerance; it asks for equality. The
+two programs must deliver every lattice at every size and every metered
+factor --- the tie described in the limits included --- every note name,
+every starting sample in the tone and in the recording, every sample
+count, every badge and every dead fraction \emph{identically}; on the run
+that built this document \mparityWorstExact{} of those differed. And on
+the \mparityMemorylessCount{} cases with no memory and no filter, the
+stored tile's departure from the exact answer must equal, sample for
+sample, nothing more than the rounding of the exact answer to 32 bits ---
+\mparityQuantizationWords{} of the wave's peak
+(\mparityQuantization); the departure beyond that rounding was
+\mparityMemorylessBeyondWords{} of the peak (\mparityMemorylessBeyond). A
+tile is the capture, and the check holds it to being exactly that.
+
+\paragraph{The demands with a tolerance.} The numbers read from a tile
+--- its peak, its average size, its average value --- are sums over the
+same 32-bit samples taken in a different order by the two programs, and
+must agree to within \mparitySwiftRelativeWords{} of their value
+(\mparitySwiftRelative) with no filter in the loop (the worst measured
+disagreement was \mparityWorstSwiftWords{}, \mparityWorstSwift) and to
+within \mparitySwiftRelativeFilteredWords{} (\mparitySwiftRelativeFiltered)
+through a filter, whose arithmetic rounds differently in the two
+languages over a long recording (measured
+\mparityWorstSwiftFilteredWords{}, \mparityWorstSwiftFiltered). The
+stamp must read the injected noise to within \mparityStampWords{} of a
+decibel (\mparityStamp{}~dB; measured \mparityStampScatterLow{} to
+\mparityStampScatterHigh{}~dB over the five rows of a plain wire through
+noise --- the estimate's own scatter over \mparityStampSamples{} samples
+of silence), and no tile of that wire may wear the badge. The same
+device and the same noise through a loop turned up by
+\wmParityGainDB{}~dB must leave every lattice value, every starting
+sample and every badge unchanged and move every level by exactly
+\wmParityGainDB{}~dB (measured departure \mparityGainShiftWords{} of a
+decibel, \mparityGainShift): turning the interface up does not move a
+picture. A recording \wmParityLatencySamples{} samples late, with the
+tiles cut \wmParityLatencySamples{} samples later, must read every
+number identically (measured \mparityLatencyMoveWords{},
+\mparityLatencyMove). The crossover device's quietest tile must lie
+entirely inside the dead zone (a dead fraction of \mparityDeadQuiet) and
+its loudest mostly outside it (\mparityDeadLoud), the fraction falling
+steadily along the row (\mparityDeadRow{} on the E2 row) and equal to
+the exact answer's on every row --- the requirement the app's own test of
+this measurement was founded on, carried through the whole pipeline. The
+four refusals --- an unrecognised encoding, a sample count that
+disagrees with the data, a recording one sample short of its last tile,
+and a cycle count no stretch can hold --- must be refused by both
+programs with the same message. And the record's size: a seven-point
+grid on the default span encodes to \mparityPayloadSeven{} bytes and a
+five-point one to \mparityPayloadFive{}, inside the bound the app's own
+code pins; the two programs' encodings may differ by at most
+\mparityPayloadBytes{} bytes, the length of one number's last digits.
+\mparityPartBStatus
+
+\paragraph{The settle window.} Each rung's first \wmSettleMs{}~ms are
+not read, so that the pedal can settle at the new loudness before the
+tile is cut. The check measures what that window leaves behind. Behind a
+fast tone filter --- a low-pass at a thousand hertz, or a high-pass just
+under the guitar's range --- the tile's departure from the steady-state
+answer, once the 32-bit rounding is taken off, is
+\mparityFastBeyondWords{} of the peak (\mparityFastBeyond): the
+transient is entirely absorbed. Behind a slow output capacitor it is not:
+at a corner of two hertz the tile still carries
+\mparitySlowTwoWords{} of the peak (\mparitySlowTwo,
+\mparitySlowTwoDB{}~dB down) of the rung's start-up, and at half a hertz
+\mparitySlowHalfWords{} (\mparitySlowHalf, \mparitySlowHalfDB{}~dB).
+Figure~\ref{fig:matrix-settle-plain} shows the three side by side at every
+loudness of the E2 row. The residue is stated, never removed: the tile is
+the capture.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.95\linewidth]{matrix-settle.png}
+  \caption{What the settle window leaves of a rung's start-up, at every
+  loudness of the E2 row: the tile's largest departure from the
+  steady-state answer as a share of the peak, for the steep soft clipper
+  behind a fast low-pass (absorbed to the rounding, drawn as the floor)
+  and behind a two-hertz and a half-hertz output capacitor, whose drain is
+  as slow as the window or slower.}
+  \label{fig:matrix-settle-plain}
+\end{figure}
+
+\paragraph{A one-sample mis-cut.} If the calibration's delay were wrong
+by one sample, the output window would be one sample late. The check
+plants exactly that error and measures the residue against the exact
+answer: \mparityMiscutLow{}\,\% of the peak at E2 and
+\mparityMiscutHigh{}\,\% at E6, because one sample is a larger slice of
+a short cycle than of a long one, and on a flattened wave it moves the
+edges. That is why the starting sample is held to equality above, and
+why the delay is measured rather than guessed.
+
+\paragraph{The drain, measured.} The lopsided clipper behind the slow
+output capacitor of Figure~\ref{fig:tail-plain}, through a loop with a
+little noise, is the case that reproduces the finding the limits section
+states. With the device's state carried across the rows, the first row's
+stamp reads the injected noise to within
+\mparityTailHalfFirstRowWords{} of a decibel (\mparityTailHalfFirstRow)
+and rows two to five read \mparityTailHalfCarriedExcess{} to
+\mparityTailHalfCarriedExcessMax{}~dB \emph{over} it --- about
+\mparityTailHalfCarriedRatio{} times the noise --- while the same device
+on rows each started fresh reads every row within
+\mparityTailHalfIndependentExcess{}~dB of the noise. Behind a two-hertz
+capacitor the carried rows read \mparityTailTwoCarriedExcess{}~dB over,
+about \mparityTailTwoCarriedRatio{} times the noise, and the fresh ones
+within \mparityTailTwoIndependentExcess{}. The quiet tiles tell the same
+story from the picture's side: their departure from the steady-state
+answer is \mparityTailHalfCarriedResidue{} of the peak on the carried
+rows against \mparityTailHalfIndependentResidue{} on the fresh ones ---
+the drain reaches the tiles as well as the stamp.
+Figure~\ref{fig:matrix-stamp-plain} is the row-by-row picture.
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.98\linewidth]{matrix-stamp.png}
+  \caption{The drain, row by row: the stamp of every row for the lopsided
+  clipper behind a half-hertz (left) and a two-hertz (right) output
+  capacitor, with noise injected at the interface. With the device's
+  state carried across the rows (red) the first row reads the noise and
+  every later row reads the previous row's loudest step still draining,
+  tens of decibels over it; with every row started fresh (blue) each row
+  reads the noise. Grey: the quietest tile's own level on the carried
+  rows, which sits under the contaminated stamp.}
+  \label{fig:matrix-stamp-plain}
+\end{figure}
+
+\paragraph{The cross-check, measured.} A plain wire's tile at the
+cross-check point, read at the same positions in the cycle the transfer
+curve reads, differs from the transfer curve's averaged cycle by
+\mparityCrossControl{}\,\% of the cycle's peak (\mparityCrossControlDB{}~dB
+below it; the check requires under \mparityCrossControlBarWords{} of the
+peak, \mparityCrossControlBar). A wire has nothing to differ by, so that
+is the frame: the transfer curve averages every cycle of its tone
+including the closing fade, and its cycle sits under the tone by the
+fade's share --- \mparityCrossDeficit{}~dB on the input cycle. The steep
+soft clipper of the worked examples differs by \mparityCrossDevice{}\,\%,
+the same size. So at the one point the two measurements share, they
+agree to the difference between their frames, measured once, and that is
+the actual content of ``the same operating point''.
+
+The test runs automatically on every change to the app, and the tables
+and figures in both documents are regenerated on every change and
+compared with the committed copies; the scripts and the instructions for
+running them are in the repository named on the first page.
+
+\subsection{Where it stops being a measurement}
+
+\begin{itemize}
+  \item \textbf{The row's silence can hold the previous row's drain.} A
+  stamp is a noise figure only when the silence holds noise. On a pedal
+  whose output passes through a coupling capacitor and whose loudest step
+  leaves a wave with an average level --- a lopsided clipper, a rectifier
+  --- the previous row's last step is still draining into the next row's
+  silence, and the stamp reads the drain. The project's own reference
+  positions show it on two dates: rows two onward read
+  \wmLibraryTailLowLoad{} times the first row's stamp into an interface
+  of about \wmLibraryLowLoadKOhm~k$\Omega$, and \wmLibraryTailHighLoad{}
+  times into one of \wmLibraryHighLoadMOhm~M$\Omega$, because a lighter
+  load lets the capacitor drain more slowly. The quiet tiles of such rows
+  are then judged against a yardstick far too high, and a pedal with a
+  longer drain or a smaller output would wear the badge on its quiet
+  tiles for a slide that is not noise. Simulation Mode starts each row
+  fresh, so it cannot show this. Whether the stamp should remove the
+  slide before it is read, the silence be made longer, or the slide be
+  stated beside the stamp is undecided and filed; nothing about the
+  capture was changed here.
+  \item \textbf{The settle window is a duration, and a capacitor can be
+  slower.} Behind a fast filter the window absorbs a rung's start-up to
+  the rounding; behind a slow output capacitor it leaves the residue the
+  check measures, and a rectifier's drain at every change of loudness
+  runs through the whole tile. The residue is stated, never removed.
+  \item \textbf{A wrong delay moves the output picture.} The output
+  window sits where the calibration's delay puts it, and a delay wrong by
+  one sample moves it by one sample --- \mparityMiscutLow{}\,\% of the
+  peak at E2, \mparityMiscutHigh{}\,\% at E6. The delay is measured once
+  per rig state, and the picture keeps the pedal's own shift precisely
+  because it is not lined up.
+  \item \textbf{The tie.} At the \wmTieDimension{}-point size, two very
+  close metered factors on one interface (\wmTieFactorA{} and
+  \wmTieFactorB{}~V at full scale, both in the project's library) give two
+  different sets of quiet loudnesses, because the splitting rule has to
+  choose between two gaps of exactly equal width and the choice falls to
+  the last digits of the arithmetic. Both grids are honest, the paired
+  comparison finds the points they share, and the check reproduces the
+  choice exactly; it is filed rather than changed, because changing it
+  would move the grids of every future record.
+  \item \textbf{The cross-check reads the frame.} At the one point the
+  two measurements share, they agree to the transfer curve's own
+  closing-fade deficit; a reader comparing a tile with the transfer
+  curve's picture by eye is comparing against a cycle a fraction of a
+  percent low.
+  \item \textbf{One point per tile, and the grid is sparse.} Nothing
+  between two points is measured, and the three-point grid has no point
+  at all in the \wmFloorSpanDB{}~dB between the floor and the standard
+  drive --- which is why the default is \wmDefaultDimension{}. Simulation
+  Mode's quick preview draws the \wmSimInteractiveDimension{}-point grid,
+  nested inside the default.
+  \item \textbf{One capture per row, and nothing is averaged.} A row is
+  recorded once. Noise in a tile is the noise of that recording, and a
+  pedal that drifts between rows shows it as a difference between rows the
+  grid draws and does not name.
+  \item \textbf{A picture is not a listening test.} Every tile is drawn
+  scaled to its own loudest sample, and a shift in time alone redraws a
+  wave; as the app states beside the grid, a visibly different wave is not automatically an audibly different one.
+\end{itemize}
+
+\clearpage
 
 \section{Glossary, in plain language}
 \input{../generated/glossary-plain.tex}

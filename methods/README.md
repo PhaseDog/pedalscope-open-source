@@ -241,6 +241,13 @@ measurement kind X whose technical chapter exists:
    prefix must not collide with a technical fragment the lay document
    also inputs (`plain-journey.tex` uses `\gm…` because
    `residue-journey.tex`, input by both documents, owns `\journey…`).
+   **A non-numeric fact the manifest carries only inside a rule string**
+   — a load, a range of factors, a dimension named in a sentence — is
+   READ from the rule string by a regex that asserts its shape
+   (`gen_plain_matrix`'s `dcTailRule` parse: the library's `8–16×` /
+   `100–230×` and their loads), never typed; the technical chapter's
+   typed copy of the same figure is a #373 census entry, the lay
+   chapter's is not.
 3. **Concept figures.** `make_figures.py` gains `explained-*.png` figures
    computed from the reimplementation's own devices and the truth function
    the parity code uses (`fig_clipping` is the model), seeded or
@@ -270,7 +277,18 @@ measurement kind X whose technical chapter exists:
    `explained-ladder.png` first plotted the tone's envelope in linear
    amplitude, and a 1.7 dB step (a fifth of the amplitude) vanished under
    the axis — the ramp the panel exists to show was invisible until the
-   axis was the left panel's own dBFS.
+   axis was the left panel's own dBFS. **A concept figure that
+   illustrates a parity finding is built from the parity's OWN case**: the
+   Waveform Matrix's `explained-tail.png` looks the case up in
+   `parity_matrix.CASES` by name and builds its plan through the
+   reimplementation's own argument parser (`wmx.plan_from_args`), so the
+   figure and the `\mparity…` numbers the chapter quotes beside it
+   describe one device by construction rather than by a copied parameter
+   list — the chapter may then quote the parity macro as the figure's
+   number. A limit's groundwork can sit inline where the reader first
+   needs it rather than in the limits list: the DC tail is explained under
+   "What the app decides" beside the badge it defeats, and the limits
+   bullet points back.
 5. **Terms.** `\term{key}` at first use; improve a `plain` definition the
    chapter shows to be too technical (that field exists for this
    document); a new term needs `technical` and `plain` and a chapter that

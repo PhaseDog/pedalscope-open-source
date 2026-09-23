@@ -1914,6 +1914,102 @@ def fig_matrix_stamp(m, out):
     write_sidecar(os.path.join(out, "matrix-stamp.tsv"), ["row"] + header, [list(rows)] + [cols[h] for h in header])
 
 
+def fig_explained_tail(m, out):
+    """The lay companion's concept figure for the Waveform Matrix: a
+    capacitor forgets slowly — one row's end in the next row's silence.
+    The parity's own rectifier case (a lopsided clipper behind a 0.5 Hz
+    output coupling capacitor, white noise injected at −100 dBFS: the
+    cases named below, built through the reimplementation's own parser so
+    the figure and the chapter's parity numbers describe ONE device),
+    rendered both ways the reimplementation renders rows — device state
+    carried across the rows, as a real pedal experiences them, and each
+    row from zero state, Simulation Mode's shape. Left: the boundary
+    between the first two rows in time — the first row's loudest step
+    ending, its closing silence, then the second row's opening silence
+    (the stamp's window) and the start of its quietest step — carried
+    against independent. Right: the same span as a short-window level in
+    dBFS, with the injected noise, the badge's clear margin over it, and
+    the second row's stamp under each rendering drawn across the window it
+    is read from. The device, the capacitor, the step, the noise and the
+    two stamps are printed in the titles; nothing is drawn by hand."""
+    import parity_matrix as P
+    wm = m["waveformMatrix"]
+    margin = float(wm["noise"]["noiseClearMarginDB"])
+    names = ("i-asym-hp05", "i-asym-hp05-indep")
+    parser = wmx.build_parser()
+    runs = {}
+    for name in names:
+        case = next(c for c in P.CASES if c.name == name)
+        plan, _ = wmx.plan_from_args(parser.parse_args(case.args), m)
+        runs[name] = (plan, wmx.run(plan, m))
+    carried_plan, carried = runs[names[0]]
+    independent_plan, independent = runs[names[1]]
+    assert carried_plan.carried_state and not independent_plan.carried_state
+    assert carried_plan.device == independent_plan.device and carried_plan.noise_rms == independent_plan.noise_rms
+    mp = carried_plan.plan
+    fs = mp.fs
+    pre, tail = mp.preroll_samples, mp.tail_samples
+    row0 = mp.row_stimulus(0)
+    tone_end = pre + mp.row_signal(0).sample_count      # the first row's tone ends here, fade included
+    assert len(row0) == tone_end + tail
+    boundary = len(row0)                                 # the second row's capture begins here
+    lead, trail = int(0.3 * fs), int(0.1 * fs)
+    a, b = tone_end - lead, boundary + pre + trail
+    streams = {"carried": np.concatenate([carried.captures[0], carried.captures[1]]),
+               "independent": np.concatenate([independent.captures[0], independent.captures[1]])}
+    t = (np.arange(a, b) - boundary) / fs                # seconds from the moment the second row begins
+    device = carried_plan.device
+    loudest = mp.amplitudes_dbfs[-1]
+    injected = 20 * math.log10(carried.truth_stamp)
+    stamps = {k: 20 * np.log10(np.array(r.row_noise_rms)) for k, r in (("carried", carried), ("independent", independent))}
+    fig, (ax, bx) = plt.subplots(1, 2, figsize=(7.8, 3.5), gridspec_kw={"width_ratios": [1.1, 1.0]})
+    # Left: the boundary in time.
+    ax.axvspan((tone_end - boundary) / fs, 0, color=GREY, alpha=0.25, label="the first row's closing silence (%g s)" % mp.tail_s)
+    ax.axvspan(0, pre / fs, color=BLUE, alpha=0.12, hatch="////", label="the second row's opening silence — the stamp's window (%g s)" % mp.preroll_s)
+    ax.axvline(0, color="0.3", linewidth=0.8)
+    ax.plot(t, streams["independent"][a:b], color=BLUE, linewidth=0.5, label="independent rows: each row from zero state")
+    ax.plot(t, streams["carried"][a:b], color=RED, linewidth=0.5, label="state carried across rows: the capacitor still draining")
+    peak = float(np.max(np.abs(streams["carried"][a:b])))
+    ax.set_ylim(-1.1 * peak, 1.1 * peak)
+    ax.set_xlim(t[0], t[-1])
+    ax.set_xlabel("time from the start of the second row (s)")
+    ax.set_ylabel("the capture (re full scale)")
+    ax.set_title("lopsided clipper (gain %g, negative half × %g), %g Hz output capacitor:\nthe first row's %g dBFS step ends, the next row begins"
+                 % (device.params["gain"], device.params["negative_scale"], device.post.frequency, loudest), fontsize=7.5)
+    ax.legend(fontsize=5.5, loc="lower right")
+    # Right: the same span as a level, in short windows.
+    block = int(0.01 * fs)
+    edges = np.arange(a, b - block + 1, block)
+    t_block = (edges + block / 2 - boundary) / fs
+    levels = {k: 20 * np.log10(np.array([math.sqrt(float(np.mean(v[e:e + block] ** 2))) for e in edges])) for k, v in streams.items()}
+    bx.axvspan((tone_end - boundary) / fs, 0, color=GREY, alpha=0.25)
+    bx.axvspan(0, pre / fs, color=BLUE, alpha=0.12, hatch="////")
+    bx.axvline(0, color="0.3", linewidth=0.8)
+    bx.plot(t_block, levels["independent"], color=BLUE, linewidth=1.0, label="independent rows")
+    bx.plot(t_block, levels["carried"], color=RED, linewidth=1.0, label="state carried across rows")
+    bx.axhline(injected, color=GREEN, linewidth=0.8, linestyle="--", label="the injected noise (%g dBFS)" % injected)
+    bx.axhline(injected + margin, color=GREEN, linewidth=0.6, linestyle=":", label="%g dB over it — the badge's clear margin" % margin)
+    bx.plot([0, pre / fs], [stamps["carried"][1]] * 2, color=RED, linewidth=2.5, alpha=0.6, label="the second row's stamp, carried: %.0f dBFS" % stamps["carried"][1])
+    bx.plot([0, pre / fs], [stamps["independent"][1]] * 2, color=BLUE, linewidth=2.5, alpha=0.6, label="the second row's stamp, independent: %.0f dBFS" % stamps["independent"][1])
+    bx.set_xlim(t[0], t[-1])
+    bx.set_ylim(injected - 8, max(np.max(levels["carried"]), np.max(levels["independent"])) + 6)
+    bx.set_xlabel("time from the start of the second row (s)")
+    bx.set_ylabel("level (dBFS, %d ms windows)" % round(1000 * block / fs))
+    bx.set_title("the same span as a level: the second row's stamp\nreads %.0f dB over the noise carried, %.1f dB fresh"
+                 % (stamps["carried"][1] - injected, stamps["independent"][1] - injected), fontsize=7.5)
+    bx.legend(fontsize=5.5, loc="lower left")
+    fig.suptitle("A capacitor forgets slowly: one row's end in the next row's silence", fontsize=8)
+    fig.savefig(os.path.join(out, "explained-tail.png"), **SAVE)
+    plt.close(fig)
+    decimate = 16
+    write_sidecar(os.path.join(out, "explained-tail-wave.tsv"), ["t_s", "carried", "independent"],
+                  [t[::decimate], streams["carried"][a:b][::decimate], streams["independent"][a:b][::decimate]])
+    write_sidecar(os.path.join(out, "explained-tail-level.tsv"), ["t_s", "carried_dbfs", "independent_dbfs"],
+                  [t_block, levels["carried"], levels["independent"]])
+    write_sidecar(os.path.join(out, "explained-tail-stamps.tsv"), ["row", "carried_stamp_dbfs", "independent_stamp_dbfs", "injected_dbfs"],
+                  [list(range(1, len(stamps["carried"]) + 1)), stamps["carried"], stamps["independent"], [injected] * len(stamps["carried"])])
+
+
 def matrix_figures(manifest_path, out):
     m = wmx.load_manifest(manifest_path)
     fig_matrix_lattice(m, out)
@@ -1921,6 +2017,7 @@ def matrix_figures(manifest_path, out):
     fig_matrix_grid(m, out)
     fig_matrix_settle(m, out)
     fig_matrix_stamp(m, out)
+    fig_explained_tail(m, out)
 
 
 def main(argv=None):

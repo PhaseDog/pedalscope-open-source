@@ -47,11 +47,15 @@ and everything they are built from:
 - `methods/tex/` — the LaTeX sources of both (`methods.tex`,
   `explained.tex`, `preamble.tex`, `references.bib`) and the pinned
   `latexmkrc`.
-- `methods/py/` — the Python reimplementations of the methods
-  (`harmonic_distortion.py`, `transfer_curve.py`, `chord_imd.py`), written
-  from the manifest and the published definitions, not from the app's Swift;
-  the figure generator (`make_figures.py`); the fragment generator
-  (`gen_docs.py`); the terms guard (`test_terms.py`); and the parity tests
+- `methods/py/` — the Python reimplementations of the methods, one module per
+  measurement kind in the documents' chapter order (`harmonic_distortion.py`,
+  `transfer_curve.py`, `compression_curve.py`, `gain_map.py`, `chord_imd.py`,
+  `waveform_matrix.py`), written from the manifest and the published
+  definitions, not from the app's Swift; the figure generator
+  (`make_figures.py`); the fragment generator (`gen_docs.py`); the guards
+  (`test_terms.py`, `test_module_names.py`, and `test_machine_floor.py` with
+  `machine_floor.py`, the floor under which a measured deviation is printed as
+  a bound); and the parity tests with their tolerances, one pair per module
   (`test_parity_*.py`, `parity_*.py`).
 - `methods/generated/manifest.json` — **every number the documents quote
   comes from here.** The manifest is emitted by the shipped app's own
@@ -115,18 +119,20 @@ stated as found:
   same case (`--swift`) and is left as committed.
 - **The PDFs** — `latexmk` as above: the same page counts as the committed
   PDFs.
-- **The parity tests cannot run here.** `test_parity_hd.py`,
-  `test_parity_transfer.py`, `test_parity_imd.py` and
-  `test_parity_journey.py` call the private Swift tool (`analysisdump
-  synth`, `transfer-synth`, `imd-synth`, `journey-synth`), which
-  runs the app's own analysis code on a synthetic device beside the Python's
-  and holds the two to each other and to the analytic truth. Those tests
-  run in the private repository's CI on every change; they are published
-  here as the record of **what is asserted and at what tolerance** — read
-  `parity_hd.py`, `parity_transfer.py`, `parity_imd.py` and
-  `parity_journey.py`, where each
-  tolerance is quoted with the measurement it was set from — and the
-  numbers they produced are in the documents' worked examples.
+- **The parity tests cannot run here.** Every parity test —
+  `test_parity_hd.py`, `test_parity_transfer.py`,
+  `test_parity_compression.py`, `test_parity_journey.py`,
+  `test_parity_imd.py`, `test_parity_matrix.py` — calls the private Swift tool
+  (`analysisdump` `synth`, `transfer-synth`, `compression-synth`,
+  `journey-synth`, `imd-synth`, `matrix-synth`), which runs the app's own
+  analysis code on a synthetic device beside the Python's and holds the two to
+  each other and to the analytic truth. Those tests run in the private
+  repository's CI on every change; they are published here as the record of
+  **what is asserted and at what tolerance** — read the matching comparison
+  module (`parity_hd.py`, `parity_transfer.py`, `parity_compression.py`,
+  `parity_journey.py`, `parity_imd.py`, `parity_matrix.py`), where each
+  tolerance is quoted with the measurement it was set from — and the numbers
+  they produced are in the documents' worked examples.
 
 ## Hardware plans
 

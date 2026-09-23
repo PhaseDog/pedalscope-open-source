@@ -1370,8 +1370,10 @@ terms:
       reference its default floor hangs from.
     plain: >-
       The standard loudness, fixed as a voltage at the pedal rather than as a
-      number on the computer, so that two rigs with different gain deliver
-      the same signal at the pedal.
+      number on the computer, so that any rig whose output has been measured
+      with a meter delivers the same signal at the pedal, whatever its gain;
+      on a rig that has not been metered, and on a plugin, a fixed number on
+      the computer stands in for it.
 
   - key: note-anchor
     term: note anchor
@@ -1417,8 +1419,8 @@ terms:
       no-volts expression; the ceiling stays an absolute rig-side dBFS.
     plain: >-
       How far below the standard loudness the grid's quietest column sits: a
-      fixed distance, so the quiet tiles land at the same small signal at the
-      pedal on any rig.
+      fixed distance, so that on any rig whose output has been measured with
+      a meter the quiet tiles land at the same small signal at the pedal.
 
   - key: zero-crossing-start
     term: zero-crossing start
@@ -1453,9 +1455,9 @@ terms:
       (a mirror the manifest states) and never used to gate the stored
       samples.
     plain: >-
-      How much hiss the loop and the pedal make on their own just before each
-      row's note starts, kept with the row so quiet tiles can be judged
-      against it.
+      The level of whatever the loop and the pedal put out on their own in the
+      silence just before each row's note starts --- usually hiss --- kept
+      with the row so its quiet tiles can be judged against it.
 
   - key: noise-badge
     term: noise margin and badge
@@ -1478,7 +1480,24 @@ terms:
       Simulation Mode's shape.
     plain: >-
       Treating the rows of the grid as one continuous performance, the way a
-      real pedal experiences them, rather than as separate fresh starts.
+      real pedal experiences them, rather than as separate fresh starts. A
+      pedal measured through an interface is always in this state; Simulation
+      Mode starts every row fresh.
+
+  - key: dc-tail
+    term: DC tail
+    technical: >-
+      The decaying offset an output coupling capacitor holds after a step
+      with a non-zero mean ends: on a rectifying device the previous row's
+      loudest step is still discharging through the capacitor into the next
+      row's pre-roll, where the row noise stamp reads it as if it were noise;
+      a deterministic one-way decay, not noise, set by the device's DC
+      shift, the capacitor's time constant and the load.
+    plain: >-
+      The slow leftover a capacitor keeps after a loud lopsided note stops:
+      a level that drains away over a fraction of a second rather than
+      switching off, so the silence before the next row still holds some of
+      it when that row's hiss is measured.
 
   - key: value-alignment
     term: value alignment (app level)

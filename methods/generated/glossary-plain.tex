@@ -10,7 +10,7 @@
 \item[{\hypertarget{term:box-normalization}{box normalization}}] Loop areas are stated as a fraction of the box the whole figure fits in, so a tiny signal and a loud one are on the same scale.
 \item[{\hypertarget{term:floor-stamp}{calibration stamp}}] A note the app keeps with every measurement of how much distortion and noise the bare loop --- cable, interface and nothing else --- showed at each pitch when it was checked.
 \item[{\hypertarget{term:capture-floor}{capture floor}}] How deep this particular recording could see, stated under the table; it describes the recording and never changes a verdict.
-\item[{\hypertarget{term:carried-state}{carried state}}] Treating the rows of the grid as one continuous performance, the way a real pedal experiences them, rather than as separate fresh starts.
+\item[{\hypertarget{term:carried-state}{carried state}}] Treating the rows of the grid as one continuous performance, the way a real pedal experiences them, rather than as separate fresh starts. A pedal measured through an interface is always in this state; Simulation Mode starts every row fresh.
 \item[{\hypertarget{term:map-cell}{cell}}] One square of the map: one loudness, one note, and the distortion the pedal made there.
 \item[{\hypertarget{term:centre-tile}{centre tile}}] The cell in the very middle of the grid, which is the standard loudness at the middle note of the range whatever size the grid is.
 \item[{\hypertarget{term:cleanup-reading}{cleanup reading}}] Where, going up the ladder, the pedal's distortion first crosses the line the chart draws: a loudness if it does; ``never clean'' if it is over the line even at the quietest rung; ``always clean'' if it never reaches it.
@@ -27,6 +27,7 @@
 \item[{\hypertarget{term:cycle-snap}{cycle snap}}] The measured stretch is trimmed to a whole number of cycles of the note, so the note fits it exactly and does not smear.
 \item[{\hypertarget{term:dbc}{dBc}}] A level relative to the note (or tone) that caused it, so that ``how big is the distortion'' does not depend on how loud the test was.
 \item[{\hypertarget{term:dbfs}{dBFS}}] A level relative to the loudest a digital recording can be; 0 is the maximum and negative numbers are quieter.
+\item[{\hypertarget{term:dc-tail}{DC tail}}] The slow leftover a capacitor keeps after a loud lopsided note stops: a level that drains away over a fraction of a second rather than switching off, so the silence before the next row still holds some of it when that row's hiss is measured.
 \item[{\hypertarget{term:decibel}{decibel} (dB)}] A way of writing how much bigger or smaller one level is than another, on a scale where each step of 20 is a factor of ten in size: 0 means the same, $-20$ means a tenth as big, $-40$ a hundredth, $-60$ a thousandth.
 \item[{\hypertarget{term:deconvolution}{deconvolution}}] The step that undoes the sweep, turning the recording into a set of separate blips, one per harmonic.
 \item[{\hypertarget{term:delivered-fundamental}{delivered fundamental}}] How loud the note itself actually arrived at the interface for one square of the map, with everything the loop added.
@@ -42,7 +43,7 @@
 \item[{\hypertarget{term:floor-class}{floor class}}] Whether a distortion reading is clearly the pedal, a mix of pedal and hiss, or just the hiss.
 \item[{\hypertarget{term:floor-runs}{floor runs}}] The stretches of the distortion trace drawn solid, dotted or faint according to how far above the hiss they stand.
 \item[{\hypertarget{term:floor-source}{floor source}}] A label saying where the hiss line on the chart came from, so the reader knows which measurement they are looking at.
-\item[{\hypertarget{term:floor-span}{floor span}}] How far below the standard loudness the grid's quietest column sits: a fixed distance, so the quiet tiles land at the same small signal at the pedal on any rig.
+\item[{\hypertarget{term:floor-span}{floor span}}] How far below the standard loudness the grid's quietest column sits: a fixed distance, so that on any rig whose output has been measured with a meter the quiet tiles land at the same small signal at the pedal.
 \item[{\hypertarget{term:bound-zone}{floor-bound zone}}] The bottom rung of the ladder: a corner found there might really lie lower still, so it is reported as "at or below".
 \item[{\hypertarget{term:frame-fit}{frame fit}}] Lining the two measurements up in time by one shift that makes every harmonic agree at once; how well they then agree says whether the two records really describe the same device at the same setting.
 \item[{\hypertarget{term:fundamental}{fundamental} ($f_0$)}] The note being played. Distortion shows up as extra tones at whole-number multiples of it.
@@ -100,7 +101,7 @@
 \item[{\hypertarget{term:refinement}{refinement (nesting)}}] Adding points to a grid by splitting its biggest gap, so a bigger grid always contains a smaller one exactly and the two can be compared.
 \item[{\hypertarget{term:alignment-error}{residual alignment error}}] A leftover timing error between the test signal and the recording of a fraction of a sample or more; it opens the picture into a loop that is wider for higher notes, and is a property of the rig, not the pedal.
 \item[{\hypertarget{term:resolution-band}{resolution band}}] How precisely the corner is known: the range of corner positions that fit the points about as well as the best one.
-\item[{\hypertarget{term:row-noise-stamp}{row noise stamp}}] How much hiss the loop and the pedal make on their own just before each row's note starts, kept with the row so quiet tiles can be judged against it.
+\item[{\hypertarget{term:row-noise-stamp}{row noise stamp}}] The level of whatever the loop and the pedal put out on their own in the silence just before each row's note starts --- usually hiss --- kept with the row so its quiet tiles can be judged against it.
 \item[{\hypertarget{term:sample-array}{sample array (encoding)}}] The exact way each tile's numbers are written into the record, labelled so that a program reading them later never has to guess.
 \item[{\hypertarget{term:settle-window}{settle region and measurement window}}] Within each rung, first a short wait for the pedal to settle at the new loudness, then the stretch that is actually measured.
 \item[{\hypertarget{term:pair-statistic}{sideband pair statistic}}] The two notes' neighbouring slots compared with each other, a shape that hints at what kind of drift occurred without claiming to know.
@@ -120,7 +121,7 @@
 \item[{\hypertarget{term:lobe-area}{unsigned lobe area}}] How much area the loop encloses, counted lobe by lobe regardless of which way each lobe is traced --- a figure-eight counts twice, not zero.
 \item[{\hypertarget{term:validity-bound}{validity bound}}] The range of notes over which a given harmonic can be measured honestly; beyond it the recording itself gets in the way.
 \item[{\hypertarget{term:value-alignment}{value alignment (app level)}}] When two grids are compared, cells are paired by the note and loudness they actually recorded, not by where they sit in the grid, and the view says how many pairs it found.
-\item[{\hypertarget{term:voltage-anchor}{voltage anchor}}] The standard loudness, fixed as a voltage at the pedal rather than as a number on the computer, so that two rigs with different gain deliver the same signal at the pedal.
+\item[{\hypertarget{term:voltage-anchor}{voltage anchor}}] The standard loudness, fixed as a voltage at the pedal rather than as a number on the computer, so that any rig whose output has been measured with a meter delivers the same signal at the pedal, whatever its gain; on a rig that has not been metered, and on a plugin, a fixed number on the computer stands in for it.
 \item[{\hypertarget{term:waveform-matrix}{waveform matrix}}] The scope view: the actual wave that went into the pedal and the actual wave that came out, recorded at several notes and several loudnesses and shown side by side. Nothing is modelled or cleaned up.
 \item[{\hypertarget{term:zero-crossing-start}{zero-crossing start}}] Every tile starts where the input wave crosses zero on the way up, so all the tiles line up and the pedal's own delay shows as a shift of the output.
 \end{description}
