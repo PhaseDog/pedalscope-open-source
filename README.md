@@ -2,10 +2,10 @@
 
 The open-source side of [PedalScope](https://pedalscope.com), the macOS
 instrument that measures how guitar pedals distort: the measurement
-libraries, the methods documents with the code that reproduces them, and —
-forthcoming — the hardware plans for the project's reference fixtures. One
-repository, three kinds of thing, each under its own licence (see
-[Licences](#licences) at the end).
+libraries, the methods documents with the code that reproduces them, and
+the hardware plans for the project's reference fixtures. One repository,
+three kinds of thing, each under its own licence (see [Licences](#licences)
+at the end).
 
 ## Measurement libraries
 
@@ -136,13 +136,32 @@ stated as found:
 
 ## Hardware plans
 
-Forthcoming: `hardware/` will hold the build plans for the project's
-reference fixtures — the **Reference Box** first (six known-answer
-circuits whose distortion was computed from resistor arithmetic and Fourier
-theory before anything was plugged in; the measurement library above was
-made with it), then the **Breakout Box**. Plans, bills of materials and
-generated schematics; not the bench records, which are the libraries'
-provenance and stay with them. No date is promised.
+`hardware/` holds the build plans for the project's reference fixtures.
+
+- **`hardware/reference-box/`** — the **Reference Box**: six known-answer
+  circuits whose distortion was computed from resistor arithmetic and
+  Fourier theory before anything was plugged in; the Reference Box
+  measurement library above was made with it. The build plan
+  (`build-plan.md`, read it first), two bills of materials, the schematics
+  as generated SVGs with the Python scripts they are generated from
+  (`python3 <name>.gen.py` rewrites the SVG beside it — the schematics are
+  never hand-edited), and `LICENSE`, `README.md` and `NOTICE`. The plans
+  describe the box as built, and the schematics carry its as-built
+  predictions. Not the bench records, which are the libraries' provenance
+  and stay with them.
+- The **Breakout Box** — the fixture the published library was measured
+  through — will join it under the same licence. No date is promised.
+
+The plans are also presented, with the schematics embedded and a
+revision-stamped zip, at https://pedalscope.com/open-source.html.
+
+### Where it comes from
+
+`hardware/reference-box/` is a snapshot of the private repository's
+`Bench/ReferenceBox` at one commit, named in the commit message
+(`hardware: Bench/ReferenceBox at <sha> (<date>)`), by allowlist: exactly
+the files listed above travel, and the bench records never do. Nothing
+here is edited by hand: a correction is made at the source and republished.
 
 ## Licences
 
@@ -151,7 +170,7 @@ provenance and stay with them. No date is promised.
 | the measurement libraries (release assets) | [CC BY 4.0](LICENSE) | Richard Hoge |
 | `methods/` — the code (`py/`, the `latexmkrc`) | [MIT](methods/LICENSE) | Richard Hoge |
 | `methods/` — the documents (`tex/`, `terms.yaml`, `figures/`, `generated/`, `pdf/`) | [CC BY 4.0](methods/LICENSE-DOCS) | Richard Hoge |
-| `hardware/` — when it lands | CERN-OHL-P-2.0 | Richard Hoge |
+| `hardware/` — the plans, bills of materials, schematics and their generators | [CERN-OHL-P-2.0](hardware/reference-box/LICENSE) | Richard Hoge |
 
 Use them, share them, build on them, with attribution to PedalScope. The
 PedalScope name and mark are not part of the grant.

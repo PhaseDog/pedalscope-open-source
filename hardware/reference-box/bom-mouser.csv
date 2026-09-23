@@ -1,0 +1,20 @@
+Quantity,Mfr Part Number,Manufacturer,Description,Customer Ref
+1,1590BB,Hammond Manufacturing,Diecast aluminum enclosure 1590BB (roomier than 1590B; either works),ENCLOSURE
+1,CK1030,Lorlin,Rotary switch 2-pole 6-position adjustable stop (VERIFY 2P6T on product page before checkout),SELECTOR
+2,111X,Switchcraft,1/4 inch mono phone jack open-frame panel mount,JACKS
+2,TL072CP,Texas Instruments,Dual JFET-input op-amp DIP-8 (1 + spare),P5 RECTIFIER
+2,LM358P,Texas Instruments,Dual op-amp DIP-8 class-B output (must be LM358; 1 + spare),P6 CROSSOVER
+10,1N4148,onsemi,Small-signal diode DO-35 (need 7 + spares),P3/P4/P5
+10,MFR-25FBF52-10K,Yageo,Resistor 10k 1% 0.25W metal film (P2/P3/P4 series + P5 x6; the P6 load is 1k),P2-P7 + spares
+2,MFR-25FBF52-9K09,Yageo,Resistor 9.09k 1% 0.25W metal film,P1 DIVIDER
+2,MFR-25FBF52-1K,Yageo,Resistor 1k 1% 0.25W metal film (P1 shunt + P6 load as built),P1 DIVIDER + P6 LOAD
+4,MFR-25FBF52-1M,Yageo,Resistor 1M 1% 0.25W metal film,BIAS/BLEED
+1,MFR-25FBF52-4K7,Yageo,Resistor 4.7k 1% 0.25W metal film,P7 OPTIONAL
+5,MKP1837310161G,Vishay,Film cap 10nF 160V 1% polypropylene radial 5mm (1 + matched spares),P2 LPF
+6,UES1E100MPM,Nichicon,Bipolar electrolytic 10uF 25V audio grade (AC coupling),COUPLING
+4,C320C104K5R5TA,KEMET,Ceramic cap 100nF 50V X7R radial,BYPASS
+3,1-2199298-2,TE Connectivity,DIP-8 IC socket,SOCKETS
+2,232,Keystone Electronics,9V battery snap connector with leads,POWER
+1,79,Keystone Electronics,9V battery holder clip,POWER
+1,7201SYZQE,C&K,DPDT toggle ON-ON solder lug (battery power switch),POWER
+1,SB404,BusBoard Prototype Systems,Solderable PCB breadboard ~foursquare pattern,PERFBOARD
