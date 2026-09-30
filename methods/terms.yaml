@@ -29,7 +29,7 @@ terms:
     plain: >-
       A check, run automatically on every change, that a second, independently
       written program gets the same answer as the app --- and that both get the
-      right answer on devices whose behaviour is known exactly.
+      right answer on devices whose behavior is known exactly.
 
   - key: sweep
     term: synchronized swept sine
@@ -180,12 +180,12 @@ terms:
     symbol: $T_k$
     technical: >-
       The raised-cosine window that cuts order $k$'s pulse out of the impulse
-      response; its half-widths are half the gap to each neighbouring pulse,
+      response; its half-widths are half the gap to each neighboring pulse,
       capped, and its duration sets the order's spectral resolution.
     plain: >-
       The slice of time around one harmonic's blip that is kept for measuring
       it; wide enough to hold the blip, narrow enough to exclude its
-      neighbours.
+      neighbors.
 
   - key: input-normalized
     term: input-normalized
@@ -205,7 +205,7 @@ terms:
       f_{\mathrm{cal}}/k$ on a compensated record. Reads outside it are
       excluded from every fit, feature, summary and comparison.
     plain: >-
-      The range of notes over which a given harmonic can be measured honestly;
+      The range of notes over which a given harmonic can be measured reliably;
       beyond it the recording itself gets in the way.
 
   - key: alias-image
@@ -238,8 +238,23 @@ terms:
       is reported as a bound.
     plain: >-
       How quiet a measurement can go before it is measuring the recording
-      equipment instead of the pedal; numbers at that level are stated as
-      limits, not values.
+      equipment instead of the pedal; a number at or under it is stated as a
+      bound --- at most this much --- never as a value.
+
+  - key: bound-reading
+    term: bound
+    technical: >-
+      A reported quantity stated as an inequality rather than a value: a read
+      at or below its applicable floor is quoted as at most the floor (an
+      upper bound on what the device could have contributed), a role sum with
+      an unread member as at least its sum, a knee inside the floor-bound zone
+      as at or below that level. The honest claim where the data cannot fix a
+      point; never a figure.
+    plain: >-
+      A reading given as ``at most this much'' or ``at least this much''
+      instead of a number, because what was measured cannot pin the value
+      down any tighter --- the app saying how far it could see rather than
+      guessing.
 
   - key: fundamental-presence
     term: fundamental presence
@@ -271,8 +286,8 @@ terms:
       phasor whose phase advances smoothly with frequency, noise scatters
       isotropically, and the statistic is $1/\sqrt n$ for pure noise.
     plain: >-
-      A score for how orderly a harmonic's measurement is across neighbouring
-      frequencies; real circuit behaviour is orderly, noise is not.
+      A score for how orderly a harmonic's measurement is across neighboring
+      frequencies; real circuit behavior is orderly, noise is not.
 
   - key: scatter
     term: read scatter
@@ -293,7 +308,7 @@ terms:
       residual is noise, and magnitudes are never averaged.
     plain: >-
       Playing the sweep several times in a row and combining the results so
-      that random noise partly cancels while the device's behaviour adds up.
+      that random noise partly cancels while the device's behavior adds up.
 
   - key: derotation
     term: derotation
@@ -421,7 +436,7 @@ terms:
     technical: >-
       The total loop area: the closed trajectory is split at every
       self-crossing and the absolute area of every lobe is summed, so
-      opposite-winding lobes add instead of cancelling; lobes under a floor
+      opposite-winding lobes add instead of canceling; lobes under a floor
       fraction of the box are dropped as bin noise.
     plain: >-
       How much area the loop encloses, counted lobe by lobe regardless of
@@ -532,7 +547,7 @@ terms:
       A series capacitor at a device's output: a first-order high-pass whose
       corner sits far below the probe note, so it removes the output's mean
       and leaves every harmonic's magnitude essentially untouched --- an
-      asymmetric clipper's unequal clip levels are centred by it while its
+      asymmetric clipper's unequal clip levels are centered by it while its
       even harmonics survive.
     plain: >-
       The capacitor every pedal has on its output. It removes the wave's
@@ -649,7 +664,7 @@ terms:
   - key: lattice-snap
     term: lattice snap
     technical: >-
-      Placing the two tones on bin centres so that a whole number of
+      Placing the two tones on bin centers so that a whole number of
       cycles of each fits the window: the reduced ratio is chosen once
       against every standard grid (no collisions, spacing at or above the
       bar, both tones inside a $\pm 15$ cent budget, then the interval
@@ -720,8 +735,9 @@ terms:
       floor ($20 \log_{10} 4 = 12.04$ dB), decided at capture and frozen in
       the payload as the product's \texttt{aboveFloor} flag.
     plain: >-
-      The fixed bar --- four times the noise beside it --- an invented tone
-      must clear to count as measured.
+      The fixed bar, a set multiple of the noise measured beside it, that an
+      invented tone must clear to count as measured; the chapter quotes the
+      multiple.
 
   - key: product-reading
     term: product reading
@@ -758,9 +774,9 @@ terms:
       ($13 - 1 - 3$), and every offset is read because an even-cycle wander
       lights the even ones only.
     plain: >-
-      The nine slots either side of each note, kept with the record so that
-      a note which drifted during the capture can be caught where its spill
-      lands first.
+      The slots either side of each note, kept with the record so that a
+      note which drifted during the capture can be caught where its spill
+      lands first; the chapter says how many.
 
   - key: pair-statistic
     term: sideband pair statistic
@@ -772,7 +788,7 @@ terms:
       modulation leaves them equal --- a shape the line states without a
       verdict.
     plain: >-
-      The two notes' neighbouring slots compared with each other, a shape
+      The two notes' neighboring slots compared with each other, a shape
       that hints at what kind of drift occurred without claiming to know.
 
   - key: harmonic-role
@@ -783,12 +799,12 @@ terms:
       b$ on the harmonic grid of the interval's simplest 5-limit just ratio
       $a : b$, its pitch class read off the odd part of the index; on a
       played note's class it thickens (at or above the low note) or adds a
-      sub-octave; on a consonant other class it adds colour; elsewhere, or
+      sub-octave; on a consonant other class it adds color; elsewhere, or
       between frets, it clashes. Classified at the requested interval,
       measured at the lattice.
     plain: >-
       Which of five jobs an invented tone does to the chord you played:
-      thickens it, adds weight below it, adds a colour that is in tune with
+      thickens it, adds weight below it, adds a color that is in tune with
       the chord, clashes, or --- all together --- how much there is.
 
   - key: just-ratio
@@ -882,7 +898,7 @@ terms:
       column is flagged and excluded from the tiles, never corrected.
     plain: >-
       A column near the top of the map where some of a note's harmonics
-      were too high to be measured honestly, so its distortion figure is
+      were too high to be measured reliably, so its distortion figure is
       known to be short and is kept out of the headline numbers.
 
   - key: edge-mask
@@ -924,12 +940,12 @@ terms:
     term: median read
     technical: >-
       How the Gain Map reads the calibration stamp: each point replaced by
-      the running median of its neighbours over an odd window before the
+      the running median of its neighbors over an odd window before the
       interpolation, so a single-read trough cannot set the floor; the
       per-harmonic path reads the stamp verbatim (a window of one).
     plain: >-
       Reading the loop's noise note by taking the middle value of a few
-      neighbouring pitches at once, so one unlucky reading cannot make the
+      neighboring pitches at once, so one unlucky reading cannot make the
       loop look quieter than it is.
 
   - key: drive-term
@@ -988,12 +1004,12 @@ terms:
     term: corroborated peak
     technical: >-
       A cell that stands clear of its floor by the minimum margin AND whose
-      neighbour one column either side --- the same level, a third of an
+      neighbor one column either side --- the same level, a third of an
       octave away --- also stands clear; a real peak has a shoulder in
       frequency, a floor-riding read has none. Corroboration is never asked
       for in level.
     plain: >-
-      A square that is clearly above the noise and whose neighbouring note
+      A square that is clearly above the noise and whose neighboring note
       is too. Real distortion spills onto the next note; a noise blip
       happens to one square alone.
 
@@ -1307,11 +1323,11 @@ terms:
       a note × level grid, stored as the capture itself (Float32 at the
       capture rate, a fixed number of periods each, no resampling). It has no
       estimator; the method is the choice of which samples are kept and how
-      they are labelled.
+      they are labeled.
     plain: >-
       The scope view: the actual wave that went into the pedal and the actual
       wave that came out, recorded at several notes and several loudnesses
-      and shown side by side. Nothing is modelled or cleaned up.
+      and shown side by side. Nothing is modeled or cleaned up.
 
   - key: tile
     term: tile
@@ -1339,9 +1355,9 @@ terms:
     term: amplitude lattice
     technical: >-
       The matrix's level columns in dBFS: the floor and the ceiling seed,
-      the rig's anchor joins when it lies inside the span, then anchor-centred
+      the rig's anchor joins when it lies inside the span, then anchor-centered
       per-side refinement splits the widest gap on the emptier side so the
-      anchor sits at the centre index at every odd dimension and the lattices
+      anchor sits at the center index at every odd dimension and the lattices
       nest.
     plain: >-
       The list of loudnesses the grid is measured at: the quietest, the
@@ -1393,17 +1409,17 @@ terms:
       The tile at the note anchor and the amplitude anchor --- the operating
       point at which the transfer curve's measured cycle was captured by
       construction, whenever the transfer record uses its default note; on the
-      default span a corner row, never the centre.
+      default span a corner row, never the center.
     plain: >-
       The one cell of the grid that was measured at the same note and the same
       loudness as the transfer curve, so the two pictures can be compared.
 
   - key: centre-tile
-    term: centre tile
+    term: center tile
     technical: >-
       The middle cell of every matrix: the standard drive (the amplitude
-      anchor at the centre index) at the span's middle note (E4 on the
-      default span) --- the centre guarantee, distinct from the cross-check
+      anchor at the center index) at the span's middle note (E4 on the
+      default span) --- the center guarantee, distinct from the cross-check
       guarantee and never conflated with it.
     plain: >-
       The cell in the very middle of the grid, which is the standard loudness
@@ -1443,7 +1459,7 @@ terms:
       stated explicitly; a reader refuses an unknown encoding or a byte count
       that disagrees with the stated count rather than guessing a layout.
     plain: >-
-      The exact way each tile's numbers are written into the record, labelled
+      The exact way each tile's numbers are written into the record, labeled
       so that a program reading them later never has to guess.
 
   - key: row-noise-stamp

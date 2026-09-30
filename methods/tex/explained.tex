@@ -13,6 +13,7 @@
 % nothing in this document says what a measurement sounds like.
 \documentclass[11pt,a4paper]{article}
 \input{preamble}
+\input{release}
 \input{../generated/plain-hd.tex}
 \input{../generated/parity-hd.tex}
 \input{../generated/plain-transfer.tex}
@@ -30,9 +31,10 @@
 \input{../generated/lattice-matrix.tex}
 \input{../generated/plain-matrix.tex}
 \input{../generated/parity-matrix.tex}
+\input{../generated/plain-floors.tex}
 \title{PedalScope Methods, Explained\\\large A plain-language companion to the technical reference}
 \author{PedalScope}
-\date{}
+\date{\releasestamp}
 
 \begin{document}
 \maketitle
@@ -47,6 +49,13 @@ plain language, one measurement per chapter, using the same defined terms
 --- the glossary at the end is generated from the same source the technical
 document uses, so a word means one thing in both. It never says what a
 measurement sounds like: the instrument measures, and listening is yours.
+Two chapters are not measurements: Section~\ref{sec:slots-plain}, read
+before Chord IMD, says how a spectrum is read, and
+Section~\ref{sec:floors-plain}, after the six, gathers what they each
+said about floors into one account.
+Everything in this document describes a pedal that has settled; how a
+pedal changes over time is being measured next, and gets its own chapters
+when it arrives.
 
 The chapters follow the technical document's headings in the same order,
 so the two can be read side by side: where this document says ``the app
@@ -101,7 +110,7 @@ the even ones.
   \centering\includegraphics[width=0.95\linewidth]{explained-clipping.png}
   \caption{Three clippers, computed from their formulas at the amplitude
   the worked example uses (\hdAmplitude{} of full scale). Left: one cycle
-  of a sine in (grey, dashed) and what comes out (blue). Right: the exact
+  of a sine in (gray, dashed) and what comes out (blue). Right: the exact
   harmonic content of the output, in decibels relative to the input
   --- each step of 20 down is a tenth of the size. Odd harmonics in blue,
   even in orange; a cross marks a harmonic that is exactly absent.}
@@ -217,9 +226,9 @@ there is nothing, as there should be.
 
 \paragraph{Cutting each blip out.} The second step cuts each harmonic's
 blip out of that row with an \term{extraction-window}: a slice of time
-centred on the blip, tapered smoothly to nothing at both ends so that the
+centered on the blip, tapered smoothly to nothing at both ends so that the
 cut itself adds no edges. Each slice is as wide as it can be without
-reaching into the neighbouring blip, up to a cap of \hdWindowCapS{}~s on
+reaching into the neighboring blip, up to a cap of \hdWindowCapS{}~s on
 either side --- so the note and the first few harmonics get the full
 \hdWindowFullS{}~s, and higher harmonics, whose blips crowd closer
 together, get less (the ninth gets \hdWindowNineS{}~s).
@@ -239,21 +248,21 @@ short sweep simply carries fewer harmonics.
 \end{figure}
 
 \paragraph{Reading a harmonic at a note.} Each slice, once cut out,
-holds one harmonic's behaviour across every note at once. The app turns it
+holds one harmonic's behavior across every note at once. The app turns it
 back into a curve against frequency, and reads the harmonic for the note
 you care about at that harmonic's own frequency: the third harmonic of a
 note is read at three times the note's frequency, the ninth at nine
 times. (The curves are drawn against the note you play, but each point on
 the ninth-harmonic curve was read nine times higher up.)
 
-\paragraph{Where a reading stops being honest.} A digital recording
+\paragraph{Where a reading stops being accurate.} A digital recording
 cannot hold a tone above half its sample rate; anything higher folds back
 down to a lower frequency instead of vanishing (an \term{alias-image}).
 For a high enough note, the tenth harmonic --- which the pedal produces
 whether or not the app reads it --- folds back onto exactly the frequency
 where the ninth is being read, and from that note upward the ninth
 harmonic's reading is contaminated. Every harmonic has such a note, and
-the higher the harmonic, the lower the note at which its next neighbour
+the higher the harmonic, the lower the note at which its next neighbor
 lands on it. That note is the harmonic's \term{validity-bound}, and past
 it the app draws the curve faded and uses none of the values. In the
 standard plan at \hdSampleRateHz{}~Hz, the ninth harmonic is readable up
@@ -300,6 +309,8 @@ floor by about \hdAveragingFourDB{}~dB; eight sweeps by about
 \hdAveragingEightDB{}~dB). That lowering applies only where what the rig
 contributes is noise; at the faded ends of the sweep, where the residue
 is the measurement's own, averaging buys nothing and the floor stays put.
+This floor is gathered with the other measurements' floors in
+Section~\ref{sec:floors-plain}.
 
 \paragraph{Fundamental presence.} The THD figure, and everything else
 that compares a harmonic with the note, divides by the note. A few
@@ -319,11 +330,11 @@ symmetric clipper the even harmonics are exactly absent, so what the app
 reads at the even positions \emph{is} its hiss --- often well above the
 rig's floor, and still not distortion. The \term{shaping} check separates
 the two by looking at how a harmonic's reading behaves across
-neighbouring frequencies. Something a circuit did varies smoothly and
+neighboring frequencies. Something a circuit did varies smoothly and
 consistently from one frequency to the next; noise does not --- its
-readings scatter, each one unrelated to its neighbours. The app computes
+readings scatter, each one unrelated to its neighbors. The app computes
 a \term{coherence} score for that orderliness over \hdShapingWindowSamples{}
-neighbouring readings (pure noise scores about \hdUnshapedCoherence{}
+neighboring readings (pure noise scores about \hdUnshapedCoherence{}
 on it, a perfectly orderly response scores 1), converts the score into
 how far the reading stands above the noise in it, and calls the reading
 \emph{shaped} only when that margin is at least \hdShapedSNRDB{}~dB. With
@@ -336,7 +347,7 @@ says ``at the floor --- noise, not a response'', and nothing downstream
 a harmonic.
 
 \paragraph{Averaging, since it came up.} When the sweep is played more
-than once, each repeat is analysed on its own and then the repeats are
+than once, each repeat is analyzed on its own and then the repeats are
 combined. Before combining, each repeat is lined up with the first to a
 fraction of a sample (\term{derotation}) --- a timing drift of even a
 fraction of a sample between repeats would otherwise blur the high
@@ -374,9 +385,9 @@ from the app's own chart code on its simulated pedal (never a screenshot).
 The first is the Harmonic Distortion chart itself. Each curve is one
 harmonic; the legend names it and says what it is musically --- the
 second harmonic is an octave up, the third an octave and a fifth, and so
-on --- with the odd family in one colour and the even family in another,
+on --- with the odd family in one color and the even family in another,
 so the symmetry rule from the first section can be read straight off the
-chart. The horizontal axis is the note you play, labelled with note names
+chart. The horizontal axis is the note you play, labeled with note names
 and their frequencies; the vertical axis is the harmonic's level in dB
 relative to the input, and its label says how the axis was scaled. The
 shaded band marks a guitar's range. Where a curve fades and breaks near
@@ -400,7 +411,7 @@ harmonics to the band edge, one at a time, and the line under the chart
 names the note at which each one left --- from there the curve falls
 because it counts fewer harmonics, not because the pedal cleaned up. The
 vertical axis is fitted to the notes before that point, so the dashed tail
-may run off the bottom of the chart; that is the honest picture of a sum
+may run off the bottom of the chart; that is the accurate picture of a sum
 with fewer terms in it.
 
 \begin{figure}[htbp]
@@ -463,7 +474,7 @@ on the first page.
   the sweep are ramps, and a reading there is a reading of the ramp.
   Numbers from those notes describe the measurement, not the pedal; the
   app excludes them where it can and draws them faded where it cannot.
-  \item \textbf{A loud harmonic leaks a little into its neighbours'
+  \item \textbf{A loud harmonic leaks a little into its neighbors'
   slices.} How much is measured, not assumed, and the app never claims a
   harmonic deeper below the loudest one than that leakage allows. Where
   the note itself is that far down, the fundamental-presence check
@@ -587,7 +598,7 @@ the part left over.
   section gives.
   \item \textbf{The clip levels of a lopsided clipper.} Every pedal has a
   capacitor on its output that removes the wave's average level. It
-  centres a clipper that clips the top harder than the bottom, so the two
+  centers a clipper that clips the top harder than the bottom, so the two
   clip levels come out equal in the picture even when the circuit's are
   not; the lopsided shape survives as even harmonics in the Harmonic
   Distortion measurement instead (the limits section).
@@ -598,6 +609,10 @@ the part left over.
   \item \textbf{Nothing about listening.} The picture shows the clipping
   shape. It says nothing about what the distortion sounds like.
 \end{enumerate}
+
+Everything in this document describes a pedal that has settled; how a
+pedal changes over time is being measured next, and gets its own chapters
+when it arrives.
 
 \subsection{The test signal}
 
@@ -881,13 +896,13 @@ The app's own chart, rendered from its chart code on its simulated pedal
 (never a screenshot), is Figure~\ref{fig:app-transfer}. Four tiles run
 across the top: the drive note and its frequency; the memory figure ---
 the nonlinear loop area, with the verdict's word under it; the linear
-phase loop --- the oval's area, labelled as filter phase and not memory;
+phase loop --- the oval's area, labeled as filter phase and not memory;
 and the polarity, with a plain-words gloss. Under the chart's title, the
 lines state whether the phase removal was applied, through how many of
 the measured harmonics it was fitted, up to what frequency the correction
 is measured (extrapolated above), which record it was removed against,
 and the alignment residual in radians. The chart itself draws the loop in
-blue and the static curve dashed in orange, labelled as both directions
+blue and the static curve dashed in orange, labeled as both directions
 averaged; what goes in runs across, what comes out runs up. For the
 simulated pedal the loop is closed and the two lines coincide. On a real
 pedal with an open loop, the dashed line is the app's estimate of the
@@ -903,7 +918,7 @@ where that estimate is weakest.
 
 \subsection{How you can check that the app does what this says}
 
-As in the previous chapter, a second program was written from the
+\paragraph{The second program.} As in the previous chapter, a second program was written from the
 description --- in Python, independently, not by translating the app's
 code --- and the \term{parity} runs both on the same made-up devices
 and demands the same answer. Here the made-up devices come in three
@@ -918,8 +933,8 @@ memoryless truth. That last kind is the one that matters: the removal is
 held not only to the app but to what the clipper would have drawn with no
 filter at all. In total the test runs \tparityCaseCount{} cases.
 
-The demands, in numbers the pipeline writes into this document. The two
-programs must agree on every value in the cycle, on the static curve, on
+\paragraph{The demands.} The numbers here are written into this document
+by the pipeline. The two programs must agree on every value in the cycle, on the static curve, on
 the corrected picture, on every area and on every fitted quantity to
 within \tparitySwiftWords{} (\tparitySwift; on the run that built this
 document the worst disagreement was \tparityWorstSwiftWords,
@@ -927,7 +942,9 @@ document the worst disagreement was \tparityWorstSwiftWords,
 must find the same time offset to within \tparitySwiftShiftWords{} of a
 sample (the measured difference was \tparityWorstShift); every yes-or-no reading --- the
 outcome class, the flip, the polarity, the verdict, the presence --- must
-be identical. The oval drawn for a linear device must match the formula
+be identical.
+
+\paragraph{Against the truth.} The oval drawn for a linear device must match the formula
 for a pure shift to within \tparityEllipseRatioWords{} at the plan's tone
 length (measured: at worst \tparityEllipseDeficitShort~percent short) and
 to within \tparityEllipseRatioLongWords{} when the tone is ten times
@@ -940,7 +957,9 @@ a hard clipper within \tparityRawStaticHardclipWords{} (measured
 \tcBins{} slots round a sharp corner); and a memoryless device's nonlinear
 loop area must stay under \tparityMemorylessNonlinearWords{} of the box
 (measured \tparityWorstMemorylessNonlinearWords,
-\tparityWorstMemorylessNonlinear). Every paired filtered device must come
+\tparityWorstMemorylessNonlinear).
+
+\paragraph{The phase removal.} Every paired filtered device must come
 out corrected on both sides, with the planted time offset found to within
 \tparityFrameShiftWords{} of a sample (measured
 \tparityWorstFrameShiftWords, \tparityWorstFrameShift), a residual under
@@ -951,7 +970,7 @@ within \tparityCompStaticWords{} of peak (measured
 loop areas under \tparityCompAreaWords{} of the box (measured
 \tparityWorstCompAreaWords, \tparityWorstCompArea). \tparityRemovalStatus
 
-Two of those results are worth stating in words. The clipper behind a
+\paragraph{Two results in words.} Two of those results are worth stating in words. The clipper behind a
 filter placed before it has no memory at all, and its raw nonlinear loop
 area reads \tparityPrehpRawNonlinear{} --- inside the memory verdict's
 hedged band; the removal takes it to \tparityPrehpCompNonlinear{}. The
@@ -961,7 +980,7 @@ captured position read \tparityShiftPsi{} radians, a half turn to within
 \tparityShiftLatticeDistanceWords{} of a radian, the paired polarity read
 non-inverting, and the resolved picture rises from left to right.
 
-The test runs automatically on every change to the app, and the tables
+\paragraph{When it runs.} The test runs automatically on every change to the app, and the tables
 and figures in both documents are regenerated on every change and
 compared with the committed copies; the scripts and the instructions for
 running them are in the repository named on the first page.
@@ -1043,7 +1062,7 @@ running them are in the repository named on the first page.
   \centering\includegraphics[width=0.95\linewidth]{transfer-coupling.png}
   \caption{A lopsided clipper (the bottom half scaled to one half) with
   and without a series capacitor at its output: the static curve's unequal
-  clip levels are centred by the capacitor (left), while the exact
+  clip levels are centered by the capacitor (left), while the exact
   harmonic ladder loses only its average level --- the even harmonics
   survive (right).}
   \label{fig:coupling}
@@ -1126,7 +1145,7 @@ reading a record back.
   \item \textbf{A distortion reading near the hiss.} Toward the quiet end
   the note shrinks and the rig's hiss does not, so a distortion figure
   there can be the hiss. The hiss line described later says where, and
-  each rung is labelled.
+  each rung is labeled.
   \item \textbf{The second crossing.} The cleanup level is the first
   crossing from the quiet end. A pedal whose distortion rises, falls and
   rises again as it is driven harder --- some soft-knee overdrives do this
@@ -1286,7 +1305,7 @@ a better rule corrects every curve ever measured.
 Everything in this section is computed from the stored rungs every time a
 record is opened.
 
-\paragraph{The knee.} Between each pair of neighbouring rungs the app
+\paragraph{The knee.} Between each pair of neighboring rungs the app
 takes the \term{incremental-slope}: how many dB louder the output got for
 that step louder in. One dB out for a dB in is clean; no dB out for a dB
 in is a wall. Those slopes are
@@ -1368,7 +1387,9 @@ on the overtones. Anything under that line cannot be told from the rig,
 and the line rises toward the quiet end. The stamp it is built from is
 this capture's own, pedal included --- a calibration made with nothing in
 the loop cannot carry the pedal's hiss, so no calibration figure enters
-here, unlike the sweep measurements of the earlier chapters.
+here, unlike the sweep measurements of the earlier chapters. This floor
+is gathered with the other measurements' floors in
+Section~\ref{sec:floors-plain}.
 
 The hiss line has two possible companions. If the library holds a
 \term{null-run-reference} --- the loop measured with nothing in it, by
@@ -1494,15 +1515,15 @@ The app's own chart, rendered from its chart code on its simulated pedal
 run three tiles: the probe note, with its frequency; the knee, as a level
 in dBFS with the app's short gloss under it; and the cleanup level, with
 its own gloss. Under them the Touch Response chart puts the input level
-along the bottom --- labelled as how hard you hit the strings --- and the
+along the bottom --- labeled as how hard you hit the strings --- and the
 output level up the side. The measured curve follows the dashed
 one-for-one reference at the quiet end and then flattens; a dashed
 vertical line marks where the pedal cleans up and another where the knee
-sits, each labelled; and a shaded band across the right of the plot is
-left unlabelled by the chart itself --- the user guide's Compression page
+sits, each labeled; and a shaded band across the right of the plot is
+left unlabeled by the chart itself --- the user guide's Compression page
 says what it marks. Below is the companion chart, Distortion vs.\ Level:
 the distortion in percent against the same input axis, with the
-\cmpCleanupThresholdPercent{}\,\% line dashed across it and labelled. On this record the trace
+\cmpCleanupThresholdPercent{}\,\% line dashed across it and labeled. On this record the trace
 begins part-way across and the line under the chart says why: where the
 measured distortion falls under the chart's own lowest mark it is left as
 a gap, because the true values there are lower than anything the axis can
@@ -1522,7 +1543,7 @@ appear on this lower chart, and a legend names the floor's source.
 
 \subsection{How you can check that the app does what this says}
 
-As in the earlier chapters, a second program was written from the
+\paragraph{The second program.} As in the earlier chapters, a second program was written from the
 description --- in Python, independently, not by translating the app's
 code --- and the \term{parity} runs both on the same made-up devices and
 demands the same answer. It runs \cparityCaseCount{} cases, and two of
@@ -1535,7 +1556,7 @@ The Python borrows chapter one's devices and noise and the Transfer Curve
 chapter's tone filters, and owns everything else: this instrument has no
 sweep in it.
 
-The known answer is chapter one's again. For a device with no memory, the
+\paragraph{The known answer.} It is chapter one's again. For a device with no memory, the
 exact size of the note and of every overtone at any loudness can be
 computed from the device's formula, so beside every rung the second
 program prints the exact ladder of sizes at that rung's drive and the
@@ -1546,9 +1567,9 @@ answers too. A knee has no truth beyond that: it is a summary of a curve,
 not a property of the device, and the check asks whether the app's
 summary of the measured curve matches its summary of the exact one.
 
-One idea is new here and worth a paragraph: the \emph{leakage
+\paragraph{The leakage allowance.} One idea is new here: the \emph{leakage
 allowance}. The estimator's reading of one overtone picks up a trace of
-its neighbours --- a little of the note, a little of the overtone next
+its neighbors --- a little of the note, a little of the overtone next
 door --- even on a stretch cut exactly, because the taper at the
 stretch's ends is not perfect. How much depends only on how far apart
 the two pitches are: \cparityLeakageOne{}~dB below the leaking pitch at
@@ -1556,14 +1577,14 @@ one overtone's distance, \cparityLeakageTwo{} at two, \cparityLeakageEight{}
 at eight, the same at every loudness. That table is measured first, on a
 made-up recording containing the note and nothing else, and it is
 allowed for before any real case is judged: an overtone whose true size
-sits close to what its neighbours leak into it can read a little off for
+sits close to what its neighbors leak into it can read a little off for
 the estimator's own reasons, that much is subtracted from the
 disagreement, and what remains is held to the bar. Under the final fade
 the leakage rises to \cparityFadeLeakageOne{}~dB, which is why the last
 rung is left out of every comparison and stated as a limit instead.
 
-The demands, in numbers the pipeline writes into this document. The two
-programs must agree at every rung and every overtone to within
+\paragraph{The demands.} The numbers here are written into this document
+by the pipeline. The two programs must agree at every rung and every overtone to within
 \cparitySwiftToleranceWords{} of a decibel (\cparitySwiftTolerance{}~dB)
 with no filter in the loop --- on the run that built this document the
 worst disagreement was \cparityWorstSwiftWords{} of a decibel
@@ -1599,7 +1620,7 @@ stamp must read the injected noise within \cparityStampWords{} of a
 decibel (\cparityStamp{}; measured \cparityStampErrorWords{},
 \cparityStampError{}, the estimate's own scatter over a short silence).
 
-Four checks are about the rig rather than the device. The same device and
+\paragraph{Checks on the rig.} Four checks are about the rig rather than the device. The same device and
 the same noise through a loop turned up by a stated amount must move
 every output level by exactly that amount --- the departure measured
 \cparityGainShiftWords{} of a decibel (\cparityGainShift{}) --- and move
@@ -1624,7 +1645,7 @@ estimator separates a note from its overtones on a cut stretch,
 one's bound allows, which is why that borrowed bound is safe here by a
 wide margin. \cparityPartBStatus
 
-Two results are worth stating in words. The worked example, the steep
+\paragraph{Two results in words.} Two results are worth stating in words. The worked example, the steep
 soft clipper with no noise on the hardware ladder: its knee is a number
 at \cparityWorkedKnee{}~dBFS, resolution $\pm$\cparityWorkedKneeResolution{}~dB,
 displayed as ``\cparityWorkedKneeLabel'', with a lower line of slope
@@ -1649,7 +1670,7 @@ resolution unchanged, because on both ladders the band of corners that
 fit about as well is narrower than one candidate step, and the candidate
 spacing is then what the fit resolves.
 
-Three cases are constructed to be exactly what the reading rules are
+\paragraph{Cases built for the reading rules.} Three cases are constructed to be exactly what the reading rules are
 for. An exact line that compresses a little everywhere and then breaks
 reads ``\cparityBreakKnee'' with fitted slopes \cparityBreakPreSlope{} and
 \cparityBreakPostSlope{}: the unity guard, doing its job. Simulation
@@ -1661,7 +1682,7 @@ from the hardware assembly's knee on the same device: what interactive
 quality costs. And the exact line that compresses a little everywhere
 and never breaks is the finding the limits section states.
 
-The test runs automatically on every change to the app, and the tables
+\paragraph{When it runs.} The test runs automatically on every change to the app, and the tables
 and figures in both documents are regenerated on every change and
 compared with the committed copies; the scripts and the instructions for
 running them are in the repository named on the first page.
@@ -1710,7 +1731,7 @@ running them are in the repository named on the first page.
   \item \textbf{A soft onset is not disclosed.} The unity guard tells a
   clean anchor from a missing one; it does not tell a wide, gradual bend
   from a sharp corner. A pedal whose bottom decade is clean and whose bend
-  then spreads over many dB gets a knee that is a number and is honest as
+  then spreads over many dB gets a knee that is a number and is accurate as
   far as the fit goes; how wide the bend is would be a new reading, not a
   tighter one.
   \item \textbf{The quiet end is the rig's.} Under the hiss line a
@@ -1744,7 +1765,7 @@ level, and list the harmonics that come out. But a distortion pedal is
 not one thing at all loudnesses. Play it softly and it may pass the note
 almost untouched; dig in and it clips; somewhere between the two it
 changes. A \term{gain-map} asks chapter one's question again at each rung
-of a ladder of loudnesses --- one sweep per rung, each analysed on its own
+of a ladder of loudnesses --- one sweep per rung, each analyzed on its own
 --- and draws the answers as a map: how hard the pedal is driven up one
 side, which note you play along the other, and one square per loudness
 and note holding the distortion the pedal made there.
@@ -1780,12 +1801,12 @@ them may be believed.
   cell of the worked example --- the soft clipper at the loudest rung of
   the hardware ladder, at the note the cleanup tile reads --- as the
   measured level of each harmonic relative to the note (blue for the odd
-  harmonics, grey for the even ones, which this clipper does not make and
+  harmonics, gray for the even ones, which this clipper does not make and
   which read the loop's own noise), with the exact answer marked by a
   cross; the ninth harmonic's exact answer lies under the loop's noise,
   just below the pane. Middle: the same note at all \gmLevels{} rungs,
   quiet to loud, each rung's THD in the legend. Right: the whole map, THD as
-  colour, the fade columns hatched, the column outlined in red and the
+  color, the fade columns hatched, the column outlined in red and the
   cell in white.}
   \label{fig:column-plain}
 \end{figure}
@@ -1807,7 +1828,7 @@ section below.
   draw the same square. And the vertical axis is the signal driving the
   circuit, never a knob on it.
   \item \textbf{Nothing between two rungs.} Each rung is its own capture,
-  seconds apart from the next. A pedal whose behaviour drifts or sags
+  seconds apart from the next. A pedal whose behavior drifts or sags
   between them --- a dying battery, a warming transistor --- shows the
   drift as a wobble from row to row, which the map draws and does not
   name.
@@ -1818,7 +1839,7 @@ section below.
   of the map sit inside the sweep's fade-in and fade-out, and what they
   show is the test signal, not the pedal.
   \item \textbf{Nothing a short column lost.} Near the top of the map some
-  of a note's harmonics lie too high to be counted honestly, and that
+  of a note's harmonics lie too high to be counted reliably, and that
   column's distortion figure is known to be short.
   \item \textbf{Nothing about listening.} The map says how much distortion
   there is at each loudness and note. It says nothing about what the distortion sounds like.
@@ -1864,15 +1885,15 @@ last columns sit exactly at the sweep's two ends, inside the fades, which
 is why those two columns are masked, as the next section explains.
 
 The rungs are played and recorded one after another, and each recording
-is analysed entirely on its own, as if it were the only sweep. Nothing about one rung leaks into another. Figure~\ref{fig:map-plain}
+is analyzed entirely on its own, as if it were the only sweep. Nothing about one rung leaks into another. Figure~\ref{fig:map-plain}
 is what the measurement produces: the worked example's map, computed by
-the pipeline through a loop with a little noise in it, coloured by
+the pipeline through a loop with a little noise in it, colored by
 distortion and marked with the tiles the later sections explain.
 
 \begin{figure}[htbp]
   \centering\includegraphics[width=0.95\linewidth]{journey-map.png}
   \caption{The worked example's map: the soft clipper on the hardware
-  ladder through a loop with a little noise. Colour is THD; a square is
+  ladder through a loop with a little noise. Color is THD; a square is
   drawn fainter the less clearly it stands above the floor described in
   the next section; the two fade columns are hatched; the star is the
   peak the tile quotes and the triangle is where the cleanup reading
@@ -1918,7 +1939,7 @@ excited while the tone was still fading in or already fading out. A
 plain wire shows the same readings there, so they describe the
 measurement and not the pedal. They wear an \term{edge-mask}: drawn
 faint, kept out of every headline number, and never allowed to set the
-colour scale. A third kind of column is marked near the top of the map: a
+color scale. A third kind of column is marked near the top of the map: a
 \term{truncated-column}, where some harmonic that the audible band would
 count lies past its \term{validity-bound}, so the column's distortion
 figure is known to be short. It is flagged and kept out of the tiles,
@@ -1942,7 +1963,9 @@ rests on one question, asked of every square: how far above the largest
 thing that could fake it does this square's distortion stand? A square is
 called a measurement only while it stands clear of \emph{every} fake at
 once; below that it is a bound. The distance is the square's
-\term{composed-margin}, and the things that could fake it are three.
+\term{composed-margin}, and the things that could fake it are three. This
+floor is gathered with the other measurements' floors in
+Section~\ref{sec:floors-plain}.
 
 The first is the loop's own noise. During calibration the app played its
 sweep through the rig with a cable in place of the pedal and kept a note
@@ -1951,7 +1974,7 @@ the \term{floor-stamp}, stored inside every record made with that
 calibration. It is a single reading at each pitch, and a single reading
 can be unlucky, so the map reads it through a \term{median-read}: at each
 pitch the stamp is replaced by the middle value of \gmStampMedianPoints{}
-neighbouring points on its own grid, \gmStampMedianSide{} to either side,
+neighboring points on its own grid, \gmStampMedianSide{} to either side,
 \gmStampMedianOctavesWords{} of an octave (\journeyStampMedianOctaves{})
 each way. That is wide enough that one unlucky trough cannot make the
 loop look quieter than it is, and about as wide in all as one column of
@@ -1979,7 +2002,7 @@ stands in for the loop noise a hardware rig would have.
 The third is the one a noise floor cannot see: the \term{analyzer-residue},
 the distortion the analysis itself reports with nothing at all in the
 loop. Take the sweep, hand it straight back as its own recording, and
-analyse it: a perfectly clean signal should read no distortion, and
+analyze it: a perfectly clean signal should read no distortion, and
 almost everywhere it does. But at the first note after the masked
 column, the sweep's fade-in ramp leaks into the window that reads the
 second harmonic, and the analysis reports a little distortion that is
@@ -2047,7 +2070,7 @@ columns, and it outranks the peak tile: when most squares have no note,
 no percentage is quoted at all, only how deep the note sits. The verdict
 is a majority for a reason the check at the end of this chapter shows.
 On a device that has no note at all, a few squares still read
-``present'' honestly --- at the quietest rungs the note's window holds
+``present'' accurately --- at the quietest rungs the note's window holds
 the loop's noise, and beside the low edge it holds the second harmonic's
 own leakage --- and one square's truth must not overrule the map's.
 
@@ -2059,9 +2082,9 @@ margin reaches the minimum. Second --- and this is the step that keeps a
 clean pedal from reading a number --- a clear square counts only when
 the square one column beside it, the same rung one note away, is also
 clear. That is a \term{corroborated-peak}. Real distortion spills onto
-the neighbouring notes: a circuit that clips at one drive clips the note
+the neighboring notes: a circuit that clips at one drive clips the note
 next door too, and distortion changes slowly from one column to the
-next. A noise reading happens to one square alone. The neighbour is asked
+next. A noise reading happens to one square alone. The neighbor is asked
 for along the note axis and never along the loudness axis, because
 distortion can change a great deal from one rung to the next --- a
 genuine onset at the loudest rung may have no clearing rung beneath it
@@ -2081,7 +2104,7 @@ of \gmCellCount{} squares, and nothing under it can be told
 from the rig. Figure~\ref{fig:peak-plain} shows the rule deciding: on
 the left, a plain wire through noise, where no square clears and the
 tile is a bound; on the right, the soft clipper through the same loop,
-where every clear square has a clear neighbour and the tile is a peak.
+where every clear square has a clear neighbor and the tile is a peak.
 One case is left open on purpose: a map with no floor information at all
 --- Simulation Mode, or a record made with no calibration --- has nothing
 to judge its squares against, so every square counts as clear and
@@ -2091,12 +2114,12 @@ reported rather than changed, and the last section returns to it.
 \begin{figure}[htbp]
   \centering\includegraphics[width=0.95\linewidth]{journey-peak.png}
   \caption{The corroboration rule. Each panel shows the composed margin
-  at every column for the loudest rung (blue) and the quietest (grey)
+  at every column for the loudest rung (blue) and the quietest (gray)
   against the minimum (dashed); a cross marks a square that clears on
-  its own, a star one whose neighbouring note clears too. Left: a plain
+  its own, a star one whose neighboring note clears too. Left: a plain
   wire through a little noise --- nothing clears, and the tile is a
   bound. Right: the soft clipper through the same loop --- every clear
-  square has a clear neighbour, and the tile is a peak.}
+  square has a clear neighbor, and the tile is a peak.}
   \label{fig:peak-plain}
 \end{figure}
 
@@ -2159,8 +2182,8 @@ three tiles: the drive range, with the number of rungs measured; the
 cleanup reading at \gmCleanupTileNote{}, with a line saying which range
 the verdict covers; and the peak distortion, with a line saying it is the
 loudest THD anywhere on the map. The chart itself puts the drive level up the
-side, labelled so that up is digging in, and the note you play along the
-bottom, named with its frequency; each square's colour is its THD, with
+side, labeled so that up is digging in, and the note you play along the
+bottom, named with its frequency; each square's color is its THD, with
 the scale under the chart running from the map's own faintest square to
 its strongest, in percent, and the legend saying that a faded column is
 a band edge --- the outermost columns are drawn faded. This particular
@@ -2179,7 +2202,7 @@ draws it, with the margins, the masks and the tiles' marks made visible.
 
 \subsection{How you can check that the app does what this says}
 
-As in the earlier chapters, a second program was written from the
+\paragraph{The second program.} As in the earlier chapters, a second program was written from the
 description --- in Python, independently, not by translating the app's
 code --- and the \term{parity} runs both on the same made-up devices and
 demands the same answer. It runs \jparityCaseCount{} cases, and two of
@@ -2188,16 +2211,18 @@ the device cases a second time as their \term{phantom} twins
 known loop: a delay, a stream of noise added at the interface's input,
 and a gain applied after them as an input knob would apply it; the
 calibration is the app's own sweep through the same loop with nothing in
-it, analysed by the app's own calibrator, whose measured delay is what
+it, analyzed by the app's own calibrator, whose measured delay is what
 cuts every rung --- the app's own flow, end to end.
 
-The known answer is chapter one's. For a device with no memory, the
+\paragraph{The known answer.} It is chapter one's. For a device with no memory, the
 exact size of every harmonic at any loudness can be computed from the
 device's formula, so the second program prints, beside every square, the
 exact ladder at that rung's drive and the exact THD it implies; and for
 the read-time half it applies the app's own rules to those exact squares,
-so the peak, the cleanup and the verdict have exact answers too. One idea
-is new here, and it is worth a paragraph: the \term{leakage-map}. A signal
+so the peak, the cleanup and the verdict have exact answers too.
+
+\paragraph{The leakage map.} One idea
+is new here: the \term{leakage-map}. A signal
 containing only its note and nothing else --- a phantom with one entry
 --- is run through the same analysis, and whatever it reads at every
 other harmonic is what the analysis itself invents at that note and
@@ -2210,7 +2235,7 @@ bar. Chapter one's bound on how far one harmonic can leak into another
 does not carry over, because a shorter sweep leaks worse at the low
 edge; the leakage map states it here, column by column.
 
-The case families, in a sentence each. The soft clipper and a gentle
+\paragraph{The cases.} The case families, in a sentence each. The soft clipper and a gentle
 polynomial curve, each again as its phantom twin. A plain wire through
 noise at each of the three sweep lengths. A phantom whose note sits far
 under its own second harmonic, so that the map has no note. A hard
@@ -2221,8 +2246,8 @@ plugin ladder, driven to the very top. The worked example recorded late,
 so that the calibrator must find the delay. And the soft clipper behind a
 tone filter and the polynomial ahead of one.
 
-The demands, in numbers the pipeline writes into this document. The two
-programs must agree, at every square and every harmonic, to within
+\paragraph{The demands.} The numbers here are written into this document
+by the pipeline. The two programs must agree, at every square and every harmonic, to within
 \jparitySwiftToleranceWords{} of a decibel (\jparitySwiftTolerance{}~dB)
 with no filter in the loop --- on the run that built this document the
 worst disagreement was \jparityWorstSwiftWords{} of a decibel
@@ -2233,7 +2258,9 @@ through a filter (measured \jparityWorstSwiftFilteredWords{},
 each square's presence, clear and corroborated, every tile's state and
 every column's cleanup state --- must be identical, the calibration's
 stamp identical point for point, and the residue identical at every
-column and length. The app's reading of every square must match the
+column and length.
+
+\paragraph{Against the truth.} The app's reading of every square must match the
 exact ladder, once the leakage is allowed for, within
 \jparityTruthSmoothWords{} of a decibel (\jparityTruthSmooth{}) for the
 smooth devices (measured \jparityWorstResidueSmooth{}), within
@@ -2247,7 +2274,9 @@ squares the same way, within \jparityTHDSmoothWords{}
 (\jparityTHDFiltered{}). Every cleanup crossing must land within
 \jparityCleanupWords{} of a decibel (\jparityCleanup{}~dB) of the exact
 curve's crossing (measured \jparityWorstCleanup{}, at the first unmasked
-column in every case, where the residue's leak sits inside the sum). The
+column in every case, where the residue's leak sits inside the sum).
+
+\paragraph{The plain wire's residue.} The
 plain wire's residue at the first unmasked column must reproduce the
 three figures the app derives --- \jparityResiduePythonTwo{},
 \jparityResiduePythonFive{} and \jparityResiduePythonTen{}~dB from the
@@ -2255,7 +2284,9 @@ second program against the app's \jparityResidueLawTwo{},
 \jparityResidueLawFive{} and \jparityResidueLawTen{} --- within
 \jparityResidueVsLawWords{} of a decibel (\jparityResidueVsLaw{}), and
 its tile must be a bound of \jparityIdentityBound{}\,\% at the default
-length with every column always clean. Turning the interface's gain up
+length with every column always clean.
+
+\paragraph{Checks on the rig.} Turning the interface's gain up
 by \jparityGainShift{}~dB must move the note's level by exactly that
 much, the calibration's stamped gain by exactly that much
 (\jparityGainStamp{}), and any square's margin by
@@ -2267,7 +2298,7 @@ up, which is the whole point of the drive term's gain. A recording
 cut so that every square moves by \jparityLatencyMove{}~dB --- nothing
 the arithmetic can tell from no move at all. \jparityPartBStatus
 
-Two of the results are worth stating in words. The device with no note
+\paragraph{Two results in words.} Two of the results are worth stating in words. The device with no note
 --- the phantom whose note sits \jparityAbsentDepth{}~dB under its second
 harmonic --- reads absent on \jparityAbsentFractionWords{} of its squares
 (\jparityAbsentFraction{}) and gets a tile with no percentage; the
@@ -2288,7 +2319,7 @@ reads a peak of \jparityPluginPeak{}\,\% and cleans up at
 \jparityNeverCleanPeak{}\,\% at every rung of its tile column and never
 clean.
 
-One last check starts from stored records rather than from a made-up
+\paragraph{Stored records.} One last check starts from stored records rather than from a made-up
 device, and it is the only one that does: the read-time rules --- the
 floor, the margins, the corroboration and the tile --- were run by the
 second program on the stored grids and calibration stamps of
@@ -2300,7 +2331,7 @@ stored record holds results rather than a recording, so for this half of
 the check the stored grid is the input, and those grids are the same
 figures the app's own tests pin.
 
-The test runs automatically on every change to the app, and the tables
+\paragraph{When it runs.} The test runs automatically on every change to the app, and the tables
 and figures in both documents are regenerated on every change and
 compared with the committed copies; the scripts and the instructions for
 running them are in the repository named on the first page.
@@ -2332,7 +2363,7 @@ running them are in the repository named on the first page.
   pedal-and-interface pairs.
   \item \textbf{A shorter sweep leaks more.} The map's sweep and its
   analysis are each \gmTransformShareOfFingerprint{} as fine as chapter
-  one's, so a loud harmonic leaks more into its neighbours' windows at
+  one's, so a loud harmonic leaks more into its neighbors' windows at
   the low edge than chapter one's measured bound allows; the leakage map
   states the amount per column and harmonic, and a square whose content
   sits inside it is the analysis's, not the pedal's --- which is what the
@@ -2388,8 +2419,8 @@ tone's \emph{skirt}, and its shape is the same whatever the tone.
 Figure~\ref{fig:skirt} shows both cases, computed through the same code
 the next chapter uses: two notes that fit the window exactly, over a
 floor that is flat because nothing is spilling; then the same two notes
-with the high one moved a quarter of a slot off its centre, and the whole
-floor lifted by its skirt. On the right is the neighbourhood of that
+with the high one moved a quarter of a slot off its center, and the whole
+floor lifted by its skirt. On the right is the neighborhood of that
 note, where the spill lands first and hardest --- the slots the chapter's
 coherence check reads.
 
@@ -2398,7 +2429,7 @@ coherence check reads.
   \caption{Two notes at the standard drive through a little noise, read
   through the analysis window the next chapter uses. Left: both notes on
   exact slots --- two lines and a flat floor. Middle: the high note moved a
-  quarter of a slot off its centre, as the panel's title states; its skirt
+  quarter of a slot off its center, as the panel's title states; its skirt
   covers the whole span. Right: the slots either side of the high note in
   both cases, the nine the coherence check reads marked, with the local
   floor beside the note and the bar above it for the moved case.}
@@ -2409,7 +2440,7 @@ The stretch is cut with a plain edge --- no fade at either end of the cut
 --- which is what makes the exact-fit case perfectly clean and the
 near-miss case spill. Many analyses soften the edges of their window to
 blunt that spill, at the cost of blurring every slot into its
-neighbours. The next chapter does not, because it can arrange for every
+neighbors. The next chapter does not, because it can arrange for every
 tone it cares about to fit exactly: it tunes the notes to the window
 before it plays them. That arrangement is what the word \emph{coherent}
 means there, and everything the chapter can do follows from it --- as
@@ -2503,7 +2534,7 @@ measurement possible: slots add the way frequencies do. If the low note
 sits on slot number $k_1$ and the high note on slot $k_2$, then ``twice
 the low less the high'' sits on slot $2k_1 - k_2$ --- exactly, not
 approximately --- and so does every other recipe, on its own slot,
-leaking into no neighbour. The set of slots the two notes and all their
+leaking into no neighbor. The set of slots the two notes and all their
 invented tones occupy is the \term{analysis-lattice}, and the analyzer
 reads each recipe at its one slot and nowhere else.
 
@@ -2558,7 +2589,7 @@ spaced \imdClassBSpacing{}, at \imdClassBCentsOne{} and
 offsets that capture was played at. Keeping the interval outranks
 everything else: a window too short to place the fraction at a good
 spacing --- Simulation Mode's quick preview --- still asks the same
-musical question, and the reading rules carry the crowding honestly.
+musical question, and the reading rules carry the crowding accurately.
 
 Some pairs the app refuses. If a requested interval cannot escape an exact
 small fraction within the cents budget at all, the plan stops before
@@ -2598,7 +2629,7 @@ look at the slots beside the low note.
   the crowded probe every earlier record was made on --- the four recipes
   two slots from the notes and the one two slots from zero are red,
   refused on position. Right: the slots beside the low note on the shipped
-  lattice --- the nine the coherence check reads, the neighbourhood the
+  lattice --- the nine the coherence check reads, the neighborhood the
   reading rule guards, and the nearest recipe a spacing away.}
   \label{fig:imd-lattice}
 \end{figure}
@@ -2642,7 +2673,7 @@ it.
 
 \paragraph{The reads.} Each recipe's size is the value of its one slot,
 exactly; so are the two notes'. An earlier version took the largest of
-the slot and its two neighbours, ``to tolerate drift'' there was none of.
+the slot and its two neighbors, ``to tolerate drift'' there was none of.
 That left a strong tone untouched and lifted every reading at the noise by
 about \imdOlderReadBiasDB{}~dB on average; records made that way still
 carry those reads, and their floor was measured the same way, so their
@@ -2665,7 +2696,7 @@ fixed bar: a tone counts as \emph{present} when it stands more than
 \imdGateFactor{} times (\imdGateDB{}~dB) above its local floor. That
 verdict is decided once, at capture, and written into the record;
 nothing decided later can change it. The right-hand panel of
-Figure~\ref{fig:imd-spectrum} is the picture: the grey span either side
+Figure~\ref{fig:imd-spectrum} is the picture: the gray span either side
 of one recipe, the lattice slots cut out of it in red, the floor through
 the middle and the gate four times above it.
 
@@ -2706,7 +2737,8 @@ floor would read as ``every tone resolved''. The two floors run one way:
 the gate is decided at capture against the raw spectrum, the capture floor
 is a summary made afterwards over slots already judged, so leaving a
 refused slot out of the floor changes which judged slots are averaged and
-never which slots were judged.
+never which slots were judged. This floor is gathered with the other
+measurements' floors in Section~\ref{sec:floors-plain}.
 
 \paragraph{One reading per tone.} Every invented tone gets one
 \term{product-reading}, and the app prints four kinds of answer: measured;
@@ -2732,7 +2764,7 @@ that fits, and position comes before level throughout.
   \imdNeighbourhoodBins{} slots of a louder tone that itself passed the
   gate: could not be read. At that separation the quieter slot holds the
   louder tone's skirt. The louder of the pair is read; the quieter is not.
-  A neighbour that is only noise casts no skirt and refuses nothing. On
+  A neighbor that is only noise casts no skirt and refuses nothing. On
   the shipped fifth nothing is ever closer than \imdClassASpacing{} slots,
   so this rule marks nothing; on the old crowded probe it marks many.
   \item \textbf{Inside the analyzer's own leakage} --- on an old record
@@ -2827,13 +2859,30 @@ the notes would be reading the products' coherence, not the notes'.
 \emph{What the verdict is, and is not.} When the check reads and the
 excess is over the bar, the record says the played notes did not stay
 stationary across the window, from some source in the chain that the
-reading cannot name, so this capture's floor and every invented tone's
-level are not trustworthy. Nothing is refused, discarded or re-run: the
+reading cannot name. Nothing is refused, discarded or re-run: the
 capture is saved as measured with that sentence on it, and the measure
 sheet announces it the moment the number exists. The sentence never
 names a stage --- a pedal with a dying battery moves a note over twenty
 seconds as surely as a rig --- and it is a statement about this capture,
 not about the pedal. Under the bar it says the premise held.
+
+\emph{What it means for each invented tone.} A note that moved spills a
+skirt over the slots, and the skirt thins with distance in a known way:
+what reaches a slot twenty-two steps from a note is a small fraction of
+what the nine slots beside it read. So the record does not write off
+every invented tone at once. It works out, for each one, how much of the
+notes' spill --- and of the spill of any loud invented tone, which
+carries the same wobble --- lands on its slot, and reads the tone if it
+stands at least a stated margin above that. The tones that do not are
+marked unread: not present, not absent, their tile a lower bound, and a
+quiet slot under the spill is not counted toward the floor either. The
+margin was set by running the check's own wander fixture through several
+pedals and measuring how far a read tone's level could be off; at the
+margin it is under two decibels. The sentence then says how many tones
+were read clear of the spill and how many were not. On records made
+before the detector existed, and on the short-window lattice, the record
+keeps the older sentence --- that the whole spectrum is smeared --- since
+those readings interpret only a loop with nothing in it.
 
 \emph{A shape, never a verdict.} The record also quotes the
 \term{pair-statistic}: the average of the two innermost slots beside each
@@ -2851,10 +2900,11 @@ and the ceilings.
   \centering\includegraphics[width=0.95\linewidth]{imd-detector.png}
   \caption{The coherence check. Left: the nine slots either side of the
   high note on a clean loop through a little noise, with the local floor
-  beside the note (grey) and the bar above it (red) --- within a few
+  beside the note (gray) and the bar above it (red) --- within a few
   decibels of the floor, premise held. Middle: the same slots on the
   pipeline's wander fixture, a shared drift of both notes at one cycle
-  per window --- far over the bar, not trustworthy. Right: the ceiling
+  per window --- far over the bar: the notes did not stay stationary.
+  Right: the ceiling
   each slot sets on the loudest invented tone at the shipped spacing, with
   the worked example's loudest tone far below every ceiling and a squarer
   driven above its own notes clearing none.}
@@ -2885,7 +2935,7 @@ Every recipe lands on that grid at a whole-number step, exactly, and its
 pitch class is read off by octave reduction: halve or double the step
 until it sits inside one octave above the root, then ask which note that
 is and how far from it. Figure~\ref{fig:imd-roles} shows where each of
-the \imdRecipeCount{} recipes lands on the fifth's grid, coloured by the
+the \imdRecipeCount{} recipes lands on the fifth's grid, colored by the
 role assigned to the step; the role table in the technical reference
 lists each step's pitch and role.
 
@@ -2914,7 +2964,7 @@ that was measured and silent.
   \centering\includegraphics[width=0.95\linewidth]{imd-roles.png}
   \caption{The harmonic grid of the requested fifth at its just ratio:
   every recipe at its grid step, stacked where several share a step and
-  coloured by the role assigned to that step; the two played notes
+  colored by the role assigned to that step; the two played notes
   marked. Step zero and below has no role.}
   \label{fig:imd-roles}
 \end{figure}
@@ -2947,12 +2997,12 @@ Figure~\ref{fig:imd-spectrum} is the worked example --- the soft clipper
 of the earlier chapters, at the loudest hardware drive, on the shipped
 fifth through a little noise --- as the pipeline reads it. On the left is
 the whole spectrum below the notes' first few multiples: every recipe
-marked measured (blue), nothing found (grey) or refused (red), the two
+marked measured (blue), nothing found (gray) or refused (red), the two
 notes as squares at zero, and the capture floor as the dashed rule with
 its slot count. The clipper is symmetric, so every even-order recipe
 reads at the floor and every odd-order one stands well above it, in a
 ladder that falls away with order. On the right is the local-floor
-neighbourhood of one recipe: the grey span either side of it, every
+neighborhood of one recipe: the gray span either side of it, every
 lattice slot cut out of it in red, the floor as the middle value of what
 remains, and the gate four times above it.
 
@@ -2960,9 +3010,9 @@ remains, and the gate four times above it.
   \centering\includegraphics[width=0.95\linewidth]{imd-spectrum.png}
   \caption{The worked example, a soft clipper at the loudest hardware
   drive on the shipped fifth through seeded noise. Left: the spectrum with
-  every recipe marked measured (blue), nothing found (grey) or refused
+  every recipe marked measured (blue), nothing found (gray) or refused
   (red), the two notes as squares, and the capture floor as the dashed
-  rule. Right: the local-floor neighbourhood of one recipe, with the
+  rule. Right: the local-floor neighborhood of one recipe, with the
   lattice slots cut out (red), the floor (red, dashed) and the gate
   (orange, dashed).}
   \label{fig:imd-spectrum}
@@ -2975,8 +3025,8 @@ frequencies delivered; then the five roles, each with its figure in dBc
 and a one-line gloss. Under them, lines state the recipe count and orders
 enumerated, that the roles are assigned at the requested interval and the
 levels read at the lattice, and the drive level. The chart itself sits on
-a musical pitch axis, labelled with note names and their frequencies:
-the two played notes in one colour and every invented tone as a stem in
+a musical pitch axis, labeled with note names and their frequencies:
+the two played notes in one color and every invented tone as a stem in
 one of two others, one for the even orders and one for the odd, with the
 legend saying that a dotted stem is not a reading and a faint one was
 read against the floor and not ranked. Below the chart the invented tones
@@ -2997,7 +3047,7 @@ the bar, and the pair statistic.
 
 \subsection{How you can check that the app does what this says}
 
-As in the earlier chapters, a second program was written from the
+\paragraph{The second program.} As in the earlier chapters, a second program was written from the
 description --- in Python, independently, not by translating the app's
 code --- and the \term{parity} runs both on the same made-up devices and
 demands the same answer. It runs \iparityCaseCount{} cases, and each
@@ -3005,8 +3055,7 @@ device case a second time as its \term{phantom} twin
 (\iparityTwinCount{} twins), on the signal the app's own tuning produces,
 so the choice of lattice is exercised rather than assumed.
 
-The known answer deserves a paragraph of its own here, because it is
-what makes the check strong. For a device with no memory --- one whose
+\paragraph{The known answer.} Here it is what makes the check strong. For a device with no memory --- one whose
 output at each instant depends only on its input at that instant --- two
 notes on exact slots produce an output that repeats along two directions
 at once: advance the low note by one cycle and the output repeats, advance
@@ -3019,7 +3068,7 @@ beside the app's reading of it; for the formula devices it also works the
 size out a second way, by expanding the formula, and holds the two
 methods to each other.
 
-The case families, in a sentence each. The lattice alone, at every sample
+\paragraph{The cases.} The case families, in a sentence each. The lattice alone, at every sample
 rate and both short windows, for the fifth, an octave, a major third and
 a pair that must be refused. Three formula devices --- a gentle curve, a
 plain squarer and a lopsided clipper --- and the soft and hard clippers of
@@ -3032,8 +3081,8 @@ fixture, read the old way and through the detector. A squarer driven
 until its invented tones stand above the notes. And the worked example
 analyzed \iparityLatencySamples{} samples late.
 
-The demands, in numbers the pipeline writes into this document. The two
-programs must agree on every level to within \iparitySwiftWords{} of a
+\paragraph{The demands.} The numbers here are written into this document
+by the pipeline. The two programs must agree on every level to within \iparitySwiftWords{} of a
 decibel (\iparitySwift{}~dB) on a capture with no filter in it --- on the
 run that built this document the worst disagreement was
 \iparityWorstSwiftWords{} (\iparityWorstSwift{}~dB) --- and within
@@ -3043,7 +3092,8 @@ two million samples (measured \iparityWorstSwiftFilteredWords{},
 \iparityWorstSwiftFiltered{}); every yes-or-no reading --- slot, gate,
 reading and its reason, grid step, role, shared-slot mark, cross-check
 --- must be identical, and every sentence the record prints identical.
-The two exact answers must agree with each other to
+
+\paragraph{Against the truth.} The two exact answers must agree with each other to
 \iparityTruthRelativeWords{} of their size (\iparityTruthRelative{}),
 and the expanded formula with the integration to \iparityClosedFormWords{}
 (\iparityClosedForm{}). Every recipe that a device cannot produce must
@@ -3056,9 +3106,12 @@ match the exact answer, once the noise in the slot is allowed for, within
 for the smooth devices, within \iparityTruthKinkedWords{}
 (\iparityTruthKinked{}) for the two with a kink in them, and within
 \iparityTruthPhantomWords{} (\iparityTruthPhantom{}) on every phantom.
-The lattice each case played must be the one the manifest recorded by
+
+\paragraph{The lattice.} The lattice each case played must be the one the manifest recorded by
 running the app's tuning on that grid, field for field, and the refused
-pair refused with the same numbers on both sides. The wire through noise
+pair refused with the same numbers on both sides.
+
+\paragraph{Noise and latency.} The wire through noise
 must read every recipe as nothing found, with its capture floor within
 \iparityFloor{}~dB of the value the noise's own statistics predict
 (measured \iparityFloorLongDeficitWords{} and
@@ -3072,7 +3125,7 @@ more than \iparityLatencyToleranceWords{} of a decibel
 (\iparityLatencyTolerance{}; measured \iparityWorstLatencyShiftWords{},
 \iparityWorstLatencyShift{}). \iparityPartBStatus
 
-Two of those results are worth stating in words. The two devices with a
+\paragraph{Folding, and the phantom.} Two of those results are worth stating in words. The two devices with a
 kink in them --- the hard clipper, and the lopsided one --- are applied to
 the signal sample by sample, so what they make above half the sample
 rate folds back down, and on a two-tone lattice a folded tone lands
@@ -3089,7 +3142,7 @@ whose level still reads back to \iparityPhantomWorstWords{} of a
 decibel and whose reading is a refusal on frequency anyway, by the band
 rule that comes before the gate.
 
-The worked example itself, the soft clipper at the loudest hardware
+\paragraph{The worked example.} The worked example itself, the soft clipper at the loudest hardware
 drive through noise: \iparityWorkedPresent{} recipes measured,
 \iparityWorkedAbsent{} with nothing found, a capture floor of
 \iparityWorkedFloor{}~dBc from \iparityWorkedFloorBins{} empty slots, a
@@ -3106,7 +3159,7 @@ and the sum of the two notes, which a symmetric clipper cannot make,
 reads \iparityWorkedFOnePlusFTwoLevel{}~dBc --- the noise --- and is
 reported as nothing found, with that level as its bound.
 
-The wire through noise also settles a question the limits below rely
+\paragraph{Noise per slot, drift, and a loud squarer.} The wire through noise also settles a question the limits below rely
 on: how far a single slot's noise sits below the same noise measured
 across the whole band. At the standard window it is
 \iparityPerBinLong{}~dB (\iparityPerBinShort{} at the old short one),
@@ -3125,7 +3178,7 @@ its notes has a loudest tone of \iparityLoudLoudest{}~dBc, clears no
 ceiling, is not read, and has \iparityLoudUnderSkirt{} recipes marked
 unread under a skirt of \iparityLoudSkirt{}~dB.
 
-The test runs automatically on every change to the app, and the tables
+\paragraph{When it runs.} The test runs automatically on every change to the app, and the tables
 and figures in both documents are regenerated on every change and
 compared with the committed copies; the scripts and the instructions for
 running them are in the repository named on the first page.
@@ -3147,15 +3200,21 @@ running them are in the repository named on the first page.
   could support. The roles replaced them on the page; the sums remain in
   the record as they were.
   \item \textbf{A coherence verdict names no culprit, and reads nothing
-  beside a loud tone.} ``Not trustworthy'' is a statement about this
-  capture; a pedal's own drift earns it as surely as a rig's. And a
-  device whose invented tones stand above its notes is not read at all,
-  because every slot beside its notes is the products'. A device whose
-  slots beside the notes stay at a fixed size while its output rises ---
-  falling in dBc as the drive goes up --- is consistent with something
-  after its level control wobbling the notes; the record reports the
-  numbers and the shape, and whether it should say more when that
-  pattern is clean is an open question.
+  beside a loud tone.} ``The notes did not stay stationary'' is a
+  statement about this capture; a pedal's own drift earns it as surely
+  as a rig's. And a device whose invented tones stand above its notes is
+  not read at all, because every slot beside its notes is the products'.
+  A device whose slots beside the notes stay at a fixed size while its
+  output rises --- falling in dBc as the drive goes up --- is consistent
+  with something after its level control wobbling the notes; the record
+  reports the numbers and the shape, and whether it should say more when
+  that pattern is clean is an open question.
+  \item \textbf{The spill is extrapolated, and a fast wobble escapes
+  it.} The per-tone reading extends the outer slots' reads outward along
+  the window's known thinning; a note wobbling faster than about twice
+  per window puts its spill beyond those slots, and the extrapolation
+  under-reads it. Where the model is unsure which kind of wobble it is,
+  it takes the larger spill, which refuses more tones, never fewer.
   \item \textbf{What a wander looks like, and what the shape cannot
   separate.} A shared drift in frequency puts the high note's pair over
   the low note's by the amount the record prints; a wobble in level and a
@@ -3190,7 +3249,7 @@ running them are in the repository named on the first page.
   its own line, never in a sum and never in a tile; the phantom check
   above shows the level under it still reads back exactly.
   \item \textbf{The gate is frozen.} A tone's presence and the three sums
-  are written at capture. Changing the gate's factor or its neighbourhood
+  are written at capture. Changing the gate's factor or its neighborhood
   moves future captures only, and a reading rule can change which
   judged slots go into a floor but never which slots were judged. The
   window's length is not stored either: a reader derives it from the
@@ -3219,7 +3278,7 @@ recording. The \term{waveform-matrix} --- the app's ``scope view'' --- is
 a grid of small pictures. Each picture, a \term{tile}, is the wave that
 went into the pedal and the wave that came out, over two cycles of one
 note at one loudness, drawn from the samples the interface delivered and
-from nothing else. Nothing is fitted, modelled, resampled or cleaned up.
+from nothing else. Nothing is fitted, modeled, resampled or cleaned up.
 Across the grid one way are the notes, from the low E string to the E
 four octaves above it by default; across it the other way are the
 loudnesses, from a small signal to the loudest drive the rig allows. So
@@ -3272,6 +3331,10 @@ does not stand clear of it (the \term{noise-badge}).
   did to the wave's shape. It says nothing about what the distortion sounds like.
 \end{enumerate}
 
+Everything in this document describes a pedal that has settled; how a
+pedal changes over time is being measured next, and gets its own chapters
+when it arrives.
+
 \subsection{The test signal: a grid of notes and loudnesses}
 
 \paragraph{The notes.} The grid's notes are chosen so that grids of
@@ -3295,7 +3358,7 @@ the \term{note-anchor}, joins whenever the span holds it, so that every
 grid shares a note with the Transfer Curve measurement of
 Section~\ref{sec:transfer-plain} --- the next section says what that
 buys --- and the span's middle note, \wmCentreNote{} on the default span,
-is the centre the splitting works outward from, one side at a time. On
+is the center the splitting works outward from, one side at a time. On
 the default \wmLowNote{}--\wmHighNote{} span the result is the octave
 ladder, with two more notes joining at seven:
 \begin{center}\small\mlatNoteTable\end{center}
@@ -3355,7 +3418,7 @@ Figure~\ref{fig:matrix-lattice-plain} draws both lattices at every size.
   and the loudest column fixed; every smaller ladder's points are among
   the larger one's. Right: the notes on the default span --- the octave
   ladder at five, two more joining at seven --- with E2, the cross-check
-  row (dotted), and E4, the centre (dashed): two different rows.}
+  row (dotted), and E4, the center (dashed): two different rows.}
   \label{fig:matrix-lattice-plain}
 \end{figure}
 
@@ -3438,7 +3501,7 @@ arrays --- input and output --- are written as \term{sample-array}s: the
 32-bit numbers the converter delivered, \wmBytesPerSample{} bytes each,
 with the encoding's name, the channel and the sample count stated beside
 the data, so that a program reading the record later never has to guess
-the layout, and refuses one it does not recognise rather than guess. The
+the layout, and refuses one it does not recognize rather than guess. The
 record also keeps the notes and loudnesses actually delivered --- never
 the ranges asked for --- the sample rate, the cycle count, and the row
 stamps.
@@ -3480,7 +3543,8 @@ charged. The row's own closing silence and the next row's opening
 silence together last well under a second, and the capacitor is still
 draining when the next row's silence is measured. The stamp reads that
 drain, the \term{dc-tail}, as if it were noise --- and it can be tens of
-decibels louder than the hiss.
+decibels louder than the hiss. The stamp, as the floor it is, is gathered
+with the other measurements' floors in Section~\ref{sec:floors-plain}.
 
 Figure~\ref{fig:tail-plain} shows it, computed through the check
 described later on the same made-up rectifier the technical chapter
@@ -3511,7 +3575,7 @@ with the numbers the library's own records show.
   \caption{A capacitor forgets slowly. Left: the boundary between the
   first two rows for the lopsided clipper behind the slow output
   capacitor named in the title --- the first row's loudest step ending,
-  its closing silence (grey), then the second row's opening silence
+  its closing silence (gray), then the second row's opening silence
   (hatched), the window the stamp is read from. Red: the device's state
   carried from row to row, as a real pedal experiences it --- the
   capacitor is still draining through both silences. Blue: each row
@@ -3673,7 +3737,7 @@ its loudest mostly outside it (\mparityDeadLoud), the fraction falling
 steadily along the row (\mparityDeadRow{} on the E2 row) and equal to
 the exact answer's on every row --- the requirement the app's own test of
 this measurement was founded on, carried through the whole pipeline. The
-four refusals --- an unrecognised encoding, a sample count that
+four refusals --- an unrecognized encoding, a sample count that
 disagrees with the data, a recording one sample short of its last tile,
 and a cycle count no stretch can hold --- must be refused by both
 programs with the same message. And the record's size: a seven-point
@@ -3747,7 +3811,7 @@ Figure~\ref{fig:matrix-stamp-plain} is the row-by-row picture.
   state carried across the rows (red) the first row reads the noise and
   every later row reads the previous row's loudest step still draining,
   tens of decibels over it; with every row started fresh (blue) each row
-  reads the noise. Grey: the quietest tile's own level on the carried
+  reads the noise. Gray: the quietest tile's own level on the carried
   rows, which sits under the contaminated stamp.}
   \label{fig:matrix-stamp-plain}
 \end{figure}
@@ -3803,15 +3867,18 @@ running them are in the repository named on the first page.
   peak at E2, \mparityMiscutHigh{}\,\% at E6. The delay is measured once
   per rig state, and the picture keeps the pedal's own shift precisely
   because it is not lined up.
-  \item \textbf{The tie.} At the \wmTieDimension{}-point size, two very
-  close metered factors on one interface (\wmTieFactorA{} and
-  \wmTieFactorB{}~V at full scale, both in the project's library) give two
-  different sets of quiet loudnesses, because the splitting rule has to
-  choose between two gaps of exactly equal width and the choice falls to
-  the last digits of the arithmetic. Both grids are honest, the paired
-  comparison finds the points they share, and the check reproduces the
-  choice exactly; it is filed rather than changed, because changing it
-  would move the grids of every future record.
+  \item \textbf{The tie.} At the \wmTieDimension{}-point size the
+  splitting rule has to choose between two gaps of exactly equal width,
+  and until late September 2026 the choice fell to the last digits of the
+  arithmetic: two very close metered factors on one interface
+  (\wmTieFactorA{} and \wmTieFactorB{}~V at full scale, both in the
+  project's library) gave two different sets of quiet loudnesses. The
+  rule now treats two gaps that differ by less than a billionth of a
+  decibel as the same gap and splits the quieter one, so both factors
+  give the same grid. Grids recorded before the change keep their
+  loudnesses --- a recorded grid never moves --- and the paired
+  comparison still finds the points an old grid and a new one share
+  (five of the seven loudnesses, on one interface).
   \item \textbf{The cross-check reads the frame.} At the one point the
   two measurements share, they agree to the transfer curve's own
   closing-fade deficit; a reader comparing a tile with the transfer
@@ -3834,6 +3901,339 @@ running them are in the repository named on the first page.
 
 \clearpage
 
+\section{Floors: how deep a reading can see}
+\label{sec:floors-plain}
+
+Every chapter before this one has met a floor: a level under which the
+number the app reads is no longer the pedal's. Each met it where its own
+measurement needed it and said what it had to in its own words. This
+chapter is where the one idea underneath those passages is stated once,
+and where a reader who has read only one of the measurement chapters can
+see how the others apply it. It re-explains none of their machinery; where
+a chapter's rule matters here it is pointed at, not restated at length.
+
+\subsection{What a floor is}
+
+Nothing quieter than the rig can be seen through the rig. A recording
+carries the interface's own hiss and its own small distortion, and the
+pedal's hiss on top; a reading that is no larger than what those alone
+could have produced cannot be told from them, however precisely it was
+read. The \term{floor} is that level --- the point below which a reading
+would describe something that is not the pedal --- and the app's rule at
+or under it is the same everywhere: the reading is reported as a
+\term{bound-reading}, ``at most this much'', never as a figure. A figure
+says what the pedal did; a bound says how far the instrument could see.
+Section~\ref{sec:hd-plain} states this for the Harmonic Distortion sweep,
+and every other measurement inherits it.
+
+A floor is not one number, and it is not a property of the pedal. It
+depends on which rig made the recording, how loud the note was, which
+note, and --- for a swept measurement --- how many sweeps were combined.
+That is why the app never carries a floor as a fixed setting: every floor
+it uses is measured, and the next section says from what.
+
+\subsection{Where floors come from}
+
+The six measurements draw their floors from three kinds of source, and a
+reader who knows which kind a floor is knows what it can and cannot see.
+
+\paragraph{The rig, measured with nothing in it.} During calibration the
+app plays its sweep through the interface with a cable in place of the
+pedal and keeps, inside every record made under that calibration, how much
+distortion and noise the bare loop showed at each pitch: the
+\term{floor-stamp}. The Harmonic Distortion sweep reads its floor from it
+(Section~\ref{sec:hd-plain}, ``The floor''); the Gain Map reads it too,
+through a \term{median-read} of \gmStampMedianPoints{} neighboring
+points, so that one unlucky reading cannot make the loop look quieter
+than it is (Section~\ref{sec:journey-plain}, ``A floor, and a margin'').
+Two relatives belong to the same family. A \term{null-run-reference} is
+the loop measured with nothing in it by the \emph{same} measurement as
+the record --- for Compression, the same ladder of loudnesses --- under
+exactly the record's calibration; it says how much distortion the rig
+itself adds at each loudness, not only how much noise
+(Section~\ref{sec:compression-plain}, ``The hiss line''). And a plugin
+has no rig at all: its calibration is a loop inside the computer, and it
+is numerically silent, so it measures nothing the plugin does. In its
+place the app measures the plugin's own noise before the run and lets
+that \term{operative-floor} stand where the loop's hiss would have stood
+(Sections~\ref{sec:compression-plain} and~\ref{sec:journey-plain}).
+
+\paragraph{This capture, from its own silence or its own empty slots.}
+A calibration made with nothing in the loop cannot carry the pedal's
+hiss. So the measurements that play a tone rather than a sweep measure
+the silence before the tone in the same recording --- the loop's hiss
+and the pedal's own, together --- and keep that as their floor.
+Compression's \term{noise-stamp} is the loudness of the
+\cmpPrerollS{}~s of silence before its ladder starts
+(Section~\ref{sec:compression-plain}, ``The silence before''); the
+Waveform Matrix's \term{row-noise-stamp} is the same reading taken once
+per row (Section~\ref{sec:matrix-plain}, ``The silence is measured
+first''). Chord IMD has no silence to read, so it reads the empty slots
+of its own spectrum instead: the \term{local-floor} beside each invented
+tone, from slots that hold nothing the lattice claims, and the
+\term{capture-floor}, a summary over every slot the gate did not pass
+(Section~\ref{sec:imd-plain}, ``The local floor, and the gate'' and
+``The capture floor''). A floor of this kind sees what the rig's
+calibration cannot; the price is that it sees only this capture, and
+whatever else the silence happened to hold --- the last section returns
+to that.
+
+\paragraph{The analysis itself.} The third kind is the one a noise floor
+cannot see at all. An analysis can report a little distortion with
+nothing in the loop, because its own steps leave traces: the Gain Map's
+\term{analyzer-residue} is what the sweep's opening ramp leaks into the
+window that reads the second harmonic, worked out afresh for each map by
+handing the sweep straight back as its own recording
+(Section~\ref{sec:journey-plain}, ``A floor, and a margin''). It is a
+fixed share of the note, the same at every loudness, which is exactly why
+no amount of hiss can bound it. The same family holds the limit behind
+\term{fundamental-presence}: a loud harmonic leaks a little into the
+window that reads the note, so the app has measured how far below the
+loudest harmonic a reading of the note can sit before it is the
+analysis's own leakage --- \hdSeparationDB{}~dB --- and stops dividing
+by the note beyond it (Section~\ref{sec:hd-plain}). And in a spectrum, a
+note that does not fit its slot spills a skirt over its neighbors, so
+the slots nearest a played note are never read as a floor; that is
+Section~\ref{sec:slots-plain}'s picture, and the Chord IMD chapter's
+reason for cutting the nearest slots out.
+
+\subsection{An amount, not a share}
+
+The idea that ties the families together is a difference in units. Hiss
+is an \emph{amount}: so many microvolts, the same whether the note is
+loud or quiet. A distortion reading is a \emph{share}: the overtones
+compared with the note, a ratio. So the same hiss is a larger share of a
+quieter note, and every floor that is stated as a share rises as the note
+gets quieter --- at the quiet end of a ladder, at a quiet square of a map,
+for a sweep played more softly than the calibration was. The Harmonic
+Distortion floor carries an allowance for the sweep's level against the
+calibration's; the Gain Map's \term{drive-term} raises a square's floor
+by however much quieter its note arrived than the calibration's did
+(and never lowers it for a louder one, because the rig's own distortion
+grows with drive and the stamp measured noise and distortion together at
+one level); Compression's \term{noise-bound} is the stamp turned into
+the largest distortion reading the hiss alone could fake at each rung,
+climbing toward the quiet end. Three names, one arithmetic.
+
+Figure~\ref{fig:floor-concept} draws it. The device is a made-up one
+whose only distortion is a third harmonic at a fixed share of the note,
+\flSharePercent{}\,\% (\flShareDepthDB{}~dB under it) at every loudness, played
+down the Compression ladder through white noise at \flNoiseDBFS{}~dBFS
+and read by the same code the Compression chapter's check uses. On the
+left everything is an amount: the note falls rung by rung, the harmonic
+falls with it a fixed distance below, and the hiss is a flat line. On the
+right the same rungs are shares: the reading sits at the device's true
+share, the noise bound rises as the note falls, and at about
+\flCrossingDBFS{}~dBFS the two meet. From there down the app reports a
+bound --- the device really does add \flSharePercent{}\,\%, and the
+picture shows the reading still saying so, but the rig could have faked
+that much, so the honest claim is ``at most the bound'', not the figure.
+The band above the line is where a reading is a mix of the two, and it is
+the same band the Compression chapter draws
+(Section~\ref{sec:compression-plain}, ``The hiss line'').
+
+\begin{figure}[htbp]
+  \centering\includegraphics[width=0.98\linewidth]{explained-floor.png}
+  \caption{A fixed amount of hiss, a shrinking note. A made-up device
+  whose only distortion is a third harmonic at the fixed share the title
+  states, down the Compression ladder through the white noise the title
+  states, read by the reimplementation's own Compression code. Left, as
+  amounts: the note and its harmonic fall together and the hiss stays
+  put; the dotted line is where the harmonic meets it. Right, as shares:
+  the reading, flat at the device's true share; the noise bound, rising
+  as the note falls; the band above it where a reading is a mix; and each
+  rung marked by its floor class --- clear, a mix, or at or under the
+  bound and stated as a bound.}
+  \label{fig:floor-concept}
+\end{figure}
+
+\subsection{The largest binds}
+
+Where more than one floor applies to a reading, the app judges it against
+the largest. Compression draws its hiss line as the largest of the
+capture's own noise bound, the null run's bound and a plugin's operative
+floor; the Gain Map's \term{composed-margin} is a square's distance above
+the larger of the rig's noise and the analysis's residue; the Harmonic
+Distortion floor takes the larger of the calibration's stamp and a
+plugin's operative floor. The reason is the same each time: every one of
+those floors bounds something that is \emph{not} this pedal's distortion,
+so adding a floor can only move a reading toward ``that is the rig'',
+and taking the largest is the careful choice, never a lenient one.
+Figure~\ref{fig:floor-plain} in the Gain Map chapter shows the
+composition at one note, and Figure~\ref{fig:floor-plain-cmp} in the
+Compression chapter shows the line drawn as the larger of two.
+
+The label follows the same logic. Compression's \term{floor-source}
+names a companion floor only where it actually sets the line somewhere:
+a null run that sits under this capture's own hiss everywhere changed
+nothing, and naming it would tell the reader they were looking at a
+measurement they were not.
+
+\subsection{What a reading near a floor becomes}
+
+Each measurement turns the distance between a reading and its floor into
+a small number of states, and each states its own bar. The bars are not
+one rule shared between chapters; each is its own constant, quoted here
+through its own chapter's number, and the fact that several happen to be
+the same size is a coincidence this chapter does not lean on.
+
+\begin{center}\small
+\begin{tabular}{@{}p{2.6cm}p{4.2cm}p{2.3cm}p{4.6cm}@{}}
+\toprule
+measurement & the floor & the bar & under it, a reading becomes \\
+\midrule
+Harmonic Distortion & the calibration stamp, adjusted for the sweep's
+level and its averaging; a plugin's operative floor & at the floor & a
+bound on that harmonic at that note; in the comparison between two records
+both readings are lifted to the floor they share before they are
+compared, so two readings both under it count as the same \\
+Transfer Curve & none measured of its own: the note's presence is its one
+check (the phase removal's bar for which harmonics may vote,
+\tcMagnitudeFloorDB{}~dB relative to the note, is a fixed level, not a
+floor)
+& --- & no memory verdict, no polarity, no pairing verdict \\
+Compression & this capture's noise stamp, the largest of its companions
+& \cmpClearMarginDB{}~dB & a mix within the bar, drawn dotted; the rig at
+or under the line (within \cmpAtFloorEpsilonDB{}~dB), drawn faint \\
+Gain Map & the stamp through the median with the drive term, or the
+operative floor, and the analysis's residue & \gmMinimumMarginDB{}~dB & a
+square that is not clear; a peak tile quoted as a bound when no square
+with a neighbor clears \\
+Chord IMD & the local floor beside each invented tone & \imdGateFactor{}
+times it (\imdGateDB{}~dB) & absent, bounded by the capture floor; no
+floor at all under \imdMinimumFloorSamples{} empty slots \\
+Waveform Matrix & the row's noise stamp & \wmClearMarginDB{}~dB & the
+tile wears the badge: most of the drawn wave is noise, never ``below a
+floor'' \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+Two of the states deserve a sentence each. Compression's three
+\term{floor-class}es --- clear, a mix, the rig --- are drawn as
+\term{floor-runs}, solid, dotted and faint, so the trace itself says how
+far each stretch stands above the hiss
+(Section~\ref{sec:compression-plain}). Chord IMD's \term{gate} is decided
+once, at capture, and written into the record; the reading rules that
+come later can refuse a slot for other reasons, but they can never change
+whether it passed (Section~\ref{sec:imd-plain}). The Waveform Matrix's
+\term{noise-badge} is the one state that is not a bound at all, because
+the tile is a drawing of a real recording: the badge says what most of
+the drawing is, and the app's own sentence never says the tile is below
+a floor (Section~\ref{sec:matrix-plain}). Compression's
+\term{bound-zone} is the same idea applied to a corner rather than a
+reading: a knee found on the bottom rung might really lie lower, so it is
+reported as ``at or below''.
+
+\subsection{Averaging lowers noise, not residue}
+
+Playing the Harmonic Distortion sweep several times and combining the
+results lowers the noise in the reading, and the floor follows it down:
+\hdDefaultAverages{} sweeps, the app's default, lower the noise part of
+the floor by about \hdAveragingFourDB{}~dB, eight by about
+\hdAveragingEightDB{}~dB (Section~\ref{sec:hd-plain}, ``The floor'' and
+``Averaging''). But the lowering applies only where what the rig
+contributes is noise. At the faded ends of the sweep, where the residue is
+the measurement's own, a repeat carries the same residue again, and
+averaging buys nothing; the floor stays put there. That is the general
+rule, and it is why the third family of floors is separate from the other
+two: \term{averaging} helps against whatever varies from one repeat to
+the next, and a floor the analysis makes for itself does not vary. The
+Gain Map's residue, the separation behind the presence check and a
+note's skirt in a spectrum are all of that kind. So is a plugin's
+operative floor, in the part of it that measures a chain not repeating
+itself: that is not noise a repeat could average away, and the app never
+lowers it.
+
+\subsection{Above every floor and still not the pedal}
+
+A floor is necessary and it is not sufficient. A reading can stand well
+clear of every floor the previous sections named and still not be
+something the circuit did. Three of the chapters carry a check for
+exactly that case.
+
+The Harmonic Distortion sweep's \term{shaping} check asks whether a
+harmonic's readings across neighboring notes are orderly, as a
+circuit's would be, or scattered, as noise is --- a \term{coherence}
+score over a run of neighboring readings, called shaped only when the
+orderliness stands at least \hdShapedSNRDB{}~dB above the noise in it
+(Section~\ref{sec:hd-plain}, ``Shaping''). A symmetric clipper's even
+harmonics are the standing example: they are exactly absent, so what the
+app reads there is the pedal's own hiss, often well above the rig's floor,
+and still not distortion. The wording matters, and this chapter is where
+it is easiest to get wrong: a reading that fails the check is noise that
+is not being deterministically shaped by the circuit. It is not ``below
+the floor'' and it is not ``too quiet to measure'' --- both are false,
+since it stands above the floor. Chord IMD's \term{coherence-check} asks
+a different question with the same shape: not whether a tone is above
+the noise beside it, but whether the played notes stayed still across
+the whole window, since if they did not, the notes' spill reaches across
+the record and each invented tone is read only where it stands clear of
+it (Section~\ref{sec:imd-plain}, ``The coherence check''). And the Waveform
+Matrix's yardstick can hold something that is not hiss at all: a
+\term{dc-tail}, the previous row's loudest step still draining through
+the pedal's output capacitor into this row's silence
+(Section~\ref{sec:matrix-plain}, ``What the silence can hold''). The
+stamp reads it as noise and judges the row's quiet tiles against a
+yardstick that is too high --- a floor that is accurately measured and
+still wrong about what it measured.
+
+\subsection{Floors are measured, never computed}
+
+Every floor in this chapter comes from a capture: a calibration, a null
+run, this record's own silence or empty slots, or the analysis run on a
+known signal with nothing in the loop. None is worked out from the
+instrument's settings. A floor computed from what the rig is supposed to
+do would be a prediction about the rig, and stated beside a reading it
+would read as a property of the rig that had been checked. The app
+therefore also refuses to guess where it has nothing: a record with no
+stamp gets no floor claim, not an assumed one. A Compression record from
+before the stamp existed draws with no hiss line; a matrix record with no
+row stamp gets no badge either way; a Chord IMD capture with fewer than
+\imdMinimumFloorSamples{} empty slots reports no floor rather than one
+made from too little; and a Gain Map with no floor information at all
+states its loudest square as a raw maximum, which the Gain Map chapter's
+last section names as a limit rather than a feature.
+
+\subsection{Where it stops}
+
+The limits every floor shares, gathered from the six chapters' own
+lists; each chapter's list has the specifics.
+
+\begin{itemize}
+  \item \textbf{A calibration's floor is one rig at one moment.} The
+  stamp is a single reading at each pitch, taken at one loudness on one
+  day; the median read, the drive term and the averaging term stretch it
+  to the record's conditions, and none of them can make it a measurement
+  of a different interface or a different day.
+  \item \textbf{A null run joins only under the same calibration.} A loop
+  measured under another calibration measured a different rig state, and
+  a borrowed floor is worse than none; the null run's bound is also never
+  read beyond the loudnesses it actually measured.
+  \item \textbf{A plugin's floor is its own noise, not a converter's.} A
+  plugin has no interface in the loop; what stands in for the rig is the
+  noise the plugin itself makes, and the part of it that measures a chain
+  not repeating itself is never averaged down.
+  \item \textbf{A floor from a capture's own silence sees only this
+  capture, and sees whatever the silence held.} The pedal's hiss is in
+  it, which is its strength; a capacitor's slow drain from the previous
+  row can be in it too, which is the Waveform Matrix chapter's first
+  limit.
+  \item \textbf{A floor cannot say whose distortion a reading is.} A tone
+  that stands clear of this recording's noise was made by the pedal or by
+  the interface; only a capture with nothing in the loop separates the
+  two, which is what a null run is for and why Chord IMD, which has none,
+  says so in its own limits.
+  \item \textbf{Above the floor is not the same as the pedal's.} The
+  shaping check, the coherence check and the DC tail are the three cases
+  this chapter named; a reading above every floor is a candidate, and the
+  chapter that owns it says which further checks it passed.
+\end{itemize}
+
+\clearpage
+
 \section{Glossary, in plain language}
 \input{../generated/glossary-plain.tex}
+
+\input{changes-explained}
 \end{document}

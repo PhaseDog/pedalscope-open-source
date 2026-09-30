@@ -199,17 +199,25 @@ def test_the_wander_fixture_is_read_in_both_registers(results):
     for d in (legacy.swift, legacy.python):
         c = d.header["coherence (IMDAnalysis.coherenceReading)"]
         assert c["source"] == "stored_products" and c["max_offset_bins"] == "2"
-        assert c["not_trustworthy_loop_only"] == "1" and c["interprets_device"] == "0", c
+        assert c["lost_coherence_loop_only"] == "1" and c["interprets_device"] == "0", c
+        assert c["smear_read"] == "nan", "the legacy path carries no smear summary"
+
         assert float(c["excess_over_bar_db"]) > 0
         assert "not trustworthy" in d.text["coherence line, loop-only register"]
         assert "not attributable" in d.text["coherence line, device register"]
     shipped = _report(results, "h-wander-shipped")
     for d in (shipped.swift, shipped.python):
         c = d.header["coherence (IMDAnalysis.coherenceReading)"]
-        assert c["source"] == "detector" and c["not_trustworthy_device"] == "1" and c["not_trustworthy_loop_only"] == "1"
+        assert c["source"] == "detector" and c["lost_coherence_device"] == "1" and c["lost_coherence_loop_only"] == "1"
         assert float(c["worst_dbc"]) > -40, c["worst_dbc"]
         assert abs(float(c["pair_difference_db"]) - float(c["expected_difference_db"])) < 1.0, c["pair_difference_db"]
-        assert "not trustworthy" in d.text["coherence line, device register"]
+        # #358: the detection stays, the blanket verdict is gone — the
+        # identity through the wander has no product to read, so every
+        # enumerated recipe is read (absent) clear of the smear.
+        line = d.text["coherence line, device register"]
+        assert "did not stay stationary" in line and "not trustworthy" not in line, line
+        assert "clear of the smear predicted at" in line, line
+        assert int(c["smear_read"]) + int(c["smear_unread"]) + int(c["smear_other_refused"]) == 54, c
 
 
 def test_a_loud_device_is_not_interpreted(results):

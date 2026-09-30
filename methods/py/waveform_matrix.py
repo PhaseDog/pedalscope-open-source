@@ -206,13 +206,20 @@ def default_floor_dbfs(anchor: float, wm: dict) -> float:
     return anchor - float(wm["lattice"]["defaultFloorSpanBelowAnchorDB"])
 
 
-def amplitudes_dbfs(count: int, floor_dbfs: float, ceiling_dbfs: float, anchor: Optional[float]) -> List[float]:
+def amplitudes_dbfs(count: int, floor_dbfs: float, ceiling_dbfs: float, anchor: Optional[float], wm: dict) -> List[float]:
     """``WaveformMatrixPlan.amplitudesDBFS``: [floor, ceiling] seed; the
     anchor joins when count ≥ 3 and it lies inside the span by 0.5 dB;
     then anchor-centred per-side refinement — the side with fewer interior
-    points (ties to the quiet side), its widest gap (the FIRST widest by
-    strict >, the #372 tie) split at its midpoint in dB. Without a usable
-    anchor: the widest gap overall, ties to the quieter gap."""
+    points (ties to the quiet side), its widest gap split at its midpoint
+    in dB, the QUIETEST of any that tie within the manifest's
+    ``gapTieToleranceDB`` (#372: a later gap displaces the running widest
+    only by exceeding it by more than the tolerance, so the two halves of
+    one split — equal in exact arithmetic, an ulp apart in doubles —
+    resolve to the lower index at every factor). Without a usable anchor:
+    the widest gap overall by strict >, ties to the quieter gap (the
+    shipped fallback keeps strict > deliberately; the manifest's
+    ``noAnchorRule`` says why)."""
+    tolerance = float(wm["lattice"]["gapTieToleranceDB"])
     if count < 1:
         return []
     if count == 1:
@@ -235,7 +242,7 @@ def amplitudes_dbfs(count: int, floor_dbfs: float, ceiling_dbfs: float, anchor: 
         gap_range = range(0, anchor_index) if below_interior <= above_interior else range(anchor_index, len(points) - 1)
         widest = gap_range.start
         for i in gap_range:
-            if points[i + 1] - points[i] > points[widest + 1] - points[widest]:
+            if points[i + 1] - points[i] > points[widest + 1] - points[widest] + tolerance:
                 widest = i
         points.insert(widest + 1, (points[widest] + points[widest + 1]) / 2)
     return points
@@ -311,7 +318,7 @@ def make_plan(dimension: int, low_hz: float, high_hz: float, floor_dbfs: Optiona
     st = wm["stimulus"]
     plan = MatrixPlan(
         tuple(sorted(note_frequencies(dimension, low_hz, high_hz, float(wm["lattice"]["noteAnchorHz"]), wm))),
-        tuple(sorted(amplitudes_dbfs(dimension, floor, ceiling_dbfs, anchor))),
+        tuple(sorted(amplitudes_dbfs(dimension, floor, ceiling_dbfs, anchor, wm))),
         fs, period_count, float(st["prerollS"]), float(st["tailS"]), float(st["settleS"]), float(st["measureS"]),
         ramp_s_from(wm, m["compression"]))
     return plan, anchor

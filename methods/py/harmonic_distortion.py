@@ -18,10 +18,14 @@ decide what a number means:
   device reads ``H_1 = 1`` (0 dB).
 * ``H_k`` lives on the OUTPUT frequency axis; the k-th harmonic of a
   fundamental ``f0`` is read at ``k·f0``.
-* A nonlinearity is applied PER SAMPLE at the sample rate, so the digital
-  aliasing of content above Nyquist is included exactly as the Swift
-  includes it (the simulated-DUT arm's convention). The phantom source is
-  alias-free by construction.
+* A nonlinearity is applied at ``factor`` × the sample rate through the
+  manifest's Kaiser-windowed-sinc anti-alias chain (``synthesis.oversampling``
+  — the shipped ``Oversampler``, the convention Simulation Mode measures at;
+  #313, 2026-09-27: before it the synthesis applied the nonlinearity per
+  sample and folded its content above Nyquist into every window). The
+  chain's passband ends at 0.45·fs, inside the tops of H7's and H9's
+  validity bands, which therefore read the filter's roll-off. The phantom
+  source is alias-free by construction.
 
 Only the manifest's RULES are read; every number the rules produce (the
 rate constant, the windows, the bin width) is recomputed here and, where
@@ -184,6 +188,8 @@ def nonlinearity(kind: str, gain: float = 4.0, threshold: float = 0.1, a2: float
             y = np.tanh(gain * x)
             return np.where(x >= 0, y, negative_scale * y)
         return asym
+    if kind == "rectifier":
+        return lambda x: np.abs(x)
     raise ValueError(f"unknown nonlinearity {kind!r}")
 
 
@@ -200,6 +206,8 @@ def source_label(kind: str, params: dict, amps: Optional[Sequence[float]]) -> st
         return f"polynomial(a2: {fmt(params['a2'])}, a3: {fmt(params['a3'])})"
     if kind == "asymmetric":
         return f"asymmetric(gain: {fmt(params['gain'])}, negativeScale: {fmt(params['negative_scale'])})"
+    if kind == "rectifier":
+        return "fullWaveRectifier"
     raise ValueError(kind)
 
 
@@ -228,12 +236,72 @@ def phantom_capture(sweep: Sweep, amps: Sequence[float], gate_fraction: float) -
     return out * sweep.fade_envelope()
 
 
+def bessel_i0(x: float) -> float:
+    """``FIRDesign.besselI0``: the power series, summed until a term is below
+    1e−16 of the sum (manifest ``oversampling.designRule``) — the same series
+    as the Swift, not a library approximation, so the taps agree to rounding."""
+    total = 1.0
+    term = 1.0
+    half = x / 2
+    k = 1.0
+    while True:
+        term *= (half / k) * (half / k)
+        total += term
+        if term < total * 1e-16:
+            break
+        k += 1
+    return total
+
+
+def kaiser_lowpass(taps: int, cutoff: float, beta: float) -> np.ndarray:
+    """``FIRDesign.kaiserLowpass``: odd length, unit DC gain."""
+    mid = (taps - 1) / 2
+    den = bessel_i0(beta)
+    h = np.zeros(taps)
+    for i in range(taps):
+        t = i - mid
+        sinc = 2 * cutoff if t == 0 else math.sin(2 * math.pi * cutoff * t) / (math.pi * t)
+        r = t / (mid + 1)
+        h[i] = sinc * bessel_i0(beta * math.sqrt(max(0.0, 1 - r * r))) / den
+    return h / h.sum()
+
+
+class Oversampler:
+    """The shipped ``Oversampler`` from the manifest's ``synthesis.oversampling``
+    block: polyphase zero-stuff / correlate / decimate, length-preserving and
+    group-delay compensated (``upsampleRule`` / ``downsampleRule``)."""
+
+    def __init__(self, o: dict):
+        self.factor = int(o["factor"])
+        taps = int(o["tapsPerPhase"]) * self.factor + 1
+        assert taps == int(o["prototypeTaps"]), (taps, o["prototypeTaps"])
+        self.h = kaiser_lowpass(taps, float(o["cutoffFractionOfOversampledRate"]), float(o["beta"]))
+        self.delay = (taps - 1) // 2
+        assert self.delay == int(o["delaySamples"]), (self.delay, o["delaySamples"])
+
+    def upsample(self, x: np.ndarray) -> np.ndarray:
+        n = len(x)
+        f = self.factor
+        stuffed = np.zeros(n * f + 2 * self.delay)
+        stuffed[self.delay:self.delay + n * f:f] = np.asarray(x) * f
+        return np.correlate(stuffed, self.h, mode="valid")
+
+    def downsample(self, x: np.ndarray) -> np.ndarray:
+        n = len(x) // self.factor
+        padded = np.concatenate([np.zeros(self.delay), np.asarray(x), np.zeros(self.delay)])
+        return np.correlate(padded, self.h, mode="valid")[::self.factor][:n]
+
+    def apply(self, fn: Callable[[np.ndarray], np.ndarray], x: np.ndarray) -> np.ndarray:
+        return self.downsample(fn(self.upsample(x)))
+
+
 def clean_capture(sweep: Sweep, kind: str, params: dict, amps: Optional[Sequence[float]],
                   synthesis: dict) -> np.ndarray:
     if kind == "phantom":
         capture = phantom_capture(sweep, amps, synthesis["phantomNyquistGateFraction"])
     else:
-        capture = nonlinearity(kind, **params)(sweep.samples())
+        # #313: at factor × fs through the manifest's anti-alias chain.
+        capture = Oversampler(synthesis["oversampling"]).apply(nonlinearity(kind, **params), sweep.samples())
     return np.concatenate([capture, np.zeros(int(synthesis["padSamples"]))])
 
 
@@ -381,6 +449,9 @@ def max_valid_fundamental(sweep: Sweep, order: int, calibrated_band_top: Optiona
     top = min(sweep.f2, sweep.fs / (2 * order + 1))
     if calibrated_band_top is not None:
         top = min(top, calibrated_band_top / order)
+    # #312 (manifest validity.excitedBandBound): the sweep's own fade-out
+    # edge bounds every order on every analysis.
+    top = min(top, sweep.excited_band_top)
     return top
 
 

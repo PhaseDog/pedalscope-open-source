@@ -6,9 +6,10 @@
 % nothing in this document says what a measurement sounds like.
 \documentclass[11pt,a4paper]{article}
 \input{preamble}
+\input{release}
 \title{PedalScope Methods\\\large Technical reference: how each measurement is made, and how to check it}
 \author{PedalScope}
-\date{}
+\date{\releasestamp}
 
 \begin{document}
 \maketitle
@@ -31,7 +32,7 @@ page.
 \tableofcontents
 \clearpage
 
-\section{How to read this document, and how to trust it}
+\section{How to read this document}
 
 \subsection{The pipeline behind the pages}
 \begin{enumerate}
@@ -109,15 +110,15 @@ rising or $\tfrac12(1 + \cos\theta)$ falling.
 \section{Harmonic Distortion}
 \label{sec:hd}
 
-\subsection{Purpose, and what the measurement cannot tell you}
-Harmonic Distortion characterises how a device converts a single input
+\subsection{Significance and limitations}
+Harmonic Distortion characterizes how a device converts a single input
 frequency into output at integer multiples of it: for every fundamental
 $f_0$ in the swept band and every order $k \le K$, the amplitude the device
 emits at $k f_0$, normalized by the input amplitude. One \term{sweep}
 captures the whole band at one drive level; the result is $K$ frequency
 responses $H_1(f) \ldots H_K(f)$ and the derived \term{thd} curve.
 
-What it cannot tell you, stated once: (a) anything about behaviour at other
+What it cannot tell you, stated once: (a) anything about behavior at other
 drive levels --- one sweep is one operating point; the Gain Map and
 Compression measurements own the level axis; (b) anything about intermodulation
 between two simultaneous notes --- Chord IMD owns that; (c) whether a read
@@ -231,7 +232,7 @@ the correlation width the shaping predicate must clear.
 \begin{figure}[htbp]
   \centering\includegraphics[width=0.95\linewidth]{hd-windows.png}
   \caption{The nine extraction windows over their pulses. Orders 1--3 take
-  the full cap; from order 4 the gap to the neighbouring pulse binds.}
+  the full cap; from order 4 the gap to the neighboring pulse binds.}
 \end{figure}
 
 \item \textbf{Spectra.} The windowed segment is placed with the pulse at
@@ -274,7 +275,7 @@ fade-in territory) to $f_2$.
 
 \subsection{Read-time predicates on the result}
 \label{sec:hd-predicates}
-Three further judgements are computed from the stored spectra when a record
+Three further judgments are computed from the stored spectra when a record
 is displayed or compared; none is persisted, so fixing a predicate fixes every
 stored record.
 
@@ -339,7 +340,8 @@ shipped code. The per-order table follows.
   $|H_k|$ for the odd orders against the exact Fourier amplitude of the
   nonlinearity at the sweep amplitude. Dotted segments lie past each order's
   validity bound; the shaded strip past the fade-out edge is the excited
-  band's end, where the last grid point reads the ramp, not the device.}
+  band's end, where the last grid point lies outside every order's validity
+  bound (it would read the ramp, not the device).}
   \label{fig:magnitude}
 \end{figure}
 
@@ -370,20 +372,24 @@ every valid point inside the excited band it asserts:
   rounding);
   \item both against analytic truth: $\le \parityAliasFreeTolerance\dB$ over
   the whole band for a phantom, and over the lower half of each order's
-  validity band for the per-sample nonlinearities
+  validity band for the oversampled nonlinearities
   (\parityPerSampleTolerances);
   \item analytically empty orders read at least \parityEmptyDepth\dB\ below
   the case's loudest order on both sides, and the two sides agree on that
   residue.
 \end{itemize}
-The per-sample tolerances differ because the synthetic device, applied
-sample by sample at $f_s$, aliases the content it generates above Nyquist
-back into the band --- exactly as a simulated device in the app does, and
-unlike a hardware device behind a converter's anti-alias filter. The
-aliasing is worst in the top half-octave of each order's band: over the full
-band, $\tanh(2x)$ departs from truth by up to \parityTanhFullBand\dB\ and the
-hard clip (a near-square wave whose spectrum falls only as $1/k^2$) by up to
-\parityHardclipFullBand\dB. That this is the synthetic device and not the
+The tolerances for the nonlinearities differ from the phantom's because
+the synthetic device is applied at four times $f_s$ through the same
+anti-alias chain the app's Simulation Mode uses (the manifest's
+\texttt{synthesis.oversampling}: a Kaiser-windowed sinc whose passband ends
+at $0.45 f_s$), which is a converter of sorts: it removes the content the
+device makes above Nyquist instead of letting it fold into the band, and
+its roll-off lies inside the tops of $H_7$'s and $H_9$'s validity bands,
+so those half-octaves read the filter rather than the device. Over the
+full band, $\tanh(2x)$ departs from the bare device's truth by up to
+\parityTanhFullBand\dB\ and the hard clip (a near-square wave whose
+spectrum falls only as $1/k^2$) by up to \parityHardclipFullBand\dB, both
+at the top of $H_9$. That this is the synthetic device's chain and not the
 method is shown by each case's \emph{phantom twin}: the same first nine
 Fourier amplitudes as an alias-free phantom, which the analyzer reads to
 within \parityAliasFreeTolerance\dB\ over the whole band.
@@ -407,17 +413,19 @@ times the read's own stated scatter; the last column is that ratio:
   \caption{Three-way residuals for the worked example, every valid point
   inside the excited band. Top: $|\text{Python} - \text{Swift}|$, at the
   level of double-precision rounding. Bottom: Python minus analytic truth,
-  showing the per-sample aliasing rising toward each order's band top.}
+  showing the anti-alias chain's roll-off at the top of the highest
+  orders' bands.}
 \end{figure}
 
 \subsection{Limits and failure modes}
 \begin{itemize}
   \item \textbf{The fade edges are measurement, not device.} The last grid
-  point sits on $f_2$, inside the fade-out, and reads the ramp (the phantom's
-  $H_1$ there is $11.7\dB$ low); on a compensated record the calibrated-band
-  bound removes it, and on a raw or simulated one the \term{excited-band}
-  is the honest limit. The first fraction of the sweep is treated the same
-  way by every grid's $1.5 f_1$ start.
+  point sits on $f_2$, inside the fade-out, and would read the ramp (the
+  phantom's $H_1$ there is $11.7\dB$ low); the \term{excited-band}'s top is
+  therefore part of the validity bound on every analysis --- raw, simulated
+  and compensated alike --- and that point is outside it for every order.
+  The first fraction of the sweep is treated the same way by every grid's
+  $1.5 f_1$ start.
   \item \textbf{Leakage between orders is bounded, and the bound is
   measured.} An order's read is floored by what the loudest order leaks into
   its window: worst at the band's low edge, and the value the presence
@@ -426,10 +434,13 @@ times the read's own stated scatter; the last column is that ratio:
   \item \textbf{A read is not automatically content.} The shaping predicate
   exists because a symmetric device's even orders are a read of its noise;
   every quantity computed from an unshaped read describes the noise.
-  \item \textbf{Aliasing in a simulated device.} A device applied per sample
-  at $f_s$ folds its content above Nyquist into the band; the parity numbers
-  above quantify it for two clippers. Hardware through a converter does not
-  do this, and the alias-image bound~\eqref{eq:validity} is about the
+  \item \textbf{A simulated device's anti-alias chain.} A device applied per
+  sample at $f_s$ folds its content above Nyquist into the band (the hard
+  clip's analytically empty even orders read only $21\dB$ under $H_1$ that
+  way); every synthetic device here is therefore applied oversampled through
+  the app's own chain, whose roll-off the parity numbers above quantify for
+  two clippers. Hardware through a converter has the converter's, and the
+  alias-image bound~\eqref{eq:validity} is about the
   \emph{capture's} folding of the next order, a different mechanism.
   \item \textbf{Short sweeps carry fewer orders.} The 16-sample minimum
   half-width is a literal in the analyzer, pinned by the tool's guard rather
@@ -444,7 +455,7 @@ times the read's own stated scatter; the last column is that ratio:
 \section{Transfer Curve}
 \label{sec:transfer}
 
-\subsection{Purpose, and what the measurement cannot tell you}
+\subsection{Significance and limitations}
 The \term{transfer-curve} draws a device's clipping shape directly: while a
 steady low-frequency sine plays, the instantaneous output is plotted against
 the instantaneous input over one \term{averaged-cycle}. A memoryless device
@@ -468,6 +479,13 @@ the output's mean, which every pedal's output stage does
 alignment, which draws a loop the measurement cannot distinguish from the
 device's (\S\ref{sec:transfer-limits}); and (e) anything about what the
 distortion sounds like.
+
+Every measurement described here reads the device at a
+constant stimulus amplitude after settling. Measurements of the time
+course of the device's operating point --- its recovery after a burst,
+hysteresis between ascending and descending drive, and its response to a
+decaying envelope --- are in development and will be documented here when
+they ship.
 
 \subsection{The stimulus}
 \label{sec:transfer-stimulus}
@@ -520,7 +538,7 @@ bounds the figure (\term{box-normalization}):
 $(\bar x_b, \bar y_b)$ is split at every proper self-crossing and the
 absolute shoelace areas of the resulting lobes are summed --- the
 \term{lobe-area} --- so that opposite-winding lobes add instead of
-cancelling (a signed integral sees only the fundamental's quadrature and
+canceling (a signed integral sees only the fundamental's quadrature and
 lets a figure-eight report zero). A lobe smaller than a fixed fraction of
 its own polyline's box is dropped as bin noise. The reported figure is
 $\mathrm{total} = \mathrm{lobes}(\bar x, \bar y)/B$.
@@ -563,7 +581,7 @@ reduced to a strictly ascending polyline in $\bar x$, interpolated linearly
 onto a common grid of inputs from $\min\bar x$ to $\max\bar x$, and the two
 interpolants are averaged --- per-branch resampling, never binning by input
 value, whose sample density under a sinusoidal drive is $\propto
-1/\sqrt{A^2 - x^2}$ and starves the centre.
+1/\sqrt{A^2 - x^2}$ and starves the center.
 
 \item \textbf{The memory verdict.} Taken on the nonlinear area (of the
 compensated figure when the removal is accepted, \S\ref{sec:transfer-removal}):
@@ -581,7 +599,7 @@ would have to migrate.
 
 \subsection{Read-time predicates on the result}
 \label{sec:transfer-predicates}
-Three judgements are made against the record's paired Harmonic Distortion
+Three judgments are made against the record's paired Harmonic Distortion
 analysis --- the same device, the same setting, the swept measurement of
 \S\ref{sec:hd} --- when one exists; none is persisted.
 
@@ -776,7 +794,7 @@ strings.
   \centering\includegraphics[width=0.95\linewidth]{transfer-coupling.png}
   \caption{An asymmetric clipper (the negative half-cycle scaled by one
   half) with and without a series capacitor: the static curve's unequal
-  clip levels are centred by the capacitor while the exact harmonic ladder
+  clip levels are centered by the capacitor while the exact harmonic ladder
   loses only its mean --- the even harmonics survive.}
   \label{fig:transfer-coupling}
 \end{figure}
@@ -948,7 +966,7 @@ figure ascends.
 % quote before the worked example prints its tables, so it is input here.
 \input{../generated/parity-compression.tex}
 
-\subsection{Purpose, and what the measurement cannot tell you}
+\subsection{Significance and limitations}
 A \term{compression-curve} --- the app's ``touch response'' --- is one
 tone at the probe note stepped through a \term{probe-grid} of input levels
 from quiet to loud, and at each step the output level of the
@@ -1420,9 +1438,9 @@ limit. \machineFloorNote{} The test asserts:
   the Hann's taper makes a one-sample mis-cut invisible;
   \item Part B on the oracle's loops: the identity through noise reading
   every point at or below the noise bound (the bathtub), always clean, no
-  knee; the null run through a linear loop labelled capture noise (its
+  knee; the null run through a linear loop labeled capture noise (its
   bound sits under this capture's stamp everywhere) and through a loop
-  with its own cubic labelled null run, its bound nil outside its span;
+  with its own cubic labeled null run, its bound nil outside its span;
   the four verdict legs on their fixtures; the fine window keeping the
   local probe step; the plugin window's ceiling at exactly 0 dBFS; the
   stated floor governing; the device with no fundamental refused
@@ -1523,7 +1541,7 @@ the app assembly's --- what interactive quality costs on this device.
   clean anchor from a missing one; it does not tell a wide soft onset from
   a corner. A drive-max soft-knee overdrive record in the library reads a
   unity bottom decade and a wide soft onset above it, and its point knee
-  is honest as far as the fit goes; a transition-width disclosure would be
+  is accurate as far as the fit goes; a transition-width disclosure would be
   a new mechanism, not a tolerance.
   \item \textbf{The borrowed bar.} The presence separation was measured
   for the sweep analyzer; the one-bin estimator separates a fundamental
@@ -1550,7 +1568,7 @@ the app assembly's --- what interactive quality costs on this device.
 % quote before the parameter table prints its table, so it is input here.
 \input{../generated/residue-journey.tex}
 
-\subsection{Purpose, and what the measurement cannot tell you}
+\subsection{Significance and limitations}
 A \term{gain-map} is the Harmonic Distortion measurement of
 \S\ref{sec:hd} repeated at each \term{drive-level} of a \term{level-lattice}
 --- one sweep per level, each level analyzed on its own --- and summarized
@@ -1684,7 +1702,7 @@ grid's edges --- $f_j \le f_0 \rho$ and $f_j \ge f_{n-1}/\rho$, $\rho$ the
 guard ratio --- are the sweep's fade-in and fade-out ramps: excited under a
 ramp, they describe the measurement and not the device (a jumpered wire
 reproduces them). They are derived from the grid alone, faded, excluded
-from the tiles and from the presence vote, and never touch the colour
+from the tiles and from the presence vote, and never touch the color
 scale.
 
 \paragraph{Fundamental presence.} Per cell, the reference is the loudest
@@ -1709,7 +1727,7 @@ The first source is the \term{floor-stamp}: the embedded calibration's
 THD-versus-frequency curve of the loopback, one read per point at
 log-spaced fundamentals, measured once at the calibration's own drive. It
 is read through the \term{median-read}: each point replaced by the running
-median of its neighbours' dB over an odd window before the interpolation
+median of its neighbors' dB over an odd window before the interpolation
 on the $(\log f, \mathrm{dB})$ plane. The window is a fixed count of
 points on the stamp's own grid ($\pm\journeyStampMedianOctaves$ octave,
 \journeyStampMedianWindowOctaves\ octave in all --- about
@@ -1777,11 +1795,11 @@ cell when there are no margins. Pass two: a clear cell is a
 level one column (\journeyColumnOctaves\ octave, about
 \journeyColumnSemitones\ semitones) away, is also clear. The shoulder is
 asked for in frequency and never in level: a nonlinearity acting at one
-drive acts on the neighbouring notes too and THD moves slowly across one
+drive acts on the neighboring notes too and THD moves slowly across one
 column's \journeyColumnOctaves\ octave, while across one level step it
 can move by tens of dB, so a
 genuine onset peak at the loudest level may have no clearing level
-neighbour --- and a noise pair in adjacent levels of a single-track column
+neighbor --- and a noise pair in adjacent levels of a single-track column
 is as likely as any other pair (measured: two of five bare-loop nulls
 paired that way). The tile is the loudest corroborated cell as a peak; else
 the loudest unmasked cell as a bound, quoted with $\le$; else nothing.
@@ -1827,7 +1845,7 @@ manifest carries as rule strings.
 \begin{figure}[htbp]
   \centering\includegraphics[width=0.95\linewidth]{journey-map.png}
   \caption{The worked example's map: $y = \tanh(2x)$ on the hardware
-  lattice through a loop with seeded noise, every cell coloured by its
+  lattice through a loop with seeded noise, every cell colored by its
   THD and drawn at an opacity that follows its composed margin, the two
   edge columns hatched, the corroborated peak starred and the cleanup
   crossing marked at the tile's column.}
@@ -1867,7 +1885,7 @@ manifest carries as rule strings.
   \caption{The corroboration rule: composed margins per column at the
   loudest and the quietest level for the identity through noise (left,
   nothing clears and the tile is a bound) and for the soft clipper through
-  the same loop (right, every clear cell has a clear neighbour and the tile
+  the same loop (right, every clear cell has a clear neighbor and the tile
   is a peak).}
   \label{fig:journey-peak}
 \end{figure}
@@ -2075,7 +2093,7 @@ the digit by the kernel's test):
 % before the parameter table prints its tables, so it is input here.
 \input{../generated/lattice-imd.tex}
 
-\subsection{Purpose, and what the measurement cannot tell you}
+\subsection{Significance and limitations}
 A \term{two-tone} plays two sines at a musical interval through the device
 at once. A nonlinearity does not treat them separately: it multiplies them,
 and the output carries every \term{intermodulation-product}
@@ -2137,7 +2155,7 @@ be given one; the two percentage keys that carry their names are sums
 over recipe sets and are unrelated to the retired probes.
 
 \paragraph{Coherent sampling, the premise --- stated once.} Both tones are
-moved onto exact bin centres of the $N$-point window before anything
+moved onto exact bin centers of the $N$-point window before anything
 plays, so each completes a whole number of cycles inside the segment the
 analyzer reads, and the segment is windowed \emph{rectangularly}: a tone
 that fits the window exactly leaks into no other bin, so there is nothing
@@ -2236,7 +2254,7 @@ is a subset of a longer window's bins, never the reverse.
   from the played notes and the one two bins from DC draw red: refused on
   position (\S\ref{sec:imd-reading}). Right: the bins beside the low note
   on the shipped lattice --- the detector's offsets, the played-tone
-  neighbourhood, and the nearest lattice point a spacing away.}
+  neighborhood, and the nearest lattice point a spacing away.}
   \label{fig:imd-lattice}
 \end{figure}
 
@@ -2265,10 +2283,10 @@ if the capture ends first; the steady state ends at
 $e = \ell + \lfloor T f_s + \tfrac12\rfloor - \lfloor t_{\mathrm{fade}} f_s\rfloor$,
 and the \emph{overrun} $s + N - e$ is positive when the segment would
 swallow the fade-out. Latency shifts $s$ and $e$ alike, so a window that
-fits at zero latency fits at any, and because the tones are bin-centred a
+fits at zero latency fits at any, and because the tones are bin-centered a
 shift is a phase: no magnitude moves (\S\ref{sec:imd-example} measures
 it). The analyzer never shortens a window it is handed --- the tones are
-centred on the length the stimulus was snapped to, and a shorter
+centered on the length the stimulus was snapped to, and a shorter
 rectangular window would leak far worse than the fade it avoided.
 
 \item \textbf{The spectrum.} With $c$ the number of captured samples inside
@@ -2277,7 +2295,7 @@ the segment,
   M[b] = \frac{2}{\min(N, c)}\,\Big|\mathrm{DFT}_N\{y[s + i]\}[b]\Big|,\qquad b = 0 \ldots N/2,
   \label{eq:imdmag}
 \end{equation}
-so a bin-centred sine of amplitude $a$ reads $a$.
+so a bin-centered sine of amplitude $a$ reads $a$.
 
 \item \textbf{The enumeration and the lattice.} With $\mathrm{bin}(f) =
 \mathrm{round}(f/\Delta f)$, the set $S = \{\mathrm{bin}(f_1), \mathrm{bin}(f_2), 0\}$
@@ -2289,19 +2307,19 @@ and its bin joins $S$. The lowest order therefore keeps a shared bin --- on
 a degenerate lattice a surviving label names the enumeration's tie-break,
 not a fact --- and a clean lattice admits $\sum_{k=2}^{K} 2k$ recipes. The
 lattice is collected \emph{before} any floor is read, so a floor's
-neighbourhood can leave out every bin the enumeration claims.
+neighborhood can leave out every bin the enumeration claims.
 
 \item \textbf{The reads.} Each product's amplitude is $M[\mathrm{bin}(m f_1
 + n f_2)]$, the one bin, exactly; the tone amplitudes are $M[k_1]$ and
 $M[k_2]$. An older read took the largest of the bin and its two
-neighbours ``to tolerate drift'' there was none of: it left a strong
+neighbors ``to tolerate drift'' there was none of: it left a strong
 product untouched and lifted every read at the noise by a measured mean
 of about four decibels, and the separation bound in the parameter table
 is deliberately left where it was measured under that read, because a
 stored record may carry it.
 
 \item \textbf{The local floor and the gate.} Each product is judged
-against the median magnitude of its own neighbourhood: the bins from the
+against the median magnitude of its own neighborhood: the bins from the
 inner offset to the outer offset on both sides, inside the spectrum, with
 every bin the lattice claims removed by name --- every product bin, both
 tone bins, DC, and the coherence detector's bins beside each tone. The
@@ -2309,7 +2327,7 @@ inner offset is a bin quantity (the product's own skirt under lost
 coherence); the outer offset is a \emph{frequency} span converted to bins
 at the record's bin width and never fewer than a minimum count (a noise
 density is local in hertz, and a median wants samples). The median is the
-upper middle of the sorted values, and zero when the neighbourhood is
+upper middle of the sorted values, and zero when the neighborhood is
 empty. The \term{gate} is
 \begin{equation}
   \text{present at capture} \;\Leftrightarrow\; a_{m,n} > 4\,\mathrm{floor}_{m,n},
@@ -2337,7 +2355,7 @@ out.
 
 \item \textbf{The coherence detector.} For each tone bin the raw
 magnitude at every detector offset on both sides, inside the spectrum, and
-the local floor beside the tone (the same neighbourhood and exclusion
+the local floor beside the tone (the same neighborhood and exclusion
 about the tone bin) are stored with the window length: the
 \term{coherence-detector}. Nothing else keeps those bins, and the read-time
 check needs no derived length to place them.
@@ -2361,7 +2379,7 @@ argument is a smaller claim, stated rather than defaulted.
 A product's level is $L = 20\log_{10}\big(a/\max(a_{f_1}, a_{f_2})\big)$
 dBc, undefined when either amplitude is zero. The \emph{noise reads} are
 the levels of every product the gate did \emph{not} pass and that the
-lattice does not refuse --- not inside a reference bin's neighbourhood,
+lattice does not refuse --- not inside a reference bin's neighborhood,
 not under the band's low edge, not beside a louder product (each defined
 below) --- sorted ascending; bins under the loudest product's skirt
 deliberately stay in, because on a record like a rectifier's every empty
@@ -2377,14 +2395,14 @@ which are flagged.
 \paragraph{Positions on the lattice.}
 \emph{Proximity}: a product's bin against the three reference bins ---
 $\mathrm{bin}(f_1)$, $\mathrm{bin}(f_2)$ and $0$ --- the nearest wins
-(ties in that order), and the product is inside the neighbourhood when the
-absolute offset is at most the played-tone neighbourhood width (a bin
+(ties in that order), and the product is inside the neighborhood when the
+absolute offset is at most the played-tone neighborhood width (a bin
 quantity: sidelobes fall as $1/(\pi d)$ in bins). \emph{Band}: the stored
 frequency against the stored band's \emph{low} edge only; a product above
 the band's top is inaudible but perfectly attributable and reads like any
-other. \emph{Louder neighbour}: among the products that passed the gate
+other. \emph{Louder neighbor}: among the products that passed the gate
 and are strictly louder, those within the same width of this product's
-bin (offset nonzero) --- the nearest, ties to the louder; a neighbour that
+bin (offset nonzero) --- the nearest, ties to the louder; a neighbor that
 is itself noise casts no skirt and refuses nothing. \emph{Spacing}:
 $g = \gcd(\mathrm{bin}(f_1), \mathrm{bin}(f_2))$ on the analysis length.
 \emph{Loudest skirt}: a record-level condition, present only when the
@@ -2403,18 +2421,18 @@ bound; every capture the app makes now gets none.
 One \term{product-reading} per product, decided in this order and stopping
 at the first that applies:
 \begin{enumerate}
-  \item inside a reference bin's neighbourhood (a played tone, or DC) ---
+  \item inside a reference bin's neighborhood (a played tone, or DC) ---
   \emph{cannot resolve, beside a played tone}, naming the tone and the
   signed offset: a bin inside a note's own skirt holds the note, and a
   bin beside DC holds the capture's own offset and drift; decided on
   position before any level is consulted, because the gate samples the
   floor from offsets that lie mostly outside the skirt the bin is sitting
-  in, and would pass such a bin honestly at tens of decibels of margin;
+  in, and would pass such a bin by its own rule at tens of decibels of margin;
   \item under the band's low edge --- \emph{out of band}: a frequency fact,
   not a limit, so its sentence never merges with a lattice's or the
   instrument's;
   \item no level (a zero amplitude or reference) --- \emph{unmeasurable};
-  \item a louder neighbour inside the neighbourhood --- \emph{cannot
+  \item a louder neighbor inside the neighborhood --- \emph{cannot
   resolve, beside a louder product}, naming it: at that separation the
   quieter bin holds the louder product's skirt; the louder of the pair is
   readable, the quieter is not;
@@ -2451,7 +2469,7 @@ snapped record can fail.
 
 \paragraph{The derived percentages and the partner check.}
 The three sums of \eqref{eq:pct} are re-run over the stored products with
-the recipes inside a reference bin's neighbourhood left out, the band as
+the recipes inside a reference bin's neighborhood left out, the band as
 stored (every product on a legacy record with no band), and the excluded
 list names only what the band would have counted --- the recipe beside DC
 sits under the band and was never in any sum. The partner check is the
@@ -2468,7 +2486,7 @@ The detector's bins are read as levels in dBc, each pair (the sidebands
 about one tone) against the local floor beside that tone in the same
 unit. On a record with no detector --- every capture before the detector
 existed --- the same reading is built from the stored products inside a
-played tone's neighbourhood (never DC's) against the capture floor at the
+played tone's neighborhood (never DC's) against the capture floor at the
 derived length: the legacy path, which the detector outranks whenever
 present. The lattice facts: $g$ on the detector's own length, the widest
 stored offset, and the \emph{clearance} $g - d_{\max}$; the lattice is
@@ -2526,16 +2544,62 @@ the subject is a loop-only capture, which held nothing that could put a
 product beside a note. The subject (loop only, or a device in the loop)
 is stated by the caller, which knows the record's identity; it is context
 on a cleared lattice and the deciding fact only on an uncleared one. The
-verdict is \emph{not trustworthy} when the reading interprets and exceeds
-the bar: the played notes did not stay stationary across the window, from
+verdict is about the \emph{notes}: when the reading interprets and exceeds
+the bar, the played notes did not stay stationary across the window, from
 some source in the chain the reading cannot name --- a pedal with a dying
-battery moves a note over twenty seconds as surely as a rig --- so the
-whole spectrum is smeared and this capture's floor and product levels are
-not trustworthy. Nothing is refused, discarded or re-run; the capture is
-saved as measured and the sentence rides it. Where the level rule withheld
-every offset the sentence names the signal that would have been read
-instead and draws no verdict; where the lattice is not clear and a device
-was in the loop the number is shown and labelled not attributable.
+battery moves a note over twenty seconds as surely as a rig. Nothing is
+refused, discarded or re-run; the capture is saved as measured and the
+sentence rides it. Where the level rule withheld every offset the sentence
+names the signal that would have been read instead and draws no verdict;
+where the lattice is not clear and a device was in the loop the number is
+shown and labeled not attributable.
+
+\paragraph{What the verdict means for each product.}
+\label{sec:imd-smear}
+A note that did not stay stationary spills a skirt, and a rectangular
+window's skirt falls as $1/(\pi m)$ in bins, so what reaches a product bin
+twenty-two bins from a note is a fraction of what the detector read beside
+it: on the published day-B set the sidebands sit near $-70$~dBc within nine
+bins of a note and the loud products at $-5 \ldots -57$~dBc, which the
+smear cannot touch to a fraction of a decibel, while the floor near
+$-107$~dBc and the products near it are genuinely unreadable. The reading
+therefore does not declare every product untrustworthy; it predicts the
+smear at each product's bin and reads the products that stand clear of
+it. Two measured facts decide the model (the validated wander generator
+through five devices, five wander sizes and five shapes, with a
+torus-quadrature truth beside every product): the far skirt follows the
+\emph{outer} detector reads, not the inner ones --- twenty-two bins from a
+tone the smear read $-121$~dBc where a $1/m$ envelope anchored on the
+$\pm 1$ read predicted $-102$, because near a modulation sideband the
+Dirichlet kernel is not yet in its $1/x$ regime --- and a loud product
+casts a skirt of its own, decisive at the 17--29~dB level: a product
+$m f_1 + n f_2$ of a modulated pair carries the modulation with an index
+scaled by its frequency (a frequency wander) or its order (an amplitude
+wander before the clipper). So each tone's skirt at distance $D$ is
+\begin{equation}
+  S_{\mathrm{tone}}(D) \;=\; \max_{d \ge d_a,\; d < D}\big[\,L_d + 20\log_{10}(d/D)\,\big],
+  \label{eq:smear}
+\end{equation}
+over its stored reads $L_d$ at offsets from the anchor $d_a$ (the table's
+value) outward, both sides; each product that stands above its local floor
+contributes its own level plus the tones' relative skirt at $D$ plus
+$20\log_{10}\max(\mathrm{order},\, f_p / \max(f_1, f_2))$ --- the larger
+of the two mechanisms' scalings, so no mechanism is inferred; the
+contributions are summed in power and the dominant source named. A
+product is \emph{read} where its bin stands at least the smear margin
+(the table's value) above the prediction, and \emph{unread under the
+smear} otherwise --- not present, not absent, its tile a lower bound, and
+a quiet bin under it left out of the floor. The margin is derived from
+the same runs: the smallest 5~dB band at which the measured worst level
+error on a read product stayed under 2~dB (1.9~dB at 10--15~dB of
+margin, 2.8 at 5--10, up to 29 below zero), with a coherent worst case of
+$+2.4 / -3.3$~dB at the margin. The sentence states the counts --- how
+many products are read clear of the smear and how many are unread under
+it. A record whose check holds, a reading the level rule withheld
+entirely, an uncleared lattice and the legacy stored-products path carry
+no field and read as before; the legacy path and an uncleared lattice
+keep the first monitor's blanket sentence, since a loop-only capture has
+no product to read.
 
 \paragraph{The harmonic roles.}
 The tiles partition the products by what each does to the chord that was
@@ -2629,11 +2693,11 @@ root, and the role the classifier assigns it:
 \begin{figure}[htbp]
   \centering\includegraphics[width=0.95\linewidth]{imd-spectrum.png}
   \caption{The worked example, $y = \tanh(2x)$ at a combined peak of
-  $0.5$ on the shipped fifth through seeded noise: the analysed spectrum
-  with every enumerated product marked present (blue), absent (grey) or
+  $0.5$ on the shipped fifth through seeded noise: the analyzed spectrum
+  with every enumerated product marked present (blue), absent (gray) or
   refused (red), the two tones as squares, and the capture floor as the
-  dashed rule (left). Right: the local-floor neighbourhood of one product,
-  the median of the grey span with every lattice bin cut out, and the gate
+  dashed rule (left). Right: the local-floor neighborhood of one product,
+  the median of the gray span with every lattice bin cut out, and the gate
   four times above it.}
   \label{fig:imd-spectrum}
 \end{figure}
@@ -2653,7 +2717,7 @@ root, and the role the classifier assigns it:
   \centering\includegraphics[width=0.95\linewidth]{imd-roles.png}
   \caption{The harmonic grid of the requested fifth at its just ratio:
   every enumerated recipe at its grid index \eqref{eq:gridindex}, stacked
-  where several share a point and coloured by the role the classifier
+  where several share a point and colored by the role the classifier
   assigns the point; the two played notes marked. Index zero and below has
   no role.}
   \label{fig:imd-roles}
@@ -2722,7 +2786,7 @@ every product is zero and the phantom's are its listed levels.
   within \iparityClosedForm\ (measured \iparityWorstClosedForm);
   \item every analytically empty recipe on a noiseless capture at or below
   \iparityEmptyDepth\ dBc on both sides (measured worst
-  \iparityWorstEmpty): the depth at which a bin-centred rectangular window
+  \iparityWorstEmpty): the depth at which a bin-centered rectangular window
   separates nothing from the loudest component is double precision's, not
   a window's;
   \item the shipped read against the truth on every content recipe, after
@@ -2858,17 +2922,26 @@ unread under a skirt of \iparityLoudSkirt\ dB at the shipped spacing:
   beside a loud product.} A detector bin responds to modulation of the
   played tone at periods comparable to the window itself; a pedal's
   thermal drift, a sagging supply or a dying battery moves a note as
-  surely as a clock, so ``not trustworthy'' is a statement about the
-  capture, never about a stage. And the check is a level rule as much as
-  a distance rule: a device whose loudest product stands above the ceiling
-  of \eqref{eq:ceiling} for even the nearest offset --- a full-wave
-  rectifier's products stand above its own fundamentals --- is not read
-  at all, and the line says why. A device whose sidebands are roughly
-  constant in absolute level and fall in dBc as its output rises is
-  consistent with something after the level control modulating the notes;
-  the check reports the excess, the pair shape and the level, and the
-  design question of whether it should say more when that dependence is
-  clean is open.
+  surely as a clock, so ``the notes did not stay stationary'' is a
+  statement about the capture, never about a stage. And the check is a
+  level rule as much as a distance rule: a device whose loudest product
+  stands above the ceiling of \eqref{eq:ceiling} for even the nearest
+  offset --- a full-wave rectifier's products stand above its own
+  fundamentals --- is not read at all, and the line says why. A device
+  whose sidebands are roughly constant in absolute level and fall in dBc
+  as its output rises is consistent with something after the level
+  control modulating the notes; the check reports the excess, the pair
+  shape and the level, and the design question of whether it should say
+  more when that dependence is clean is open.
+  \item \textbf{The smear model extrapolates, and a fast wobble escapes
+  it.} The per-product reading of Section~\ref{sec:imd-smear} extends
+  the outer detector reads along $1/m$; a modulation faster than about
+  two cycles per window puts its sideband beyond the anchors and the
+  extrapolation under-reads its tail (the 2.3-cycle case still read
+  within 1.9~dB at the margin; a faster one was not measured). The
+  product scaling takes the larger of the two mechanisms and so
+  over-predicts a level wobble after the clipper by up to the order
+  ratio, which refuses more, never less.
   \item \textbf{What a wander looks like, and what it does not
   distinguish.} The pair statistic separates a shared fractional frequency
   wander (the pairs differ by $20\log_{10}(f_2/f_1)$, measured on the
@@ -2914,7 +2987,7 @@ unread under a skirt of \iparityLoudSkirt\ dB at the shipped spacing:
   parity shows the level under it still reads back exactly.
   \item \textbf{The stored gate is frozen.} The presence flag and the
   three sums are written at capture; a change to the gate's factor or the
-  neighbourhood moves future captures only, and a read-time predicate can
+  neighborhood moves future captures only, and a read-time predicate can
   change which flagged bins are averaged into a floor but never which
   bins are flagged. The window length is likewise not stored: a consumer
   derives it from the stored stimulus by the plan's own rule, and a
@@ -2938,7 +3011,7 @@ unread under a skirt of \iparityLoudSkirt\ dB at the shipped spacing:
 \input{../generated/lattice-matrix.tex}
 \input{../generated/parity-matrix.tex}
 
-\subsection{Purpose, and what the measurement cannot tell you}
+\subsection{Significance and limitations}
 The \term{waveform-matrix} --- the app's ``scope view'' --- is the one
 measurement in this document with no estimator. Its payload is the
 capture: for every cell of a note~$\times$~level grid, two \term{sample-array}s
@@ -2954,7 +3027,7 @@ things about samples: WHICH notes and levels are measured (the
 plays (chapter five's \term{stepped-tone}, one per note row), WHERE each
 tile is cut from its row's capture (the \term{zero-crossing-start}), HOW
 the samples are written (the encoding), and what one number is stored
-beside them (the \term{row-noise-stamp}) for a read-time judgement of the
+beside them (the \term{row-noise-stamp}) for a read-time judgment of the
 quiet tiles (the \term{noise-badge}).
 
 What it cannot tell you, stated once: (a) anything about a note or a
@@ -2978,6 +3051,13 @@ scale as the gain compresses while the harmonic content saturates, so a
 loud tile that looks cleaner can be telling the truth, and the Gain Map
 is the cross-check; and (f) anything about what the distortion sounds like.
 
+Every measurement described here reads the device at a
+constant stimulus amplitude after settling. Measurements of the time
+course of the device's operating point --- its recovery after a burst,
+hysteresis between ascending and descending drive, and its response to a
+decaying envelope --- are in development and will be documented here when
+they ship.
+
 \subsection{The stimulus}
 \label{sec:matrix-stimulus}
 \paragraph{The two lattices.} Both axes are built by \term{refinement},
@@ -2998,9 +3078,9 @@ are then seeded in precedence order: the \term{note-anchor} (E2) joins
 whenever it lies strictly inside the span and $N \ge 3$, so the
 \term{cross-check-point} exists on every lattice whose span holds the
 standard note; and the span's middle note, the snapped log-midpoint
-$\sqrt{f_{\mathrm{lo}} f_{\mathrm{hi}}}$, is the centre (E4 on the
+$\sqrt{f_{\mathrm{lo}} f_{\mathrm{hi}}}$, is the center (E4 on the
 default span). The remaining points are inserted per side around the
-centre --- the side with fewer interior points first, ties to the low
+center --- the side with fewer interior points first, ties to the low
 side; within a side the widest gap in log frequency first, ties to the
 lower index; a gap whose snapped midpoint collides with an endpoint is
 skipped --- and when no gap on any side accepts a point the lattice
@@ -3031,28 +3111,42 @@ lifts to 0 dBFS. The floor and the ceiling seed the lattice; the anchor
 joins when $N \ge 3$ and it lies inside the span by a stated margin; and
 every further point is inserted on ONE SIDE of the anchor --- the side
 with fewer interior points, ties to the quiet side --- by splitting that
-side's widest gap at its midpoint in dB, so the anchor sits at the centre
+side's widest gap at its midpoint in dB, so the anchor sits at the center
 index at every odd dimension and the steps are uneven by ruling (the
 default 5: $\mlatDefaultFive$; 3: $\mlatDefaultThree$; 7:
 $\mlatDefaultSeven$). With no usable anchor the lattice refines from the
-endpoints alone and makes no centre claim; a point outside the span is
+endpoints alone and makes no center claim; a point outside the span is
 never fabricated. The delivered lattices, from the manifest:
 \begin{center}\scriptsize\setlength{\tabcolsep}{4pt}\mlatAmplitudeTable\end{center}
 
-\paragraph{The tie.} At $N = 7$ the quiet side's second insertion must
-split one of two EXACTLY equal gaps (the floor-to-anchor span halved),
-and the generator's strict comparison of floating-point widths decides
-it by the rounding residue of $a - \mlatFloorSpan$ and $(f + a)/2$. Two
-adjacent volts factors on one interface --- 4.827 and 4.828 on a Babyface
-Pro, both in the library --- therefore deliver different quiet-side
-lattices at 7 (\mlatTieDiffering{} of seven levels differ: \mlatTieA{}
-against \mlatTieB) and the same lattice at 5 (\mlatTieFive), whose one
-quiet-side insertion is the first split and never reaches the tie. The
-manifest records what each factor delivers, the parity reproduces it on
-both implementations, and nothing is changed here: a deterministic
-tie-break moves the delivered lattice on future captures --- a corpus
-event under the nesting law --- and is the filed issue's, not this
-chapter's.
+\paragraph{The tie.} At $N = 7$ each side's second insertion must split
+one of two EXACTLY equal halves of its first split (the floor-to-anchor
+span halved on the quiet side; the anchor-to-ceiling span halved on the
+loud side), and until 2026-09-27 the generator's strict comparison of
+floating-point widths decided it by the rounding residue of
+$a - \mlatFloorSpan$ and $(f + a)/2$ --- $3.6 \times 10^{-15}$~dB,
+measured. Two adjacent volts factors on one interface --- 4.827 and 4.828
+on a Babyface Pro, both in the library --- therefore delivered different
+quiet-side lattices at 7 (four of seven levels apart), and one
+recalibration put one rig's matrices on two lattices. The tie is now
+broken toward the quiet side, by ruling: two gaps whose widths differ by
+less than $\mlatTieToleranceDB$~dB (the manifest's
+\texttt{gapTieToleranceDB}; four orders above the residue bound, seven
+below the 0.05~dB the value-matched comparison reads) are the same width,
+and the quieter is split. Both factors now deliver the quiet-gap lattice
+(\mlatTieA{} against \mlatTieB{} --- \mlatTieDiffering{} of seven levels
+differ; the widest difference is the \mlatTieAgreeDB{}~dB their anchors
+differ by), and the same lattice at 5 (\mlatTieFive), whose one
+quiet-side insertion is the first split and never reaches the tie; the
+3- and 5-point lattices are bit-identical to what shipped before, at
+every factor. Records captured before the change keep their stored
+lattice --- a stored lattice never moves --- and pair with later ones by
+value on the five levels every 7-point lattice of one rig shares (its
+5-point lattice); the parity reproduces the resolved tie on both
+implementations. The fallback path with no usable anchor keeps the strict
+comparison deliberately: the ruling moved only future $7 \times 7$
+captures, and a tolerance there would move 5-point lattices on user-moved
+spans; that is reported, not changed.
 
 \paragraph{The stimulus.} One capture per frequency ROW: a pre-roll of
 silence, the \term{stepped-tone} at the row's note walked over the
@@ -3186,11 +3280,11 @@ count and the start are literals the manifest carries as rule strings.
   \centering\includegraphics[width=0.98\linewidth]{matrix-lattice.png}
   \caption{The two lattices at $N = 3, 5, 7$. Left: the amplitude lattice
   on the no-volts convention and on the reference rig's factor (equal by
-  construction), the anchor at the centre index of every dimension, the
+  construction), the anchor at the center index of every dimension, the
   floor a fixed span below it, the ceiling fixed; every smaller lattice
   is a subset of the larger. Right: the note lattice on the default span,
   the octave ladder at 5 with A$\sharp$2 and A$\sharp$4 joining at 7; E2
-  (dotted) is the cross-check row and E4 (dashed) the centre --- two
+  (dotted) is the cross-check row and E4 (dashed) the center --- two
   different rows.}
   \label{fig:matrix-lattice}
 \end{figure}
@@ -3373,7 +3467,7 @@ against the steady state tells the same story from the tile's side:
 \mparityTailHalfCarriedResidue\ of the truth peak on the carried rows
 against \mparityTailHalfIndependentResidue\ on independent rows, the tail
 reaching the tiles. The second is the cross-check. The identity's tile at
-(E2, the standard drive), read at the transfer analyzer's bin-centre
+(E2, the standard drive), read at the transfer analyzer's bin-center
 phases, differs from the transfer curve's measured cycle by
 \mparityCrossControl\ \% of the cycle's peak (\mparityCrossControlDB\ dB;
 the test pins the control under \mparityCrossControlBar\ of the peak) ---
@@ -3423,10 +3517,13 @@ actual content.
   wave it moves the edges. The latency is the calibration's, measured
   once per rig state, and the picture preserves the device's phase shift
   precisely because it is not re-aligned.
-  \item \textbf{The tie.} Two adjacent volts factors deliver different
-  quiet-side 7-point lattices; both are honest, and the value-matched
-  Compare pairs what they share. Reproduced, never fixed, for the reason
-  stated above.
+  \item \textbf{The tie.} Two adjacent volts factors delivered different
+  quiet-side 7-point lattices until 2026-09-27; both were valid, and the
+  value-matched Compare pairs what they share. The tie is broken toward
+  the quiet side now, so a 7-point matrix captured before the change
+  shares five of its seven levels with one captured after on the same
+  rig --- the picture is the same at those five, and the pane says how
+  many tiles line up.
   \item \textbf{The transfer cross-check reads the frame.} At the
   cross-check point the two instruments agree to the transfer cycle's
   own end-fade deficit; a reader comparing the tile to the transfer pane
@@ -3478,6 +3575,7 @@ tool, which lives under \code{Tools/}. The repository: \repo
 \code{py/make\_figures.py} & the figures, seeded, byte-stable, with TSV sidecars of the plotted values \\
 \code{py/gen\_docs.py} & the generated fragments this document inputs \\
 \code{terms.yaml} & the terms source; \code{py/test\_terms.py} is its guard \\
+\code{tex/changes-methods.tex}, \code{tex/changes-explained.tex}, \code{tex/release.tex} & the two changes appendices and the title-page stamp; \code{py/test\_changes.py} is their guard \\
 \code{make methods-test} & parity and terms guards \\
 \code{make methods-docs} & manifest $\to$ figures $\to$ fragments $\to$ both PDFs \\
 \bottomrule
@@ -3487,6 +3585,8 @@ Toolchain: Python 3 with the versions pinned in
 \code{Docs/Methods/requirements.txt}; \LaTeX\ through \code{latexmk} with
 \code{pdflatex}, pinned in \code{Docs/Methods/tex/latexmkrc}. The Swift
 tool builds with the repository's own toolchain.
+
+\input{changes-methods}
 
 \bibliographystyle{plainnat}
 \bibliography{references}

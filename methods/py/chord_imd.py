@@ -676,7 +676,7 @@ def analyze(captured: np.ndarray, signal: Signal, latency: int, n: int, m: dict)
 @dataclass
 class Reading:
     kind: str          # present | absent | unmeasurable | floor_not_observed | analyzer_window |
-                       # near_played_tone | near_louder_product | under_loudest_skirt | out_of_band
+                       # near_played_tone | near_louder_product | under_loudest_skirt | under_smear | out_of_band
     detail: Dict[str, object] = field(default_factory=dict)
 
     @property
@@ -694,7 +694,7 @@ class Reading:
     @property
     def is_unresolved(self) -> bool:
         return self.kind in ("unmeasurable", "floor_not_observed", "analyzer_window", "near_played_tone",
-                             "near_louder_product", "under_loudest_skirt")
+                             "near_louder_product", "under_loudest_skirt", "under_smear")
 
     def detail_text(self) -> str:
         d = self.detail
@@ -713,6 +713,9 @@ class Reading:
         if self.kind == "under_loudest_skirt":
             return "depth=%s skirt=%s loudest=%s loudest_dbc=%s g=%d" % (
                 fmt(d["depth"]), fmt(d["skirt"]), d["loudest"], fmt(d["loudest_dbc"]), d["g"])
+        if self.kind == "under_smear":
+            return "read=%s predicted=%s margin=%s dominant=%s distance=%d" % (
+                fmt(d["read"]), fmt(d["predicted"]), fmt(d["margin"]), d["dominant"], d["distance"])
         if self.kind == "unmeasurable":
             return ""
         if self.kind == "out_of_band":
@@ -801,10 +804,13 @@ class Resolver:
     # --- the floor
     def noise_reads(self) -> List[float]:
         out = []
+        field = self.smear_field()
         for p in self.a.products:
             if p.above_floor or self.inside_neighbourhood(p) or self.out_of_band(p):
                 continue
             if self.louder_neighbour(p) is not None:
+                continue
+            if self.under_smear(self.smear_position(p, field)):
                 continue
             lv = self.level_dbc(p)
             if lv is not None:
@@ -835,14 +841,116 @@ class Resolver:
         loudest = self.loudest_product()
         if g is None or loudest is None or loudest[1] <= 0:
             return None
-        reading = self.coherence_reading()
+        reading = self._base_coherence_reading()
         if reading is not None and reading.interprets("device"):
             return None
         return dict(product=loudest[0], level=loudest[1], g=g, skirt=self.skirt_depth(g))
 
+    # --- the smear field (manifest ``coherence.smearRule`` / ``smearSourcesRule``)
+    def smear_field(self):
+        """The #358 field, or None: a detector reading, clear lattice, a
+        readable offset, over the bar. Built from the BASE reading."""
+        if self.a.detector is None:
+            return None
+        reading = self._base_coherence_reading()
+        if reading is None or reading.source != "detector" or not reading.lattice_clear \
+                or not reading.readable_offsets or not reading.exceeds:
+            return None
+        det = self.a.detector
+        ref = self.a.tone_reference
+        if ref <= 0:
+            return None
+        bw = self.a.signal.fs / det.fft_length
+        anchor = int(self.co["smearAnchorOffsetBins"])
+
+        def dbc(amp):
+            return db20(amp / ref) if amp > 0 and ref > 0 else None
+        tones = []
+        for tone, sidebands, f, amp in (("f1", det.sidebands1, self.a.signal.f1, self.a.tone1),
+                                        ("f2", det.sidebands2, self.a.signal.f2, self.a.tone2)):
+            level = dbc(amp)
+            if level is None:
+                continue
+            anchors = []
+            for offset, read_amp in sidebands:
+                lv = dbc(read_amp)
+                if abs(offset) >= anchor and lv is not None:
+                    anchors.append((abs(offset), lv - level))
+            tones.append(dict(tone=tone, bin=swift_round(f / bw), level=level, anchors=anchors))
+        if not tones:
+            return None
+        reference = max(self.a.signal.f1, self.a.signal.f2)
+        products = []
+        for p in self.a.products:
+            lv = self.level_dbc(p)
+            if not p.above_floor or lv is None or p.frequency <= 0:
+                continue
+            scale = db20(max(float(p.order), p.frequency / reference))
+            products.append(dict(label=p.label, bin=swift_round(p.frequency / bw), level=lv, scale=scale))
+        return dict(tones=tones, products=products, bw=bw)
+
+    @staticmethod
+    def _relative_skirt(anchors, distance):
+        best = None
+        for offset, rel in anchors:
+            if offset < distance:
+                extended = rel + 20 * math.log10(offset / distance)
+                best = extended if best is None else max(best, extended)
+        return best
+
+    def smear_prediction(self, field, bin_index):
+        """(level, dominant label, distance) or None."""
+        power = 0.0
+        dominant = None
+        for tone in field["tones"]:
+            distance = abs(bin_index - tone["bin"])
+            if distance == 0:
+                continue
+            rel = self._relative_skirt(tone["anchors"], distance)
+            if rel is None:
+                continue
+            level = tone["level"] + rel
+            power += 10 ** (level / 10)
+            if dominant is None or level > dominant[1]:
+                dominant = (tone["tone"], level, distance)
+        for product in field["products"]:
+            distance = abs(bin_index - product["bin"])
+            if distance == 0:
+                continue
+            rels = [r for r in (self._relative_skirt(t["anchors"], distance) for t in field["tones"]) if r is not None]
+            if not rels:
+                continue
+            level = product["level"] + max(rels) + product["scale"]
+            power += 10 ** (level / 10)
+            if dominant is None or level > dominant[1]:
+                dominant = (product["label"], level, distance)
+        if dominant is None or power <= 0:
+            return None
+        return 10 * math.log10(power), dominant[0], dominant[2]
+
+    def smear_position(self, p: Product, field):
+        if field is None:
+            return None
+        lv = self.level_dbc(p)
+        if lv is None:
+            return None
+        prediction = self.smear_prediction(field, swift_round(p.frequency / field["bw"]))
+        if prediction is None:
+            return None
+        return dict(read=lv, predicted=prediction[0], margin=lv - prediction[0],
+                    dominant=prediction[1], distance=prediction[2])
+
+    def under_smear(self, position) -> bool:
+        return position is not None and position["margin"] < self.co["smearMarginDB"]
+
     # --- the reading
-    def resolution(self, p: Product, floor, separation: Optional[float], skirt) -> Reading:
-        """`resolution.precedenceRule`."""
+    _COMPUTE = object()
+
+    def resolution(self, p: Product, floor, separation: Optional[float], skirt, smear=_COMPUTE) -> Reading:
+        """`resolution.precedenceRule`. `smear` is the #358 field; left
+        unset it is computed (the shipped public accessor's shape)."""
+        if smear is Resolver._COMPUTE:
+            smear = self.smear_field()
         tone, offset = self.proximity(p)
         if abs(offset) <= self.neighbourhood:
             return Reading("near_played_tone", dict(tone=tone, offset=offset))
@@ -863,6 +971,9 @@ class Resolver:
             if d > skirt["skirt"]:
                 return Reading("under_loudest_skirt", dict(depth=d, skirt=skirt["skirt"], loudest=skirt["product"].label,
                                                            loudest_dbc=skirt["level"], g=skirt["g"]))
+        position = self.smear_position(p, smear)
+        if self.under_smear(position):
+            return Reading("under_smear", position)
         if p.above_floor:
             return Reading("present", dict(margin=None if floor is None else level - floor[0]))
         if floor is None:
@@ -871,7 +982,8 @@ class Resolver:
 
     def resolutions(self) -> List[Reading]:
         floor, separation, skirt = self.capture_floor(), self.analyzer_separation(), self.loudest_skirt()
-        return [self.resolution(p, floor, separation, skirt) for p in self.a.products]
+        smear = self.smear_field()
+        return [self.resolution(p, floor, separation, skirt, smear) for p in self.a.products]
 
     def verdict(self) -> dict:
         readings = self.resolutions()
@@ -960,6 +1072,13 @@ class Resolver:
 
     # --- the coherence reading (manifest ``coherence``)
     def coherence_reading(self):
+        base = self._base_coherence_reading()
+        if base is None:
+            return None
+        base.smear = self.smear_summary(base)
+        return base
+
+    def _base_coherence_reading(self):
         s = self.a.signal
         if s.f1 <= 0 or s.f2 <= 0:
             return None
@@ -967,6 +1086,24 @@ class Resolver:
         if self.a.detector is not None:
             return self._detector_reading(expected)
         return self._stored_products_reading(expected)
+
+    def smear_summary(self, base):
+        """`coherence.smearReadRule`: the counts over every product's
+        full resolution with the field."""
+        field = self.smear_field()
+        if field is None:
+            return None
+        floor, separation, skirt = self.capture_floor(), self.analyzer_separation(), self.loudest_skirt()
+        read = unread = other = 0
+        for p in self.a.products:
+            r = self.resolution(p, floor, separation, skirt, field)
+            if r.is_present or r.is_absent:
+                read += 1
+            elif r.kind == "under_smear":
+                unread += 1
+            else:
+                other += 1
+        return dict(enumerated=len(self.a.products), read=read, unread=unread, other=other)
 
     def _dbc(self, amplitude: float) -> Optional[float]:
         ref = self.a.tone_reference
@@ -1107,6 +1244,7 @@ class CoherenceReading:
         self.widest = widest
         self.loudest_product_dbc = loudest_product_dbc
         self.co = co
+        self.smear = None
 
     def pair_about(self, tone):
         return next((p for p in self.pairs if p.tone == tone), None)
@@ -1214,8 +1352,27 @@ class CoherenceReading:
             return bool(self.readable_offsets)
         return subject == "loopOnly"
 
-    def not_trustworthy(self, subject: str) -> bool:
+    def lost_coherence(self, subject: str) -> bool:
         return self.interprets(subject) and self.exceeds
+
+    def smear_sentence(self) -> str:
+        sm = self.smear
+        margin = self.decibels(self.co["smearMarginDB"])
+        read = sm["read"]
+        text = "%d of %d products %s at least %s dB clear of the smear predicted at %s read; " % (
+            read, sm["enumerated"], "stands" if read == 1 else "stand", margin,
+            "its bin and is" if read == 1 else "their bins and are")
+        if sm["unread"] == 0:
+            text += "none sits within that margin of it"
+        elif sm["unread"] == 1:
+            text += "1 sits within that margin of it and is unread — not present, not absent — and its bin is not read as the floor"
+        else:
+            text += "%d sit within that margin of it and are unread — not present, not absent — and no such bin is read as the floor" % sm["unread"]
+        if sm["other"] == 1:
+            text += " (1 is refused for another reason)"
+        elif sm["other"] > 1:
+            text += " (%d are refused for other reasons)" % sm["other"]
+        return text + "."
 
     # --- the wording (`coherence.wordingRule`)
     @staticmethod
@@ -1275,10 +1432,15 @@ class CoherenceReading:
                     + "%s at worst, " % self.level_text(self.worst_level)
                     + "%s dB above %s%s and " % (self.decibels(excess), self.floor_phrase(), self.noise_phrase())
                     + "%s dB %s the %s dB bar: " % (self.decibels(abs(over)), "over" if over > 0 else "under", self.decibels(bar)))
-            text += ("the played notes did not stay stationary across the analysis window — from some source in the chain, "
-                     "which this reading cannot name — so the whole spectrum is smeared and this capture's floor and product "
-                     "levels are not trustworthy." if self.exceeds else
-                     "the played notes stayed stationary across the analysis window, so the analyzer's coherence premise held.")
+            if not self.exceeds:
+                text += "the played notes stayed stationary across the analysis window, so the analyzer's coherence premise held."
+            elif self.smear is not None:
+                text += ("the played notes did not stay stationary across the analysis window — from some source in the chain, "
+                         "which this reading cannot name — so their skirts smear the lattice: " + self.smear_sentence())
+            else:
+                text += ("the played notes did not stay stationary across the analysis window — from some source in the chain, "
+                         "which this reading cannot name — so the whole spectrum is smeared and this capture's floor and product "
+                         "levels are not trustworthy.")
         elif self.worst_excess_over_floor is None:
             text = ("Coherence bins (%s): the bins beside the played notes read %s at worst — this capture observed no floor "
                     "to read them against, so nothing is concluded." % (self.subject_label(subject), self.level_text(self.worst_level)))
@@ -1849,14 +2011,19 @@ def write_tsv(result: Result, m: dict, out) -> None:
         co = imd["coherence"]
         out.write("# coherence (IMDAnalysis.coherenceReading): source=%s worst_dbc=%s floor_dbc=%s excess_over_floor_db=%s "
                   "bar_over_floor_db=%s excess_over_bar_db=%s exceeds=%d spacing_bins=%d max_offset_bins=%d clearance_bins=%d "
-                  "lattice_clear=%d interprets_device=%d interprets_loop_only=%d not_trustworthy_device=%d not_trustworthy_loop_only=%d "
+                  "lattice_clear=%d interprets_device=%d interprets_loop_only=%d lost_coherence_device=%d lost_coherence_loop_only=%d "
+                  "smear_read=%s smear_unread=%s smear_other_refused=%s smear_margin_db=%s "
                   "loudest_product_dbc=%s readable_offsets=%s unreadable_offsets=%s level_limited=%d read_bin_count=%d "
                   "expected_noise_excess_db=%s pair_f1_dbc=%s pair_f2_dbc=%s pair_difference_db=%s expected_difference_db=%s\n" % (
                       coherence.source, fmt(coherence.worst_level), fmt(coherence.floor), fmt(coherence.worst_excess_over_floor),
                       fmt(float(co["thresholdOverFloorDB"])), fmt(coherence.excess_over_threshold), 1 if coherence.exceeds else 0,
                       coherence.g, coherence.widest, coherence.clearance, 1 if coherence.lattice_clear else 0,
                       1 if coherence.interprets("device") else 0, 1 if coherence.interprets("loopOnly") else 0,
-                      1 if coherence.not_trustworthy("device") else 0, 1 if coherence.not_trustworthy("loopOnly") else 0,
+                      1 if coherence.lost_coherence("device") else 0, 1 if coherence.lost_coherence("loopOnly") else 0,
+                      "nan" if coherence.smear is None else str(coherence.smear["read"]),
+                      "nan" if coherence.smear is None else str(coherence.smear["unread"]),
+                      "nan" if coherence.smear is None else str(coherence.smear["other"]),
+                      "nan" if coherence.smear is None else fmt(float(co["smearMarginDB"])),
                       fmt(coherence.loudest_product_dbc), offsets_field(coherence.readable_offsets),
                       offsets_field(coherence.unreadable_offsets), 1 if coherence.level_limited else 0,
                       coherence.read_bin_count, fmt(coherence.expected_noise_excess), pair(coherence.pair_about("f1")),

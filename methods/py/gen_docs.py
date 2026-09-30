@@ -545,6 +545,8 @@ def gen_parameters_imd(imd):
         (r"product skirt margin", num(co["productSkirtMarginDB"]) + " dB"),
         (r"per-offset ceilings at $g = $ " + str(g96) + " (dBc)", ", ".join(num(c, 3) for c in co["productCeilingsDBcAtStandardSpacing"])),
         (r"expected noise excess, 4 / 36 bins", f"{num(co['expectedNoiseExcessDB']['4'], 3)} / {num(co['expectedNoiseExcessDB']['36'], 3)} dB"),
+        (r"smear margin (a product is read this far above the predicted smear)", num(co["smearMarginDB"]) + " dB"),
+        (r"smear anchor (the innermost detector offset the far skirt is extended from)", num(co["smearAnchorOffsetBins"]) + " bins"),
         ("The harmonic roles", None),
         (r"pitch tolerance", num(hr["pitchToleranceCents"]) + " cents"),
         (r"added-colour semitone classes", ", ".join(num(c) for c in hr["addedColourSemitoneClasses"])),
@@ -1323,9 +1325,18 @@ def gen_lattice_matrix(wm):
             assert set(entry(a, v)["amplitudesDBFS"]) <= set(entry(b, v)["amplitudesDBFS"]), "the amplitude lattices do not nest"
             assert set(entry(a, v)["notesHz"]) <= set(entry(b, v)["notesHz"]), "the note lattices do not nest"
     tie_a, tie_b = entry(7, 4.827)["amplitudesDBFS"], entry(7, 4.828)["amplitudesDBFS"]
+    # #372, broken 2026-09-27: the two factors deliver the same 7-point
+    # lattice (every level within the 0.002 dB their anchors differ by), the
+    # quiet side's second split the quieter half on both.
     differing = sum(abs(x - y) > 0.5 for x, y in zip(tie_a, tie_b))
-    assert differing == 4, differing
+    assert differing == 0, differing
+    assert max(abs(x - y) for x, y in zip(tie_a, tie_b)) < 0.01
+    for lattice in (tie_a, tie_b):
+        assert lattice[2] == (lattice[0] + lattice[3]) / 2 and lattice[1] == (lattice[0] + lattice[2]) / 2, lattice
+    tie_agree_db = max(abs(x - y) for x, y in zip(tie_a, tie_b))
     out.append(r"\newcommand{\mlatTieDiffering}{%d}" % differing + "\n")
+    out.append(r"\newcommand{\mlatTieAgreeDB}{%s}" % num(tie_agree_db, 1) + "\n")
+    out.append(r"\newcommand{\mlatTieToleranceDB}{%s}" % ("%.0e" % lat["gapTieToleranceDB"]).replace("e-0", r"\times 10^{-").replace("e-", r"\times 10^{-") + "}\n")
     out.append(r"\newcommand{\mlatTieA}{%s}" % ", ".join(num(a, 5) for a in tie_a) + "\n")
     out.append(r"\newcommand{\mlatTieB}{%s}" % ", ".join(num(a, 5) for a in tie_b) + "\n")
     out.append(r"\newcommand{\mlatTieFive}{%s}" % ", ".join(num(a, 5) for a in entry(5, 4.828)["amplitudesDBFS"]) + "\n")
@@ -2266,12 +2277,15 @@ def gen_plain_matrix(m):
     centre = default["noteNames"][default_dim // 2]
     assert centre == nearest_note(math.sqrt(low * high)), "the centre is not the span's middle note"
     assert default["noteNames"][0] == nearest_note(lat["noteAnchorHz"]), "the standard note is not the first row"
-    # The tie (#372): the two adjacent factors differ at one size only.
+    # The tie (#372, broken 2026-09-27): the two adjacent factors now deliver
+    # the same lattice at every size; the tie arises at the largest size
+    # only (each side's second insertion), where it is resolved toward the
+    # quiet gap.
     tie_a, tie_b = factors[1], factors[2]
     differing = {d: sum(abs(x - y) > 0.5 for x, y in zip(entry(d, tie_a)["amplitudesDBFS"], entry(d, tie_b)["amplitudesDBFS"]))
                  for d in choices}
-    tie_dims = [d for d in choices if differing[d] > 0]
-    assert len(tie_dims) == 1 and tie_dims[0] == choices[-1], differing
+    assert all(n == 0 for n in differing.values()), differing
+    tie_dims = [choices[-1]]
     twelve_tet_low = _rule_number(lat["noteSnapRule"], r"never 12-TET's ([0-9.]+)")
     # The durations, checked against the delivered counts.
     ramp = float(_rule_number(st["rampRule"], r"rampDuration \(([0-9.]+) s"))
@@ -2405,6 +2419,50 @@ def gen_plain_matrix(m):
     write(os.path.join(GENERATED, "plain-matrix.tex"), "".join(out))
 
 
+def gen_plain_floors(m):
+    """The Floors concept chapter's macros (`generated/plain-floors.tex`,
+    #307 chapter seven). The chapter quotes every measurement's own numbers
+    through that measurement's fragment; this writer carries ONLY what no
+    fragment holds — the concept figure's two chosen values, read from
+    `make_figures.FLOOR_CASE` (one definition, the figure's own), and the
+    one figure derived from them, asserted on the manifest rule it rests
+    on: the noise bound is √2·rms / fundamental (`floor.noiseBoundRule`),
+    so the bound equals the device's share where the fundamental is
+    √2·σ / share — the level the chapter names as where the two meet.
+    The figure computes the same crossing from its MEASURED stamp; the
+    two differ by the stamp's own scatter, which the chapter's "about"
+    covers."""
+    import make_figures as figs
+    case = figs.FLOOR_CASE
+    fl = m["compression"]["floor"]
+    rule = fl["noiseBoundRule"]
+    assert re.search(r"noiseFloorTHD\(at: point\) = √2·noiseFloorRMS / point\.outputAmplitude", rule), rule[:120]
+    share = float(case["share"])
+    noise_db = float(case["noise_db"])
+    assert 0 < share < 1 and noise_db < 0 and int(case["order"]) >= 2
+    depth_db = -20 * math.log10(share)         # how far under the note the harmonic sits, a positive depth
+    sigma = 10 ** (noise_db / 20)
+    crossing_db = 20 * math.log10(math.sqrt(2) * sigma / share)
+    # The crossing lies inside the hardware ladder the figure plays, or the
+    # chapter's sentence about the quiet rungs is false.
+    probe = m["compression"]["probe"]
+    assert probe["floorDBFS"] < crossing_db < probe["ceilingDBFS"], crossing_db
+    macros = {
+        "flSharePercent": num(100 * share),
+        "flShareDepthDB": num(depth_db, 3),
+        "flHarmonicOrder": num(int(case["order"])),
+        "flNoiseDBFS": num(noise_db),
+        "flCrossingDBFS": num(crossing_db, 3),
+    }
+    out = ["% GENERATED by gen_docs.py from generated/manifest.json and make_figures.FLOOR_CASE — do not edit\n",
+           "% The Floors chapter's own numbers: the concept figure's chosen values\n",
+           "% and the one figure derived from them. Every other number the chapter\n",
+           "% quotes is its measurement's own macro.\n"]
+    for name, value in macros.items():
+        out.append(r"\newcommand{\%s}{%s}" % (name, value) + "\n")
+    write(os.path.join(GENERATED, "plain-floors.tex"), "".join(out))
+
+
 def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--no-parity", action="store_true", help="skip the parity table (no Swift tool needed)")
@@ -2441,6 +2499,7 @@ def main(argv=None):
     gen_plain_journey(whole)
     gen_plain_compression(whole)
     gen_plain_matrix(whole)
+    gen_plain_floors(whole)
     return 0
 
 

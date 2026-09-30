@@ -1324,6 +1324,14 @@ import compression_curve as cmp  # noqa: E402
 
 COMPRESSION_NOISE_DB = -100.0
 
+# The Floors chapter's concept case (#307 chapter seven, `fig_explained_floor`):
+# a phantom device whose only added harmonic is a FIXED SHARE of the note at
+# every loudness — the note, then the named order at the share — played down
+# the hardware ladder through white noise at the interface. The ONE definition
+# of the chosen values: the figure prints them in its titles and
+# `gen_docs.gen_plain_floors` reads them from here, never typed twice.
+FLOOR_CASE = dict(share=0.02, order=3, noise_db=COMPRESSION_NOISE_DB)
+
 
 def _compression_plan(m, kind, params=None, noise_db=None, amps=None, null_run=False, loop_a3=None,
                       latency_error=0, plugin=False):
@@ -1661,6 +1669,85 @@ def fig_explained_ladder(runs, m, out):
                   ["input_dbfs", "lower_line_dbfs", "upper_line_dbfs", "hinge_dbfs"], [xx, lower, upper, hinge])
 
 
+def fig_explained_floor(m, out):
+    """The lay companion's concept figure for the Floors chapter: a fixed
+    amount of hiss, a shrinking note. A phantom device whose only added
+    harmonic is a FIXED SHARE of the note (FLOOR_CASE: the order and the
+    share), played down the hardware ladder through white noise at the
+    interface, analysed by the reimplementation's own compression path.
+    Left: everything as an AMOUNT, in dBFS — the note's level falling rung
+    by rung, the device's harmonic falling in parallel a fixed distance
+    below it, and the hiss a flat line (√2 × the pre-roll stamp, the bound's
+    own numerator); where the harmonic meets the hiss the reading stops
+    being the device's. Right: the same rungs as a SHARE — the THD the
+    analyzer reads, flat at the share on the loud rungs and settling onto
+    the noise on the quiet ones, the noise bound rising as the note falls,
+    the band above it where a reading is a mix, and each rung marked by its
+    floor class through the shipped rule. Nothing is drawn by hand."""
+    case = FLOOR_CASE
+    cm = m["compression"]
+    margin = float(cm["floor"]["thdNoiseClearMarginDB"])
+    epsilon = float(cm["floor"]["atFloorEpsilonDB"])
+    ladder = [0.0] * case["order"]
+    ladder[0] = 1.0
+    ladder[case["order"] - 1] = case["share"]
+    r = cmp.run(_compression_plan(m, "phantom", amps=ladder, noise_db=case["noise_db"]), m)
+    pts = r.curve.points
+    assert r.curve.dropped == 0, "the concept case must keep every rung above the gate"
+    assert len(pts) == len(r.plan.levels_db) and not any(r.skipped), "the concept case must read every rung"
+    xs = np.array([p.input_db for p in pts])
+    # The device as amounts: the truth ladder's note and its one harmonic at
+    # each rung, exact (the measured note carries the noise's scatter; the
+    # picture is of the device the noise is judged against).
+    note_db = np.array([20 * math.log10(row[0]) for row in r.truth.harmonic])
+    harmonic_db = np.array([20 * math.log10(row[case["order"] - 1]) for row in r.truth.harmonic])
+    assert np.allclose(xs, r.plan.levels_db, atol=1e-9), "the rungs are not the plan's levels in order"
+    hiss_db = 20 * math.log10(math.sqrt(2) * r.stamp)
+    injected_db = 20 * math.log10(r.injected)
+    thd = np.array([100 * p.thd for p in pts])
+    bound = np.array([100 * (cmp.noise_floor_thd(r.curve, p) or np.nan) for p in pts])
+    classes = [cmp.floor_class(r.curve, p, None, None, epsilon, margin) for p in pts]
+    share_db = 20 * math.log10(case["share"])
+    assert np.allclose(harmonic_db - note_db, share_db, atol=1e-9), "the phantom's share is not fixed"
+    crossing_db = 20 * math.log10(math.sqrt(2) * r.stamp / case["share"])   # where the bound equals the share
+
+    fig, (a, b) = plt.subplots(1, 2, figsize=(7.6, 3.4))
+    # Left: amounts.
+    a.plot(xs, note_db, "-", color=BLUE, linewidth=1.6, label="the note, as delivered")
+    a.plot(xs, harmonic_db, "-", color=ORANGE, linewidth=1.4, label="the device's harmonic: a fixed share, %.1f dB under the note" % -share_db)
+    a.axhline(hiss_db, color=RED, linewidth=1.0, linestyle="--", label="the hiss: a fixed amount (√2 × the stamp, %.1f dBFS)" % hiss_db)
+    a.axvline(crossing_db, color="0.3", linewidth=0.6, linestyle=":", label="the harmonic meets the hiss at %.1f dBFS" % crossing_db)
+    a.set_xlabel("input level (dBFS)")
+    a.set_ylabel("level (dBFS)")
+    a.set_title("as amounts: the note and its harmonic fall together,\nthe hiss stays put (noise %g dBFS rms)" % case["noise_db"], fontsize=8)
+    a.legend(fontsize=5.5, loc="upper left")
+    # Right: shares.
+    b.fill_between(xs, bound, bound * 10 ** (margin / 20), color=GREY, alpha=0.25, label="a mix: within %g dB over the bound" % margin)
+    b.semilogy(xs, bound, "--", color=RED, linewidth=1.0, label="the noise bound: the hiss as a share of the note")
+    b.axhline(100 * case["share"], color=ORANGE, linewidth=0.8, linestyle=":", label="the device's true share, %g %%" % (100 * case["share"]))
+    styles = {"clear": ("o", BLUE, "none", "read as clear: the device's own distortion"),
+              "noise_dominated": ("o", ORANGE, "white", "read as a mix of the device and the hiss"),
+              "below_floor": ("x", RED, RED, "read as at or under the bound: stated as a bound")}
+    for cls, (marker, colour, face, label) in styles.items():
+        sel = [i for i, c in enumerate(classes) if c == cls]
+        if sel:
+            b.semilogy(xs[sel], thd[sel], marker, color=colour, markerfacecolor=face if face != "none" else colour,
+                       markersize=4.2, linestyle="none", label=label)
+    b.axvline(crossing_db, color="0.3", linewidth=0.6, linestyle=":", label="the bound reaches the share at %.1f dBFS" % crossing_db)
+    b.set_xlabel("input level (dBFS)")
+    b.set_ylabel("THD read (%)")
+    b.set_title("as shares: the same hiss is a bigger share\nof a quieter note (device share %g %%)" % (100 * case["share"]), fontsize=8)
+    b.legend(fontsize=5.5, loc="lower left")
+    fig.suptitle("A fixed amount of hiss, a shrinking note: why every ratio floor rises toward the quiet end", fontsize=8)
+    fig.savefig(os.path.join(out, "explained-floor.png"), **SAVE)
+    plt.close(fig)
+    write_sidecar(os.path.join(out, "explained-floor-levels.tsv"),
+                  ["input_dbfs", "note_dbfs", "harmonic_dbfs", "hiss_dbfs", "injected_dbfs"],
+                  [xs, note_db, harmonic_db, [hiss_db] * len(xs), [injected_db] * len(xs)])
+    write_sidecar(os.path.join(out, "explained-floor-share.tsv"),
+                  ["input_dbfs", "thd_pct", "bound_pct", "class"], [xs, thd, bound, classes])
+
+
 def compression_figures(manifest_path, out):
     m = cmp.load_manifest(manifest_path)
     runs = _compression_runs(m)
@@ -1670,6 +1757,7 @@ def compression_figures(manifest_path, out):
     fig_compression_cleanup(runs, m, out)
     fig_compression_estimator(runs, m, out)
     fig_explained_ladder(runs, m, out)
+    fig_explained_floor(m, out)
 
 
 # --- The Waveform Matrix chapter's figures (#306 chapter six) -------------

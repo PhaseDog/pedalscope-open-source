@@ -2,7 +2,10 @@
 
 Two open-source documents that must stay true to the app as its methods
 change: `methods.pdf` (the technical reference) and `explained.pdf` (its
-plain-language companion). **Propagation is
+plain-language companion), published as `pedalscope-methods.pdf` and
+`pedalscope-explained.pdf` — RELEASE documents since 1.1 (#428): each
+names on its title page the app build it describes and the date it was
+published, and ends with a "Changes since the previous version" appendix. **Propagation is
 enforced by CI, not remembered.** Nothing here is bundled into the app.
 
 ## The four mechanisms
@@ -75,32 +78,61 @@ needs Accelerate: `methods-test` + `methods-drift`) and `pdf` on Ubuntu
 (minimal TeX via `Tools/ci-texlive.sh`, cached on `tex/texlive-packages.txt`;
 `make methods-pdf`; link/citation census; PDFs uploaded as the
 `pedalscope-methods-pdfs` artifact). The Pages deploy runs the same TeX
-recipe and `Site/build.sh` publishes the PDFs at `/methods/`.
+recipe on the PINNED release tag (below) — never on `main` — and
+`Site/build.sh` publishes those PDFs at `/methods/`.
 `SOURCE_DATE_EPOCH` makes builds reproducible run to run on one install;
 nothing is gated on the bytes.
+
+**Release documents (ruled 2026-09-29, #428).** The documents published
+are pinned to a release, like the site's guide: the one non-comment line of
+`Site/methods-release.ref` names a methods release tag, `methods-X.Y-rN`,
+cut from the app's release tag (`vX.Y-build-N`) with the release's stamp
+and changes entries committed onto it, and both the site's `/methods/` and
+the public copy are built from THAT tag's tree. `main` between releases
+describes code no shipped build contains, so it is never published.
+`tex/release.tex` is the title-page stamp — the build described and the
+publication date; `\releasestatus` is `release` on a tag and `draft` on
+`main`, where the stamp names the release the draft follows and says it is
+not a published release. Each document ends with its "Changes since the
+previous version" appendix (`tex/changes-methods.tex`, technical;
+`tex/changes-explained.tex`, plain), unnumbered, newest first, one entry
+per release, written in the sitting that closes the release from a diff of
+the release tree against the previous published copy — never from memory;
+`py/test_changes.py` is the format guard (headings `X.Y (N) --- D Month
+YYYY`, builds descending, the same releases in both, the stamp naming the
+newest). Closing a release: write both entries and the release stamp on a
+detached worktree of `vX.Y-build-N`, run `make methods-test`,
+`make methods-drift` and `make methods-pdf` there, tag `methods-X.Y-r1`,
+push the TAG, then on `main` carry the same entries with a `draft` stamp,
+move `Site/methods-release.ref`, and run `make publish-methods`. A
+correction to a published release is `methods-X.Y-r(N+1)`, cut from the
+current methods tag the same way.
 
 **Publication (ruled 2026-09-20, #309).** The documents publish into
 `methods/` of the ONE public repository, `PhaseDog/pedalscope-open-source`
 (the library releases' repository, renamed that day), by
-`make publish-methods` — `Tools/publish-methods.sh`, run once per landed
-chapter, no second CI. It is a SNAPSHOT COPY, not a subtree split: this
-directory minus `.venv/`, `py/__pycache__/`, `py/.pytest_cache/` and
-`tex/build/`, plus `methods/pdf/methods.pdf` and `methods/pdf/explained.pdf`
-from `make methods-pdf`, copied with `rsync --delete` scoped to `methods/`,
-committed as `methods: Docs/Methods at <private short SHA> (<date>)`. It
-refuses unless this tree is clean on `main` and `make methods-test` and
-`make methods-drift` are green; it prints the clone's `--stat` and the
-list of files removed from `methods/` (or "nothing removed"), and then
-PUSHES by default (ruled 2026-09-21) — `PUBLISH_METHODS_PUSH=0` is the
-opt-out that stops before the push. The public copy's PDFs are a published
-artefact named by the SHA they were built at — the never-committed rule
-above is about this tree, which has a drift check; the site's `/methods/`
-and the repo's `methods/pdf/` both regenerate from one commit, the site on
-push and the repo at the landing session's publish, so the two copies follow
-one SHA by procedure. Nothing in the public copy is edited by hand: a fix
-lands here and is re-published. The parity tests travel as the record of
-what is asserted and at what tolerance — they call `analysisdump`, which is
-private, so they cannot run there; the public README says what can.
+`make publish-methods` — `Tools/publish-methods.sh`, run once per release.
+It is a SNAPSHOT COPY, not a subtree split: the pinned tag's `Docs/Methods`
+minus `.venv/`, `py/__pycache__/`, `py/.pytest_cache/` and `tex/build/`,
+plus `methods/pdf/pedalscope-methods.pdf` and
+`methods/pdf/pedalscope-explained.pdf` built from that tag (and, for a
+transition period, the same files under their earlier names `methods.pdf`
+and `explained.pdf`, which are linked publicly), copied with
+`rsync --delete` scoped to `methods/`, committed as
+`methods: Docs/Methods at <tag> (<tag's short SHA>, <date>)`. It refuses
+unless the tag exists, this tree is clean on `main`, and `make
+methods-test` and `make methods-drift` are green in a worktree of the tag;
+it prints the clone's `--stat` and the list of files removed from
+`methods/` (or "nothing removed"), and then PUSHES by default (ruled
+2026-09-21) — `PUBLISH_METHODS_PUSH=0` is the opt-out that stops before the
+push. The site builds the same tag's PDFs (`Tools/methods-release.sh
+build`, which the Pages deploy runs) and serves them at the stable URLs
+`/methods/pedalscope-methods.pdf` and `/methods/pedalscope-explained.pdf`,
+the earlier names copied beside them, each linked with a dated download
+name. Nothing in the public copy is edited by hand: a fix lands here and
+is re-published. The parity tests travel as the record of what is asserted
+and at what tolerance — they call `analysisdump`, which is private, so they
+cannot run there; the public README says what can.
 
 ## Layout
 
@@ -193,7 +225,7 @@ Chapters two through N are mechanical. For a measurement kind X:
 5. **Terms.** Add X's terms to `terms.yaml`; the guard names what is
    missing or unused.
 6. **Chapter.** A `\section` in `methods.tex` in the HD chapter's order
-   (purpose and what it cannot tell you; stimulus; pipeline as numbered
+   (significance and limitations; stimulus; pipeline as numbered
    steps; the generated parameter table; figures; the worked example with
    the parity numbers; limits), a stub section in `explained.tex`, and
    `gen_docs.py` writers for X's fragments. The chapters of both
@@ -330,3 +362,55 @@ measurement kind X whose technical chapter exists:
 7. `make methods-test`, `make methods-drift`, `make methods-pdf`; read the
    built chapter through once as its reader; quote its page range in the
    handoff with the reader-of-record request.
+
+## The recipe for a concept chapter (explained.tex)
+
+A chapter of the lay companion that is about an idea the measurement
+chapters share rather than about one measurement (the first: *Floors*,
+#307 chapter seven, 2026-09-23; the Slots section ahead of Chord IMD is
+the smaller precedent). Written in one code session after the seeds exist:
+
+1. **Placement follows the reader's need.** Groundwork a chapter needs
+   BEFORE it can be read goes ahead of that chapter (Slots before Chord
+   IMD); a synthesis of what several chapters already said goes AFTER them,
+   before the Glossary (Floors after the six). A synthesis must be readable
+   by someone who has read at least one measurement chapter, not all of
+   them, so every measurement-specific fact is named and pointed at, never
+   assumed.
+2. **Pointers, not re-explanation.** The chapter states the one idea once
+   and shows each chapter's rule as an instance of it with a `\S\ref` to
+   that chapter's own paragraph; it never restates a chapter's machinery at
+   that chapter's length, and never states a rule differently from the
+   chapter that owns it. Where two chapters state one idea in different
+   words the synthesis names the idea and shows both as instances; a
+   genuine disagreement is a handoff finding, never a reconciliation made
+   in the synthesis.
+3. **Macros reused, not re-minted.** Almost every number a synthesis quotes
+   is already a macro in a measurement chapter's fragment: quote it through
+   that macro, read its definition first (a macro must mean what THIS
+   sentence means — the several 6 dB-looking margins are separate
+   constants in separate chapters), and never present one number as "the"
+   rule where the manifest carries several. A writer of its own
+   (`gen_plain_floors`) exists only for values no fragment carries — a
+   concept figure's chosen case, read from `make_figures.py`'s one
+   definition of it, and a figure derived from it asserted on the manifest
+   rule it rests on.
+4. **The landed chapters get pointer sentences and nothing else.** One
+   sentence at each chapter's own paragraph on the idea, and one in §1 where
+   it says "one measurement per chapter"; the trim of the chapters' own
+   explanations down to pointers is a separate ruling taken after the
+   reader of record has read the synthesis.
+5. **The concept figure draws the idea no chapter figure draws on its own**,
+   through a reimplementation's own code (Floors: a fixed share down the
+   Compression ladder through `compression_curve.py`'s noise bound and
+   floor classes), and existing figures are referenced where they already
+   carry a sub-idea rather than included again.
+6. **A synthesis makes more unpinned claims than any lay chapter**, because
+   it states rules across every measurement; each such sentence stays short
+   and separable, a plain rendering of one manifest rule string, and the
+   handoff's #373 census names the rule string each restates. A table's
+   prose cells are census entries.
+7. The lay recipe's checks, plus: `\term{}` at first use IN THIS CHAPTER
+   even for a term an earlier chapter linked (a reader may start here), and
+   the floor-family `plain` fields read together for consistency before the
+   chapter quotes them.

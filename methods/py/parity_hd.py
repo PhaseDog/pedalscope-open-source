@@ -57,15 +57,18 @@ T_SWIFT = 1e-8
 T_SWIFT_EMPTY = 0.05
 # Where an order is analytically empty, neither implementation may read it
 # closer than this to the case's LOUDEST content order. What an empty
-# order holds is the synthesis's own aliasing residue (per-sample, #231),
-# and it scales with how much of the device's spectrum lies past Nyquist:
-# measured depths below the loudest order — phantom 131.6 dB, poly ≥ 143,
-# tanh(2) 69.6 (H4 at −65.4 against H1 at +4.2), hardClip(0.1) 22.9 (H4 at
-# −34.8 against H1 at −11.9: a near-square wave's 1/k ladder carries
-# dozens of orders past Nyquist). The bound is a floor on that depth; the
-# Swift-vs-Python agreement on the same reads (`T_SWIFT_EMPTY`) is what
-# shows the reimplementation invents nothing the shipped code does not.
-EMPTY_ORDER_DEPTH_DB = 20.0
+# order holds is what the synthesis's anti-alias chain lets through of the
+# device's content above Nyquist (#313, 2026-09-27: the nonlinearity is
+# applied 4× oversampled through the shipped `Oversampler`; per sample it
+# folded everything). Measured depths below the loudest order, oversampled:
+# phantom 131.6 dB, poly ≥ 143, tanh(2) 104.9 (H2 at −100.7 against H1 at
+# +4.2), hardClip(0.1) 57.0 (H4 at −69.0 against H1 at −11.9; per sample it
+# read 22.9 — a near-square wave's 1/k ladder carries dozens of orders past
+# Nyquist, and 8× would reach 67.9). The bound is a floor on that depth,
+# posted 7 dB under the hard clip's measured value; the Swift-vs-Python
+# agreement on the same reads (`T_SWIFT_EMPTY`) is what shows the
+# reimplementation invents nothing the shipped code does not.
+EMPTY_ORDER_DEPTH_DB = 50.0
 
 # Both vs analytic truth, alias-free case (a phantom is exact by
 # construction): measured maximum 0.0052 dB — at f0 = 30 Hz on H1, the
@@ -73,19 +76,21 @@ EMPTY_ORDER_DEPTH_DB = 20.0
 # excited valid band.
 T_ANALYTIC_ALIAS_FREE = 0.01
 
-# Both vs analytic truth, per-sample nonlinearity cases, over the LOWER
-# HALF of each order's validity band (f0 ≤ maxValid(k)/2): the per-sample
-# synthesis aliases content above Nyquist back into the band and the
-# aliasing is worst in the top half-octave (#231, measured 2026-08-31).
-# Measured maxima: tanh(2) 0.0049, poly(0.2, 0.3) 0.0052, hardClip(0.1)
-# 0.279 (a near-square wave whose spectrum falls only as 1/k² carries far
-# more energy past Nyquist). The FULL-band figures — tanh 0.554,
-# hardclip 3.10, poly 0.0052 — are reported by `full_band_max`, not
-# asserted; they are the synthetic device's aliasing, and the phantom twin
-# of each case (its own first nine Fourier amplitudes as a phantom) is the
-# alias-free control that pins the analyzer to ≤ 0.01 dB on the same
-# amplitudes.
-T_ANALYTIC_PER_SAMPLE = {"tanh": 0.01, "poly": 0.01, "hardclip": 0.30}
+# Both vs analytic truth, the nonlinearity cases, over the LOWER HALF of
+# each order's validity band (f0 ≤ maxValid(k)/2). #313 (2026-09-27): the
+# nonlinearity is applied 4× oversampled through the shipped anti-alias
+# chain, whose passband ends at 0.45·fs — INSIDE the tops of H7's and H9's
+# validity bands (k·f0 > 43.2 kHz at 96 kHz), so those half-octaves read
+# the filter's roll-off, not the device; the lower half is clean. Measured
+# maxima, oversampled: tanh(2) 0.0049, poly(0.2, 0.3) 0.0052, hardClip(0.1)
+# 0.0151 (per sample it read 0.279 — the aliasing #231 measured). The
+# FULL-band figures — tanh 2.71, hardclip 2.67 (both at the top of H9, the
+# filter's roll-off; per sample tanh read 0.554 and hardclip 3.10, the
+# aliasing) — are reported by `full_band_max`, not asserted; the phantom
+# twin of each case (its own first nine Fourier amplitudes as a phantom)
+# is the alias-free control that pins the analyzer to ≤ 0.01 dB on the
+# same amplitudes.
+T_ANALYTIC_PER_SAMPLE = {"tanh": 0.01, "poly": 0.01, "hardclip": 0.02}
 
 # The noisy, averaged case: on points the SHIPPED predicate reads as
 # shaped on both sides, |mag − expected| ≤ 3 × the read's own stated
@@ -192,7 +197,8 @@ def excited_band_top(manifest: dict) -> float:
 def analytic_band(case: Case, sweep_fs: float, f2: float, order: int, f0: np.ndarray) -> np.ndarray:
     """Where the analytic comparison is asserted: the whole excited valid
     band for an alias-free phantom, the lower half of each order's
-    validity band for a per-sample nonlinearity."""
+    validity band for an oversampled nonlinearity (its anti-alias chain's
+    roll-off sits in the top half of H7's and H9's bands)."""
     if case.source == "phantom":
         return np.ones_like(f0, dtype=bool)
     top = min(f2, sweep_fs / (2 * order + 1))

@@ -69,11 +69,16 @@
       ],
       "productSkirtMarginDB" : 10,
       "readableRule" : "readableOffsets: on a detector reading with a clear lattice, the stored offsets d with loudestProductDBc ≤ productCeilingDBc(d, g) (no product ⇒ −∞ ⇒ every offset); on the legacy stored-products path, or an uncleared lattice, every stored offset",
+      "smearAnchorOffsetBins" : 6,
+      "smearMarginDB" : 10,
+      "smearReadRule" : "Reading.smear (the sentence's counts) = over every product's full resolution with the field: readCount = present + absent, unreadCount = underSmear, otherRefusedCount = every other cannotResolve + outOfBand; nil without a field",
+      "smearRule" : "smearField exists only on a detector reading whose lattice is clear, whose level rule left an offset readable, and which EXCEEDS the bar; smearPosition(product) = (read = levelDBc(product), prediction at the product's bin); underSmear when read − prediction < smearMarginDB — unread, never present, never absent; a below-gate bin under the smear leaves noiseReads (the floor) too",
+      "smearSourcesRule" : "prediction(bin) = 10·log10 of the power sum over sources, the dominant source and its distance named: each TONE contributes toneLevelDBc + relativeSkirt(D) where relativeSkirt(D) = max over its stored detector reads at |offset| ≥ smearAnchorOffsetBins and < D of (read − toneLevel) + 20·log10(|offset|/D) (the rectangular window's 1/(πm) tail anchored on the outer reads; nil inside every anchor); each PRODUCT that stands aboveFloor with a level contributes levelDBc + max over tones of relativeSkirt(D) + 20·log10(max(order, frequency/max(f1, f2))) — the larger of the frequency-wander and order (amplitude-wander) index scalings, no mechanism inferred; D = |bin − source bin|, a source at distance 0 contributes nothing",
       "spacingRule" : "latticeSpacingBins = gcd(round(f1/binWidth), round(f2/binWidth)) on the detector's own stored length",
       "storedReadRule" : "each detector bin's level = 20·log10(amplitude / max(tone1Amplitude, tone2Amplitude)); the pair's floor = the stored local floor beside its tone in the same unit; a bin with amplitude 0 is dropped",
       "thresholdOverFloorDB" : 30,
-      "verdictRule" : "isNotTrustworthy(subject) = interprets(subject) AND exceedsThreshold: the played notes did not stay stationary across the window, from some source in the chain the reading cannot name, so the floor and every product level are not trustworthy; nothing is refused or re-run",
-      "wordingRule" : "the ONE line, in both registers (loop only / device in the loop): interpreting — 'Coherence check (<subject>): <offsets phrase> <worst> at worst, <excess> dB above <floor phrase> — the worst of N bins, where noise alone would put it ≈ <expected> dB over — and <|over bar|> dB over|under the 30.0 dB bar: <verdict sentence>.'; no floor — 'Coherence bins (<subject>): … this capture observed no floor to read them against, so nothing is concluded.'; every offset withheld — 'Coherence bins (not readable beside <owner> products): … <owner> products are louder than the played tones (<its> loudest reads <L>, against a <ceiling at the nearest offset> ceiling for even the nearest bin), so the bins beside the notes would read the products' coherence, not the tones'; this reading does not interpret.'; an uncleared lattice with a device — 'Coherence bins (not attributable at this lattice): … this lattice puts a product within <clearance> of them (spacing g), so with a pedal in the loop they hold its own products inseparably from any loss of coherence, so this number is a reading of neither.'; then the pair sentence; dB figures print to one decimal with −0.0 normalised to 0.0"
+      "verdictRule" : "lostCoherence(subject) = interprets(subject) AND exceedsThreshold: the played notes did not stay stationary across the window, from some source in the chain the reading cannot name — a verdict about the NOTES; what it means for each product is the #358 smear rule (smearRule), and the legacy stored-products path and an uncleared lattice keep the first monitor's blanket sentence; nothing is refused or re-run",
+      "wordingRule" : "the ONE line, in both registers (loop only / device in the loop): interpreting — 'Coherence check (<subject>): <offsets phrase> <worst> at worst, <excess> dB above <floor phrase> — the worst of N bins, where noise alone would put it ≈ <expected> dB over — and <|over bar|> dB over|under the 30.0 dB bar: <verdict sentence>.'; no floor — 'Coherence bins (<subject>): … this capture observed no floor to read them against, so nothing is concluded.'; every offset withheld — 'Coherence bins (not readable beside <owner> products): … <owner> products are louder than the played tones (<its> loudest reads <L>, against a <ceiling at the nearest offset> ceiling for even the nearest bin), so the bins beside the notes would read the products' coherence, not the tones'; this reading does not interpret.'; an uncleared lattice with a device — 'Coherence bins (not attributable at this lattice): … this lattice puts a product within <clearance> of them (spacing g), so with a pedal in the loop they hold its own products inseparably from any loss of coherence, so this number is a reading of neither.'; then the pair sentence; dB figures print to one decimal with −0.0 normalised to 0.0; #358: on a detector reading over the bar with a clear lattice and a readable offset the verdict sentence is 'the played notes did not stay stationary across the analysis window — from some source in the chain, which this reading cannot name — so their skirts smear the lattice: <read> of <enumerated> products stand at least <margin> dB clear of the smear predicted at their bins and are read; <unread> sit within that margin of it and are unread — not present, not absent — and no such bin is read as the floor[ (<other> are refused for other reasons)].' (singular forms for 1); the legacy path and an uncleared lattice keep 'so the whole spectrum is smeared and this capture's floor and product levels are not trustworthy.'"
     },
     "driveLevel" : {
       "combinedRule" : "combinedPeak = amplitude1 + amplitude2 (the design peak); tonesAreEqual when the two stored amplitudes are bit-equal",
@@ -705,7 +710,7 @@
       "partnerRule" : "partnerCheck(product): order-2 products only, neither operand contested; the partner is the other order-2 product of the same kind (second harmonic {2f1, 2f2} or cross {f1+f2, f2−f1}); measuredOffsetDB = 20·log10(amplitude / partner amplitude); expectedOffsetDB = 0 for the cross pair, ±2·(20·log10(tone1Amplitude/tone2Amplitude)) for the second-harmonic pair (+ from 2f1's side); excessDB = measured − expected; inconsistent when excessDB > partnerToleranceDB — only EXCESS flags",
       "partnerToleranceDB" : 6,
       "playedToneNeighbourhoodBins" : 12,
-      "precedenceRule" : "reading, in order: (1) inside a reference bin's neighbourhood (a played tone or DC) → cannotResolve(nearPlayedTone); (2) under the integration band's low edge → outOfBand; (3) no level → cannotResolve(unmeasurable); (4) a louder neighbour inside the neighbourhood → cannotResolve(nearLouderProduct); (5) depth below the loudest component ≥ the analyzer's separation bound (only when the window overruns the fade) → cannotResolve(analyzerWindow); (6) under the loudest product's skirt (only when the record-level condition holds) → cannotResolve(underLoudestSkirt); (7) aboveFloor → present(margin over the capture floor, nil without one); (8) no capture floor → cannotResolve(floorNotObserved); (9) otherwise absent(bound = the bin's own level)",
+      "precedenceRule" : "reading, in order: (1) inside a reference bin's neighbourhood (a played tone or DC) → cannotResolve(nearPlayedTone); (2) under the integration band's low edge → outOfBand; (3) no level → cannotResolve(unmeasurable); (4) a louder neighbour inside the neighbourhood → cannotResolve(nearLouderProduct); (5) depth below the loudest component ≥ the analyzer's separation bound (only when the window overruns the fade) → cannotResolve(analyzerWindow); (6) under the loudest product's skirt (only when the record-level condition holds) → cannotResolve(underLoudestSkirt); (6b) #358: within smearMarginDB of the smear predicted at the bin (only when the smear field exists — exclusive with 6 by condition) → cannotResolve(underSmear); (7) aboveFloor → present(margin over the capture floor, nil without one); (8) no capture floor → cannotResolve(floorNotObserved); (9) otherwise absent(bound = the bin's own level)",
       "presentRule" : "present(marginDB) with marginDB = levelDBc − captureFloor.levelDBc, nil when no floor was observed",
       "proximityRule" : "playedToneProximity(product, N): bin = round(f/binWidth); the offset to bin(f1), to bin(f2) and to bin 0; the nearest wins (ties in the order f1, f2, DC); inside the neighbourhood when |offset| ≤ playedToneNeighbourhoodBins; nil when the length is unknown (no claim)",
       "resolvedProductsRule" : "resolvedProducts(N) = the present products, loudest first — what every ranking, sum and summary sentence draws on",
@@ -772,6 +777,8 @@
       "IMDResolution.localFloorSeparationDB" : 12.041199826559248,
       "IMDResolution.minimumFloorSamples" : 3,
       "IMDResolution.playedToneNeighbourhoodBins" : 12,
+      "IMDSmear.smearAnchorOffsetBins" : 6,
+      "IMDSmear.smearMarginDB" : 10,
       "IMDSynthTruth.quadraturePoints" : 4096,
       "MetricBand.audible" : {
         "highHz" : 20000,
@@ -1229,7 +1236,7 @@
           -233.3601177206994,
           -237.11949506790768,
           -236.92617343918445,
-          -140.7701304887681
+          null
         ],
         "2" : [
           -21.634645024415704,
@@ -1255,7 +1262,7 @@
           -222.27358623811034,
           -229.19167951255406,
           -144.72156867929803,
-          -122.42468127198882
+          null
         ],
         "5" : [
           -27.743673692380742,
@@ -1281,10 +1288,10 @@
           -235.34436141572726,
           -237.54789573066438,
           -246.36505675043105,
-          -136.67959925575565
+          null
         ]
       },
-      "residueRule" : "analyzerResidueRatioDB(): for each length in sweepDurationChoicesS, the plan's own sweep at −26 dBFS (a literal; the read is a ratio and level-invariant) handed back as its own capture with the tail's silence, through the shipped analyzer at analysisConfiguration, read as THD per column (audible band) in dB; the WORST (loudest) per column over the lengths, cached per grid geometry; nil on a legacy payload; it is the THD the analyzer reads with nothing in the loop — one column above the sweep's start the fade-in ramp leaks coherently into the H2 window, and a noise floor (absolute) cannot bound a coherent residue (a ratio)",
+      "residueRule" : "analyzerResidueRatioDB(): for each length in sweepDurationChoicesS, the plan's own sweep at −26 dBFS (a literal; the read is a ratio and level-invariant) handed back as its own capture with the tail's silence, through the shipped analyzer at analysisConfiguration, read as THD per column (audible band) in dB; the WORST (loudest) per column over the lengths, cached per grid geometry; nil on a legacy payload, and nil (null here) at a column with no valid harmonic — the end column AT f2, under the sweep's fade-out, since #312; it is the THD the analyzer reads with nothing in the loop — one column above the sweep's start the fade-in ramp leaks coherently into the H2 window, and a noise floor (absolute) cannot bound a coherent residue (a ratio)",
       "residueWorstDB" : [
         -21.634645024415704,
         -46.322077187612194,
@@ -1309,7 +1316,7 @@
         -222.27358623811034,
         -229.19167951255406,
         -144.72156867929803,
-        -122.42468127198882
+        null
       ],
       "stampMedianPoints" : 7,
       "stampReadRule" : "pooledFloorDB(curve, f, medianPoints): the usable points (thd > 0) sorted by frequency, each point's dB replaced by the running median of the odd window of medianPoints centred on it (clipped at the ends; an even count averages the two middles), then linear on the (log f, dB) plane between neighbours and clamped to the end values; the Gain Map passes stampMedianPoints — ±3 of the 128 log points over 1.5·f1…round(0.45·fs) is ±0.25 octave at 96 kHz (≈ 12.1 points per octave over the stamp's ≈ 10.5-octave span; the documents derive the figure from the grid), so the WHOLE 7-point window spans ≈ 0.50 octave, about 1.3 of the map's ≈ 0.39-octave columns (log2(f_end/f_start)/(N−1)) — about as wide as one column, and wide enough that a single-point trough (the observed shape, 15.8 dB under both neighbours) cannot set the floor",
@@ -1645,11 +1652,11 @@
         "spacing" : "logarithmic (equal ratios), end points inclusive"
       },
       "thdCurve" : {
-        "highHz" : 9552.890793764878,
+        "highHz" : 10000,
         "highRule" : "f2 requested; a point whose exp(ln f2) lands an ulp above f2 fails thd()'s band guard and is dropped, so the delivered count can be one short (unlike the distance grid, which clamps)",
         "lowHz" : 30.000000000000004,
         "lowRule" : "1.5 × f1",
-        "pointCount" : 127,
+        "pointCount" : 128,
         "requestedPointCount" : 128,
         "spacing" : "logarithmic (equal ratios), end points inclusive"
       }
@@ -1968,7 +1975,8 @@
       "MetricBand.audible" : {
         "highHz" : 20000,
         "lowHz" : 20
-      }
+      },
+      "Oversampler.standardFactor" : 4
     },
     "stimulus" : {
       "amplitude" : 0.5,
@@ -2010,6 +2018,18 @@
       "noiseGenerator" : "SplitMix64 → Box–Muller: u1 = (next >> 11)·2^−53, u2 likewise; r = √(−2·ln(max(u1, 5e−324))); out[2j] = rms·r·cos(2π·u2), out[2j+1] = rms·r·sin(2π·u2)",
       "noiseGeneratorIncrement" : "0x9E3779B97F4A7C15",
       "noiseRule" : "white Gaussian noise at the requested rms (linear re full scale), added to every sample of the padded capture, one independent stream per repeat",
+      "oversampling" : {
+        "applyRule" : "apply(nl) = downsample(nl(upsample(x))) — the nonlinearity per sample at factor·fs; the passband ends at cutoffFractionOfOversampledRate·factor·fs = 0.45·fs, INSIDE the top of H7's and H9's validity bands at 96 kHz (k·f0 > 43.2 kHz), which therefore read the anti-alias filter's roll-off rather than the device",
+        "beta" : 11,
+        "cutoffFractionOfOversampledRate" : 0.1125,
+        "delaySamples" : 384,
+        "designRule" : "prototype h[i], i = 0…taps−1, mid = (taps−1)/2, t = i − mid: sinc = 2·cutoff at t = 0 else sin(2π·cutoff·t)/(π·t); Kaiser window I0(beta·√max(0, 1 − (t/(mid+1))²)) / I0(beta) with I0 the power series Σ (x/2)^(2k)/(k!)² summed until a term is below 1e−16 of the sum; h normalized to unit sum",
+        "downsampleRule" : "padded = delay zeros, x, delay zeros; down[k] = Σ_j padded[k·factor + j]·h[j] for k = 0…n−1",
+        "factor" : 4,
+        "prototypeTaps" : 769,
+        "tapsPerPhase" : 192,
+        "upsampleRule" : "zero-stuff: stuffed[i·factor + delay] = x[i]·factor in a buffer of n·factor + 2·delay zeros; up[k] = Σ_j stuffed[k + j]·h[j] (correlation; h is symmetric) for k = 0…n·factor−1 — length-preserving and group-delay compensated"
+      },
       "padSamples" : 48000,
       "phantomNyquistGateFraction" : 0.98,
       "phantomRule" : "Σ_k m_k·A·sin(k·φ(t)) with the sweep's own fades; each term dropped where k·f(t) ≥ fs/2 and raised-cosine gated from phantomNyquistGateFraction·fs/2 to fs/2",
@@ -2026,13 +2046,15 @@
     "validity" : {
       "aliasImageBound" : "f0 ≤ fs / (2k + 1): beyond it the capture folds order k+1 onto the read at k·f0 (#18)",
       "bottomEdgeRule" : "f0 < excitedBandBottom is a separate query (#56, isBelowBottomEdge) — such reads were excited under the fade-in ramp; isValid does not consult it",
-      "calibratedBandBound" : "on a loopback-compensated record, additionally f0 ≤ calibratedBandTop / k where calibratedBandTop is the calibration sweep's excited band top; a raw or simulated analysis has no such bound (nil)",
+      "calibratedBandBound" : "on a loopback-compensated record, additionally f0 ≤ calibratedBandTop / k where calibratedBandTop is the calibration sweep's excited band top (the app's calibration sweep ends at 0.45·fs, so on a 10 kHz measurement sweep this binds only from k = 5); a raw or simulated analysis has no such bound (nil)",
+      "excitedBandBound" : "on EVERY analysis (#312), f0 ≤ fundamentalTopEdgeHz — the measurement sweep's own excited-band top (its fade-out edge, min(f2, f(T − fadeOut))) — for every order k: a fundamental excited under the fade-out ramp has no order that is a measurement",
       "fundamentalBottomEdgeHz" : 20.634868149982054,
+      "fundamentalTopEdgeHz" : 9937.694906233948,
       "maxValidFundamentalHz" : [
-        10000,
-        10000,
-        10000,
-        10000,
+        9937.694906233948,
+        9937.694906233948,
+        9937.694906233948,
+        9937.694906233948,
         8727.272727272728,
         7384.615384615385,
         6400,
@@ -2140,6 +2162,7 @@
         "A4",
         "E5",
         "A5",
+        "E6",
         "A6",
         "C7"
       ],
@@ -2182,6 +2205,7 @@
         440,
         659.2551138257398,
         880,
+        1318.5102276514797,
         1760,
         2093.004522404789
       ],
@@ -2194,6 +2218,7 @@
         "A4",
         "E5",
         "A5",
+        "E6",
         "A6",
         "C7"
       ],
@@ -2264,7 +2289,7 @@
       "windowThrowRule" : "if start + count > window.upperBound − rampSamples the plan THROWS ExtractionFailure('Tile at … does not fit its measurement window (… samples needed, … available)') — a tile is never cut across the next step's ramp; with the default period count this cannot fire at any note (the measurement window holds at least four cycles and the tile two), it fires when periodCount exceeds the window's cycles"
     },
     "lattice" : {
-      "amplitudeRefinementRule" : "ANCHOR-CENTRED PER-SIDE REFINEMENT: while points remain, the anchor's index is found by |x − anchor| < 1e−12 (a literal), the side with fewer interior points is chosen (below: indices 0…anchor; above: anchor…last; ties to the QUIET side), and that side's widest gap (the FIRST widest, by strict > over increasing index — the #372 tie) is split at its arithmetic midpoint in dB; so at every odd dimension the anchor sits at the CENTRE INDEX and smaller lattices are subsets of larger ones; the steps are UNEVEN by ruling (reference rig 3×3: −48/−26/−12, steps 22 and 14 dB)",
+      "amplitudeRefinementRule" : "ANCHOR-CENTRED PER-SIDE REFINEMENT: while points remain, the anchor's index is found by |x − anchor| < 1e−12 (a literal), the side with fewer interior points is chosen (below: indices 0…anchor; above: anchor…last; ties to the QUIET side), and that side's widest gap is split at its arithmetic midpoint in dB — the QUIETEST of any that tie: a later gap displaces the running widest only by exceeding it by more than gapTieToleranceDB (widestGap(in:over:)), so two halves of one split, equal in exact arithmetic and unequal by an ulp in doubles, resolve to the lower index at every factor (#372); so at every odd dimension the anchor sits at the CENTRE INDEX and smaller lattices are subsets of larger ones; the steps are UNEVEN by ruling (reference rig 3×3: −48/−26/−12, steps 22 and 14 dB)",
       "amplitudeSeedRule" : "amplitudesDBFS(count, floorDBFS, ceilingDBFS, anchorDBFS): [floor, ceiling] seed the lattice; count 1 returns the ceiling alone; the anchor joins only when count ≥ 3 AND floor + 0.5 < anchor < ceiling − 0.5 (the 0.5 dB margin is a literal) — then the anchor is ON the lattice at every dimension",
       "anchorRule" : "anchorDBFS(voltsAtFullScale) = 20·log10(PSC1.anchorVoltsPeak / volts) when a positive volts factor is known — the dBFS that delivers the standard drive's 168 mV pk at the pedal on THAT rig — and LevelMatchProbe.defaultDriveDBFS (−26) where no volts exist (the plugin render path, an uncalibrated rig); on the reference rig (0 dBFS = 3.35 V pk) the two agree by construction; the anchor is a VOLTAGE, dBFS is rig-relative",
       "anchorVoltsPeak" : 0.168,
@@ -2569,11 +2594,11 @@
         {
           "amplitudesDBFS" : [
             -51.16915959398898,
+            -45.66915959398898,
             -40.16915959398898,
-            -34.66915959398898,
             -29.169159593988976,
+            -24.876869695491735,
             -20.58457979699449,
-            -16.292289898497245,
             -12
           ],
           "anchorDBFS" : -29.169159593988976,
@@ -2606,8 +2631,9 @@
         7
       ],
       "floorRule" : "the default floor is a SPAN below the anchor, never a dBFS constant: defaultFloorDBFS(anchorDBFS) = anchor − defaultFloorSpanBelowAnchorDB (22 dB) — a constant voltage at the device (13.3 mV pk on every calibrated rig, 12 dB below the Reference Box P6's measured 55 mV dead-zone handover), −48 dBFS only as its no-volts expression; an explicit user floor is honoured as set (the sheet passes nil for an untouched slider)",
+      "gapTieToleranceDB" : 1e-09,
       "nestingRule" : "both axes REFINE, so lattices NEST across dimensions: 3 ⊂ 5 ⊂ 7 by construction on every path (an even divider misses itself across dimensions; measured: its N = 4 lost E4, its N = 5 lost G♯3 and C5) — one library holds matrices at different dimensions and the value-matched Compare pairs them point for point; the 3- and 5-point lattices are UNCHANGED from the pre-ruling generator (a load-bearing invariant pinned by the kernel, not a coincidence)",
-      "noAnchorRule" : "with no usable anchor (nil, or outside the span by the margin) the lattice refines from the endpoints alone — the widest gap split at its midpoint, ties to the quieter gap — so nesting still holds and no centre claim is made; a point outside the span is never fabricated",
+      "noAnchorRule" : "with no usable anchor (nil, or outside the span by the margin) the lattice refines from the endpoints alone — the widest gap split at its midpoint, the FIRST widest by strict > over increasing index (deliberately NOT the anchored path's tolerant comparison: Q13 ruled that only future 7×7 captures move, and a tolerance here would move 5- and 7-point lattices on user-moved spans — reported, awaiting a ruling) — so nesting still holds and no centre claim is made; a point outside the span is never fabricated",
       "noVoltsAnchorDBFS" : -26,
       "noteAnchorHz" : 82.4,
       "noteAnchorIsTheTransferDefault" : true,
@@ -2615,7 +2641,7 @@
       "noteSeedRule" : "noteFrequencies(count, lowHz, highHz, anchorHz): the snapped endpoints seed the lattice; TWO DISTINCT GUARANTEES, seeded in precedence order — (1) CROSS-CHECK: when count ≥ 3 and the snapped anchor lies strictly inside the span it is inserted (so the standard note is on every lattice whose span holds it; on the default span it is the low endpoint); (2) CENTRE: the snapped log-midpoint √(low·high) is the centre when it lies strictly inside the span — kept if already present, inserted while room remains; on the default E2–E6 span the centre is E4",
       "noteSnapRule" : "every candidate frequency is SNAPPED to a note: MusicalPitch.describe(frequency:) names the nearest 12-TET pitch (A4 = 440 Hz, midi = 69 + 12·log2(f/440), rounded; nil outside midi 0…127), and TransferCurvePlan.frequency(note:) returns E2 as the app's standard 82.4 Hz (never 12-TET's 82.407) and every other name as exact 12-TET; a span whose ends do not snap returns no lattice; count 1 returns the low end alone",
       "pluginCeilingDBFS" : 0,
-      "tieRule" : "#372, REPRODUCED never fixed: at 7×7 the quiet side's second insertion must split one of two EXACTLY equal gaps (the 22 dB floor-to-anchor span halved), and strict > on floating-point widths decides it by the rounding residue of anchor − 22 and (floor + anchor)/2 — so adjacent volts factors on one rig (4.827 and 4.828 on a Babyface Pro) deliver different quiet-side lattices; the delivered block records what each factor delivers; a deterministic tie-break is a corpus event under the nesting law",
+      "tieRule" : "#372, BROKEN toward the quiet side 2026-09-27 (ruled 2026-09-23, Q13): at 7×7 each side's second insertion must split one of two EXACTLY equal halves of its first split (the 22 dB floor-to-anchor span halved; the anchor-to-ceiling span halved), and the committed strict > on floating-point widths decided it by the rounding residue of anchor − 22 and (floor + anchor)/2 (3.55e−15 dB, measured) — adjacent volts factors on one rig (4.827 and 4.828 on a Babyface Pro) delivered different quiet-side lattices; now two gaps within gapTieToleranceDB are equal and the quieter is split, so both factors deliver the quiet-gap lattice and the delivered block records them identical to the 0.002 dB their anchors differ by; the 3- and 5-point lattices are bit-identical to what shipped (their insertions never reach a tie); a stored 7×7 keeps its lattice and pairs with a later capture by value on the five levels every 7×7 shares (the 5×5's) — a corpus event, accepted by ruling",
       "voltsFactors" : [
         3.35,
         4.827,
@@ -2646,6 +2672,7 @@
         5,
         7
       ],
+      "WaveformMatrixPlan.gapTieToleranceDB" : 1e-09,
       "WaveformMatrixPlan.noteAnchorHz" : 82.4,
       "WaveformMatrixPlan.pluginCeilingDBFS" : 0,
       "WaveformMatrixResult.SampleArray.float32LittleEndianBase64" : "float32le-base64",

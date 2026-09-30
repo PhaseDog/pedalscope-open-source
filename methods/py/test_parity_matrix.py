@@ -133,8 +133,10 @@ def test_the_lattices_are_the_shipped_generators_and_nest(results, manifest):
     """Case (e): every delivered lattice on both sides equals the manifest's
     delivered lattice at that (dimension, factor); 3 ⊂ 5 ⊂ 7 by VALUE on
     both axes at every factor; the anchor at the centre index; E2 on the
-    note lattice; the #372 tie reproduced — four of seven quiet-side levels
-    differ between 4.827 and 4.828 at 7 and none at 5."""
+    note lattice; the #372 tie BROKEN toward the quiet side — 4.827 and
+    4.828 deliver the same lattice at 7 (every level within 0.01 dB, the
+    quiet side's second split the quieter half, the loud side's the
+    anchor-side half) as they always did at 5."""
     delivered = manifest["waveformMatrix"]["lattice"]["delivered"]
 
     def entry(dimension, volts):
@@ -157,18 +159,22 @@ def test_the_lattices_are_the_shipped_generators_and_nest(results, manifest):
     assert lattices["e-3-none"][1] <= lattices["a-identity"][1] <= lattices["e-7-none"][1]
     assert lattices["e-5-335"][1] <= lattices["e-7-335"][1] and lattices["e-5-4828"][1] <= lattices["e-7-4828"][1]
     a7, b7 = P.lattice_of(P.parse(results["e-7-4827"][1]))[2], P.lattice_of(P.parse(results["e-7-4828"][1]))[2]
-    assert sum(abs(x - y) > 0.5 for x, y in zip(a7, b7)) == P.TIE_DIFFERING_LEVELS_AT_SEVEN, (a7, b7)
+    assert all(abs(x - y) <= P.TIE_LEVELS_AGREE_WITHIN_DB for x, y in zip(a7, b7)), (a7, b7)
+    for lattice in (a7, b7):
+        quiet_mid, loud_mid = (lattice[0] + lattice[3]) / 2, (lattice[3] + lattice[6]) / 2
+        assert lattice[2] == quiet_mid and lattice[1] == (lattice[0] + quiet_mid) / 2, lattice
+        assert lattice[5] == loud_mid and lattice[4] == (lattice[3] + loud_mid) / 2, lattice
     # The Python's OWN generators, unaided by the oracle, deliver the manifest's lattices at 1…9.
     wm = manifest["waveformMatrix"]
     for e in delivered:
         anchor = wmx.anchor_dbfs(e.get("voltsAtFullScale"), wm)
         assert wmx.note_frequencies(e["dimension"], wm["lattice"]["defaultLowFrequencyHz"], wm["lattice"]["defaultHighFrequencyHz"],
                                     wm["lattice"]["noteAnchorHz"], wm) == e["notesHz"]
-        assert wmx.amplitudes_dbfs(e["dimension"], wmx.default_floor_dbfs(anchor, wm), wm["lattice"]["defaultCeilingDBFS"], anchor) == e["amplitudesDBFS"]
+        assert wmx.amplitudes_dbfs(e["dimension"], wmx.default_floor_dbfs(anchor, wm), wm["lattice"]["defaultCeilingDBFS"], anchor, wm) == e["amplitudesDBFS"]
     previous = (set(), set())
     for n in range(1, 10):
         hz = set(wmx.note_frequencies(n, wm["lattice"]["defaultLowFrequencyHz"], wm["lattice"]["defaultHighFrequencyHz"], wm["lattice"]["noteAnchorHz"], wm))
-        amps = set(wmx.amplitudes_dbfs(n, wm["lattice"]["defaultFloorDBFS"], wm["lattice"]["defaultCeilingDBFS"], wm["lattice"]["noVoltsAnchorDBFS"]))
+        amps = set(wmx.amplitudes_dbfs(n, wm["lattice"]["defaultFloorDBFS"], wm["lattice"]["defaultCeilingDBFS"], wm["lattice"]["noVoltsAnchorDBFS"], wm))
         if n >= 3 and n % 2 == 1:
             assert previous[0] <= hz and previous[1] <= amps, n
             previous = (hz, amps)

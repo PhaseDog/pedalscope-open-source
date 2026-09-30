@@ -1,0 +1,39 @@
+% Changes since the previous version (#428) — the plain-language
+% companion's change log, one entry per published release, newest first,
+% the same releases as changes-methods.tex. Written in the sitting that
+% closes a release, from a diff of the published tree against the previous
+% published copy. Format guard: py/test_changes.py.
+\clearpage
+\section*{Changes since the previous version}
+\addcontentsline{toc}{section}{Changes since the previous version}
+What changed in this companion since the copy published before it, newest
+first.
+
+\subsection*{1.1 (43) --- 30 September 2026}
+Against the first public copy, published on 23 September 2026.
+\begin{itemize}
+  \item \textbf{A new chapter: ``Floors: how deep a reading can see''.}
+  It sits after the Waveform Matrix chapter and explains what a floor is,
+  where floors come from, why the largest one decides, what a reading
+  near a floor becomes, why averaging lowers noise but not the analysis's
+  own residue, and why a reading above every floor can still be something
+  other than the pedal. Every earlier chapter's floor paragraph points to
+  it.
+  \item \textbf{Chord IMD.} When the played notes moved during a capture,
+  the record no longer writes off every invented tone. It works out how
+  much of the notes' spill reaches each one, reads the tones that stand
+  clear of it, and marks only the others unread.
+  \item \textbf{Harmonic Distortion.} The very last point of each sweep,
+  where the sweep fades out, is left out of every reading, and the
+  simulated pedals the checks use are run the way the app's Simulation
+  Mode runs them.
+  \item \textbf{Transfer Curve.} One more drive note, in the top octave.
+  \item \textbf{Waveform Matrix.} Two nearly identical interface settings
+  could give the largest grid two different sets of quiet levels; they
+  now give the same one, and grids recorded before keep theirs.
+  \item \textbf{Every chapter.} The chapters now say that everything in
+  this companion describes a pedal that has settled. The sections on how
+  you can check that the app does what it says are broken into short
+  named paragraphs, several passages are reworded, and spelling is
+  American throughout.
+\end{itemize}

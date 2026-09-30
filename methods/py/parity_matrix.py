@@ -24,7 +24,7 @@ through one synthetic loop over the shipped lattices and compares:
   and badges, the mirror's two-site expression on both sides.
 
 Part B — the lattice guarantees (nesting, anchor membership, the centre
-index, the #372 tie), the two extraction refusals and the two decoder
+index, the #372 tie broken toward the quiet side), the two extraction refusals and the two decoder
 refusals, the stamp and margin, the badge — is exercised on the oracle's
 runs and on the manifest's delivered lattices; its parity status is
 GENERATED from the run (`gen_docs.py`), never typed.
@@ -154,10 +154,11 @@ MISCUT_SAMPLES = 1
 # cycle peak (−38.5 dB re peak). Pinned as a ceiling on the identity
 # CONTROL; a device case is quoted beside it, never barred.
 T_CROSS_CHECK_CONTROL_RE_PEAK = 0.02
-# #372: the two factors deliver different quiet-side lattices at 7 (four
-# of seven levels differ by more than 0.5 dB) and the same at 5 — both
-# implementations, pinned by count.
-TIE_DIFFERING_LEVELS_AT_SEVEN = 4
+# #372, broken toward the quiet side 2026-09-27: the two factors deliver
+# the SAME quiet-side lattice at 7 and at 5 — every level within the
+# 0.002 dB their anchors differ by (before, four of seven differed by
+# more than 0.5 dB) — both implementations, pinned level by level.
+TIE_LEVELS_AGREE_WITHIN_DB = 0.01
 
 
 @dataclass(frozen=True)

@@ -253,14 +253,14 @@ def thd_at(analysis: hd.Analysis, f0: float, band: Tuple[float, float]) -> Optio
 
 def thd_curve(analysis: hd.Analysis, points: int, band: Tuple[float, float]) -> List[Tuple[float, float]]:
     """``thdCurve(points:)``: log-spaced from 1.5·f1 to f2 (the 1.5× is a
-    literal in the kernel), points with no THD dropped."""
-    lo, hi = math.log(analysis.sweep.f1 * 1.5), math.log(analysis.sweep.f2)
+    literal in the kernel) on chapter one's ONE grid rule (#312: the last
+    point AT f2 exactly — it reads THD 0 there, nothing valid under the
+    fade), points with no THD dropped."""
     out = []
-    for i in range(points):
-        f0 = math.exp(lo + (hi - lo) * i / (points - 1))
+    for f0 in hd.fundamental_grid(analysis.sweep, points):
         t = thd_at(analysis, f0, band)
         if t is not None:
-            out.append((f0, t))
+            out.append((float(f0), t))
     return out
 
 
@@ -515,7 +515,9 @@ def residue_db(frequencies: List[float], fs: float, band: Tuple[float, float], s
     out = []
     for f in frequencies:
         t = thd_at(analysis, f, band)
-        out.append(None if t is None else 20 * math.log10(max(t, 1e-300)))
+        # #312: a column with no valid harmonic (the end column, AT f2)
+        # reads THD 0 and has no residue read — None, as the Swift's nil.
+        out.append(None if t is None or t <= 0 else 20 * math.log10(t))
     return out
 
 

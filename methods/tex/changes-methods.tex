@@ -1,0 +1,58 @@
+% Changes since the previous version (#428) — the technical document's
+% change log, one entry per published release, newest first. Written in the
+% sitting that closes a release, from a diff of the published tree against
+% the previous published copy, never from memory. Format guard:
+% py/test_changes.py (headings, order, the same releases as
+% changes-explained.tex, and the title-page stamp).
+\clearpage
+\section*{Changes since the previous version}
+\addcontentsline{toc}{section}{Changes since the previous version}
+Each entry lists what changed in this document against the copy published
+before it, newest first. The plain-language companion keeps its own list,
+entry for entry.
+
+\subsection*{1.1 (43) --- 30 September 2026}
+Against the copy published on 23 September 2026, the first public copy.
+\begin{itemize}
+  \item \textbf{Harmonic Distortion.} The top of the \term{excited-band} is
+  now part of every order's validity bound on every analysis --- raw,
+  simulated and compensated alike --- so the grid point on $f_2$, inside
+  the fade-out, is outside the band for every order (before, only a
+  compensated record's calibrated-band bound removed it). The THD curve
+  delivers all 128 requested points, to 10\,kHz; it delivered 127, ending
+  at 9552.89\,Hz.
+  \item \textbf{Synthetic devices.} Every synthetic device in the parity
+  runs is applied at four times $f_s$ through the anti-alias chain the
+  app's Simulation Mode uses (\texttt{synthesis.oversampling} in the
+  manifest), replacing application sample by sample at $f_s$. The
+  per-device tolerances and the band-top limitation are restated for that
+  chain: its roll-off, not folded content, is what the tops of $H_7$'s and
+  $H_9$'s validity bands read. The reimplementation gains a full-wave
+  rectifier source ($|x|$), matching the kernel's.
+  \item \textbf{Transfer Curve.} E6 joins the probe notes, between A5 and
+  A6; the table lists eleven.
+  \item \textbf{Chord IMD.} An over-bar coherence reading no longer
+  declares every product untrustworthy. The new paragraph ``What the
+  verdict means for each product'' (Section~\ref{sec:imd-smear}) predicts
+  the smear at each product's bin from the outer detector reads and from
+  the loud products' own skirts, reads a product that stands the smear
+  margin clear of it, and marks the rest unread --- neither present nor
+  absent, their tiles lower bounds, their quiet bins out of the floor. The
+  parity table and the limitations gain the model's terms; the legacy
+  stored-products path and an uncleared lattice keep the earlier
+  sentence.
+  \item \textbf{Waveform Matrix.} The $7 \times 7$ lattice's tie is broken
+  toward the quiet side: two gaps whose widths differ by less than the
+  manifest's \texttt{gapTieToleranceDB} are the same width. The section
+  records the rounding residue that decided the tie before, the two
+  factors that delivered different lattices, that $3 \times 3$ and
+  $5 \times 5$ lattices are unchanged, and that a stored lattice never
+  moves.
+  \item \textbf{Every chapter.} ``Purpose, and what the measurement cannot
+  tell you'' is now ``Significance and limitations''; the Transfer Curve's
+  and the Waveform Matrix's state that every measurement here reads the
+  device at a constant stimulus amplitude after settling. The first
+  section is ``How to read this document''. Spelling is American
+  throughout, several glossary entries are reworded, and the glossary
+  gains ``bound''.
+\end{itemize}
