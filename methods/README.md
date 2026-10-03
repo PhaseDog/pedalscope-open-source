@@ -115,9 +115,9 @@ current methods tag the same way.
 It is a SNAPSHOT COPY, not a subtree split: the pinned tag's `Docs/Methods`
 minus `.venv/`, `py/__pycache__/`, `py/.pytest_cache/` and `tex/build/`,
 plus `methods/pdf/pedalscope-methods.pdf` and
-`methods/pdf/pedalscope-explained.pdf` built from that tag (and, for a
-transition period, the same files under their earlier names `methods.pdf`
-and `explained.pdf`, which are linked publicly), copied with
+`methods/pdf/pedalscope-explained.pdf` built from that tag — the only
+published names (the earlier names `methods.pdf` and `explained.pdf` were
+retired 2026-10-03, every link moved) — copied with
 `rsync --delete` scoped to `methods/`, committed as
 `methods: Docs/Methods at <tag> (<tag's short SHA>, <date>)`. It refuses
 unless the tag exists, this tree is clean on `main`, and `make
@@ -128,8 +128,7 @@ it prints the clone's `--stat` and the list of files removed from
 push. The site builds the same tag's PDFs (`Tools/methods-release.sh
 build`, which the Pages deploy runs) and serves them at the stable URLs
 `/methods/pedalscope-methods.pdf` and `/methods/pedalscope-explained.pdf`,
-the earlier names copied beside them, each linked with a dated download
-name. Nothing in the public copy is edited by hand: a fix lands here and
+each linked with a dated download name. Nothing in the public copy is edited by hand: a fix lands here and
 is re-published. The parity tests travel as the record of what is asserted
 and at what tolerance — they call `analysisdump`, which is private, so they
 cannot run there; the public README says what can.
