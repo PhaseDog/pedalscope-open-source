@@ -38,11 +38,11 @@ pedal, so two generations compare cleanly instead of interleaving.
 `methods/` holds the two documents that describe how PedalScope measures,
 and everything they are built from:
 
-- **`methods/pdf/methods.pdf`** — the technical document: for each
+- **`methods/pdf/pedalscope-methods.pdf`** — the technical document: for each
   measurement kind, the stimulus, the analysis pipeline step by step, every
   parameter with its value, the figures, a worked example with the parity
   numbers, and the limits.
-- **`methods/pdf/explained.pdf`** — the plain-language companion, chapter
+- **`methods/pdf/pedalscope-explained.pdf`** — the plain-language companion, chapter
   for chapter, for a reader who plays and wants to know what the charts mean.
 - `methods/tex/` — the LaTeX sources of both (`methods.tex`,
   `explained.tex`, `preamble.tex`, `references.bib`) and the pinned
