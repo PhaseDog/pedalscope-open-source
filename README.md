@@ -4,13 +4,13 @@ The open-source side of [PedalScope](https://pedalscope.com), the macOS
 instrument that measures how guitar pedals distort: the measurement
 libraries, the methods documents with the code that reproduces them, and
 the hardware plans for the project's reference fixtures. One repository,
-three kinds of thing, each under its own licence (see [Licences](#licences)
+three kinds of thing, each under its own license (see [Licenses](#licenses)
 at the end).
 
 ## Measurement libraries
 
 Each library is a real device, measured under stated conditions and exported
-from the shipping build exactly as measured — nothing idealised, nothing
+from the shipping build exactly as measured — nothing idealized, nothing
 cleaned up, no record re-taken because a nicer one was wanted.
 
 **This repository holds no measurement data in git.** Every library is a
@@ -175,9 +175,9 @@ Bench/BreakoutBox at <sha> (<date>)`), each by its own allowlist: exactly
 the files listed above travel, and the bench records never do. Nothing
 here is edited by hand: a correction is made at the source and republished.
 
-## Licences
+## Licenses
 
-| what | licence | holder |
+| what | license | holder |
 |---|---|---|
 | the measurement libraries (release assets) | [CC BY 4.0](LICENSE) | Richard Hoge |
 | `methods/` — the code (`py/`, the `latexmkrc`) | [MIT](methods/LICENSE) | Richard Hoge |
@@ -186,3 +186,13 @@ here is edited by hand: a correction is made at the source and republished.
 
 Use them, share them, build on them, with attribution to PedalScope. The
 PedalScope name and mark are not part of the grant.
+
+## Copies, contributions and issues
+
+Everything here is published under the licenses above, so copies and forks
+are welcome on their terms. The PedalScope name and icon are not licensed,
+so a copy should not present itself as PedalScope or as this repository.
+This repository is the canonical source. It is published from PedalScope's
+own records and documents, so it does not accept pull requests or other
+contributions. Issues are open: questions about the methods, the hardware
+plans or the library data are welcome there.
